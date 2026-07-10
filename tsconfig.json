@@ -16,5 +16,5 @@
     "sourceMap": false,
     "types": ["node"]
   },
-  "include": ["collector/src/**/*.ts", "tests/**/*.ts"]
+  "include": ["collector/src/**/*.ts", "collector/test/**/*.ts", "tests/**/*.ts"]
 }
