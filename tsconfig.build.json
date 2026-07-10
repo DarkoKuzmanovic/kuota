@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist/collector",
+    "rootDir": "collector/src",
+    "noEmit": false
+  },
+  "include": ["collector/src/**/*.ts"]
+}
