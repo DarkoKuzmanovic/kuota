@@ -52,7 +52,7 @@
 ## Milestone 1 — Written-Spec Gate and Project Foundations
 
 **Outcome:** Obtain approval, establish the package/test skeleton, and freeze a tested normalized contract and security boundary before provider or UI feature work.  
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 2
+**Counters:** reviews: 2 · fix-cycles: 1 · oracle: 0 · direct-edits: 3
 
 - [x] **M1.1 — Complete and record written-spec approval**
   - **Files:** `docs/specs/2026-07-10-kuota-design.md`, `PLAN.md`
@@ -69,10 +69,11 @@
   - **Dependencies:** M1.1.
   - **Suggested lane:** medium.
 
-- [ ] **M1.3 — Install the secret-free test and fixture policy**
+- [x] **M1.3 — Install the secret-free test and fixture policy**
   - **Files:** `tests/fixtures/README.md`, `tests/security/fixture-safety.test.ts`, `collector/src/security/redact.ts`, `collector/test/security/redact.test.ts`
   - **Work:** Define synthetic fixture rules and a denylist/pattern scan for authorization headers, bearer tokens, refresh tokens, account identifiers, and credential-shaped values. Implement a central redaction helper test-first for all diagnostics and safe status text.
   - **Acceptance criteria:** Tests fail on seeded credential examples and pass on approved synthetic fixtures; redaction covers nested error metadata without echoing raw response bodies; no real credential is required to run tests.
+  - **Evidence (2026-07-10):** Test-first implementation completed; `npm run typecheck` exit 0; `npm test` exit 0 with 107/107 passing across 14 suites. Scrutinize cycle 1 returned SHIP. Deep code review returned APPROVED WITH FIXES; JWT-value detection, boundary-aware synthetic markers, Error-property key scanning, numeric account-ID scanning, duplicate-test removal, and fail-safe policy docs were corrected and independently reverified without re-review.
   - **Dependencies:** M1.2.
   - **Suggested lane:** medium.
 
@@ -208,6 +209,7 @@
 |---|---|---|---|
 | G0 | Written specification reviewed and explicitly approved for implementation | PASS | Project owner approved the written spec on 2026-07-10; status recorded in the design document |
 | G1 | Milestone 1 foundation, contract, security boundary, and package skeleton verified | NOT STARTED | Requires G0 and M1 evidence |
+| M1.3 | Security-critical fixture safety and redaction task review | PASS | Scrutinize cycle 1: SHIP; deep review: APPROVED WITH FIXES; one mechanical fix cycle applied; post-fix typecheck exit 0 and tests 107/107 on 2026-07-10 |
 | G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
