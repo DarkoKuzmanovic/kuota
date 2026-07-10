@@ -1,7 +1,8 @@
 # Kuota Design
 
-**Date:** 2026-07-10  
-**Status:** Approved design, pending written-spec review
+**Date:** 2026-07-10<br>
+**Status:** Approved for implementation<br>
+**Approved by:** Project owner, 2026-07-10
 
 ## Purpose
 
