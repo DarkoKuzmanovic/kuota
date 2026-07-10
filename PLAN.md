@@ -45,12 +45,14 @@
 - Follow Plasma 6 package conventions and Kirigami/Plasma components; avoid custom visual behavior when a native accessible component exists.
 - Test malformed, missing, optional, stale, auth-needed, error, partial-success, narrow-layout, and light/dark paths—not only happy paths.
 - Do not hand-edit generated package artifacts or lockfiles; modify sources and regenerate with the documented command.
+- Project layout: Plasma sources live under `plasmoid/`; collector TypeScript under `collector/src/`; tests under `tests/`; generated collector and package artifacts under ignored `dist/`.
+- Build the collector with `npm run build:collector`; validate the package with `npm run validate:plasma`; build the distributable with `npm run build:artifact`.
 - Each milestone must pass its exit gate before the next begins. Increment milestone counters when reviews, correction rounds, oracle consultations, or direct implementation edits occur.
 
 ## Milestone 1 — Written-Spec Gate and Project Foundations
 
 **Outcome:** Obtain approval, establish the package/test skeleton, and freeze a tested normalized contract and security boundary before provider or UI feature work.  
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 1
+**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 2
 
 - [x] **M1.1 — Complete and record written-spec approval**
   - **Files:** `docs/specs/2026-07-10-kuota-design.md`, `PLAN.md`
@@ -59,10 +61,11 @@
   - **Dependencies:** None; hard prerequisite for M1.2–M1.8 and every later milestone.
   - **Suggested lane:** easy (review coordination and documentation only; escalate security or architecture disputes to hard/oracle review).
 
-- [ ] **M1.2 — Establish the standalone project and Plasma package skeleton**
+- [x] **M1.2 — Establish the standalone project and Plasma package skeleton**
   - **Files:** `package.json`, `tsconfig.json`, `.gitignore`, `plasmoid/metadata.json`, `plasmoid/contents/ui/main.qml`, `collector/src/cli.ts`, `tests/`
   - **Work:** Create the minimal repository layout for a Plasma 6 package and bundled Node collector. Author collector code in strict TypeScript and compile it to deterministic runnable JavaScript for installation. Add scripts for typecheck, unit tests, package validation, and artifact build. Keep the initial QML and CLI loadable but feature-free.
   - **Acceptance criteria:** Dependency installation is reproducible; typecheck and empty test suite pass; Plasma tooling accepts metadata with the intended Plasma 6 minimum; QML and TypeScript collector entry points exist without provider logic; the build emits runnable JavaScript for Node >=20; build output is ignored or generated deterministically.
+  - **Evidence (2026-07-10):** `npm run typecheck` exit 0; `npm test` exit 0 (1/1 scaffold test); `npm run validate:plasma` exit 0 with package ID `io.github.darkokuzmanovic.kuota`, API minimum 6.0, and MIT metadata; `npm run build:artifact` exit 0 and emitted `dist/artifact/kuota-v0.1.0.plasmoid`; source and packaged collector smoke runs each emitted one schema-v1 JSON document with an empty provider list.
   - **Dependencies:** M1.1.
   - **Suggested lane:** medium.
 

@@ -1,0 +1,20 @@
+{
+  "KPackageStructure": "Plasma/Applet",
+  "KPlugin": {
+    "Authors": [
+      {
+        "Email": "darko.kuzmanovic@gmail.com",
+        "Name": "Darko Kuzmanovic"
+      }
+    ],
+    "Category": "System Information",
+    "Description": "Keep Claude, Umans, and Codex account usage visible on the Plasma desktop.",
+    "Icon": "network-server",
+    "Id": "io.github.darkokuzmanovic.kuota",
+    "License": "MIT",
+    "Name": "Kuota",
+    "Version": "0.1.0",
+    "Website": "https://github.com/darkokuzmanovic/kuota"
+  },
+  "X-Plasma-API-Minimum-Version": "6.0"
+}
