@@ -29,7 +29,15 @@ export type ProviderFailureState = Exclude<ProviderState, "ok">;
  */
 export type ProviderAdapterDependencies = Readonly<Record<string, unknown>>;
 
-/** Inputs shared by every provider invocation. */
+/**
+ * Inputs shared by every provider invocation.
+ *
+ * `signal` is the native, fetch-compatible AbortSignal. Adapters are trusted
+ * internal code: abort listeners MUST NOT throw. An adapter that performs
+ * callback work from an abort listener must catch callback errors and reject
+ * its `collect()` promise; the collector cannot turn a throwing EventTarget
+ * callback into an adapter promise rejection without proxying the signal.
+ */
 export interface ProviderAdapterContext<
   TDependencies = ProviderAdapterDependencies,
 > {
@@ -141,7 +149,11 @@ export function createNormalizedProviderResult<TId extends ProviderId>(
   return result;
 }
 
-/** The adapter result is correlated with the adapter's provider ID. */
+/**
+ * The adapter result is correlated with the adapter's provider ID. Adapters
+ * must keep abort-listener callbacks non-throwing and convert callback
+ * failures into this promise's rejection path.
+ */
 export interface ProviderAdapter<
   TId extends ProviderId,
   TDependencies = ProviderAdapterDependencies,
