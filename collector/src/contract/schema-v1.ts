@@ -18,6 +18,12 @@ export interface UsageWindow {
 export interface ClaudeDetails {
   readonly model?: string;
   readonly tokens?: number;
+  readonly extraUsageEnabled?: boolean;
+  readonly extraUsageUsedCredits?: number;
+  readonly extraUsageMonthlyLimit?: number;
+  readonly extraUsageCurrency?: string;
+  readonly extraUsageDecimalPlaces?: number;
+  readonly extraUsageDisabledReason?: string;
 }
 
 export interface UmansDetails {
@@ -43,8 +49,14 @@ export type ProviderDetails =
   | CodexProviderDetails;
 
 type NonEmptyClaudeDetails =
-  | { readonly model: string; readonly tokens?: number }
-  | { readonly model?: string; readonly tokens: number };
+  | (ClaudeDetails & { readonly model: string })
+  | (ClaudeDetails & { readonly tokens: number })
+  | (ClaudeDetails & { readonly extraUsageEnabled: boolean })
+  | (ClaudeDetails & { readonly extraUsageUsedCredits: number })
+  | (ClaudeDetails & { readonly extraUsageMonthlyLimit: number })
+  | (ClaudeDetails & { readonly extraUsageCurrency: string })
+  | (ClaudeDetails & { readonly extraUsageDecimalPlaces: number })
+  | (ClaudeDetails & { readonly extraUsageDisabledReason: string });
 type NonEmptyUmansDetails =
   | { readonly plan: string; readonly requests?: number; readonly concurrency?: number }
   | { readonly plan?: string; readonly requests: number; readonly concurrency?: number }
