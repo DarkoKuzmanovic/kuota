@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "collectionStartedAt": "2026-07-11T15:00:00.000Z",
+  "collectionFinishedAt": "2026-07-11T15:00:01.000Z",
+  "providers": [
+    {
+      "id": "claude",
+      "state": "ok",
+      "status": "Synthetic fixture: usage is current",
+      "windows": [
+        {
+          "id": "weekly",
+          "label": "Weekly",
+          "usedPercent": 30,
+          "used": 30,
+          "limit": 100
+        }
+      ]
+    },
+    {
+      "id": "umans",
+      "state": "auth-needed",
+      "status": "Synthetic fixture: login required"
+    },
+    {
+      "id": "codex",
+      "state": "error",
+      "status": "Synthetic fixture: provider unavailable"
+    }
+  ]
+}

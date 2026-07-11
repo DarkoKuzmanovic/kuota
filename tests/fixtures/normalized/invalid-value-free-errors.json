@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "collectionStartedAt": "2026-07-11T20:00:00.000Z",
+  "collectionFinishedAt": "2026-07-11T20:00:01.000Z",
+  "providers": [
+    {
+      "id": "claude",
+      "state": "stale",
+      "windows": [{ "id": "weekly", "label": "Weekly" }]
+    }
+  ]
+}

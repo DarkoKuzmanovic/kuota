@@ -1,6 +1,12 @@
-import { describe, test } from 'node:test';
 import assert from 'node:assert';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, test } from 'node:test';
 import { scanForSecrets } from '../../collector/src/security/redact.js';
+
+
+const NORMALIZED_FIXTURE_DIRECTORY = findNormalizedFixtureDirectory();
 
 /**
  * Fixture safety policy tests.
@@ -26,6 +32,16 @@ function assertSafe(fixture: unknown, label: string): void {
     `Fixture "${label}" should be safe but had findings: ${JSON.stringify(findings)}`,
   );
 }
+
+test('automatically scans every normalized JSON fixture for secrets', () => {
+  const fixturePaths = normalizedJsonFiles(NORMALIZED_FIXTURE_DIRECTORY);
+  assert.ok(fixturePaths.length > 0, 'normalized fixture directory must contain JSON files');
+
+  for (const fixturePath of fixturePaths) {
+    const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as unknown;
+    assertSafe(fixture, relative(NORMALIZED_FIXTURE_DIRECTORY, fixturePath));
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Rejects seeded credentials
@@ -168,7 +184,7 @@ describe('fixture safety — approves synthetic fixtures', () => {
           {
             id: 'claude',
             state: 'ok',
-            lastSuccess: '2026-07-11T00:00:00.000Z',
+            lastSuccessAt: '2026-07-11T00:00:00.000Z',
             windows: [
               {
                 id: 'short-term',
@@ -181,7 +197,7 @@ describe('fixture safety — approves synthetic fixtures', () => {
           {
             id: 'codex',
             state: 'ok',
-            lastSuccess: '2026-07-11T00:00:00.000Z',
+            lastSuccessAt: '2026-07-11T00:00:00.000Z',
             windows: [
               {
                 id: 'primary',
@@ -196,7 +212,7 @@ describe('fixture safety — approves synthetic fixtures', () => {
           {
             id: 'umans',
             state: 'ok',
-            lastSuccess: '2026-07-11T00:00:00.000Z',
+            lastSuccessAt: '2026-07-11T00:00:00.000Z',
             windows: [
               {
                 id: 'rolling',
@@ -271,7 +287,7 @@ describe('fixture safety — approves synthetic fixtures', () => {
       {
         provider: 'claude',
         state: 'stale',
-        lastSuccess: '2026-07-10T00:00:00.000Z',
+        lastSuccessAt: '2026-07-10T00:00:00.000Z',
         windows: [{ id: 'short-term', label: '5-hour window', percentUsed: 42.5 }],
       },
       'stale state fixture',
@@ -285,3 +301,30 @@ describe('fixture safety — approves synthetic fixtures', () => {
     );
   });
 });
+
+function normalizedJsonFiles(directory: string): readonly string[] {
+  return readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const entryPath = resolve(directory, entry.name);
+      if (entry.isDirectory()) {
+        return normalizedJsonFiles(entryPath);
+      }
+      return entry.isFile() && entry.name.endsWith('.json') ? [entryPath] : [];
+    })
+    .sort();
+}
+
+function findNormalizedFixtureDirectory(): string {
+  let directory = dirname(fileURLToPath(import.meta.url));
+  while (true) {
+    const candidate = resolve(directory, 'tests/fixtures/normalized');
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+    const parent = dirname(directory);
+    if (parent === directory) {
+      throw new Error('Could not locate tests/fixtures/normalized from the compiled test');
+    }
+    directory = parent;
+  }
+}

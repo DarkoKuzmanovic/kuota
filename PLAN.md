@@ -52,7 +52,7 @@
 ## Milestone 1 — Written-Spec Gate and Project Foundations
 
 **Outcome:** Obtain approval, establish the package/test skeleton, and freeze a tested normalized contract and security boundary before provider or UI feature work.  
-**Counters:** reviews: 2 · fix-cycles: 1 · oracle: 0 · direct-edits: 3
+**Counters:** reviews: 5 · fix-cycles: 3 · oracle: 0 · direct-edits: 3
 
 - [x] **M1.1 — Complete and record written-spec approval**
   - **Files:** `docs/specs/2026-07-10-kuota-design.md`, `PLAN.md`
@@ -77,10 +77,11 @@
   - **Dependencies:** M1.2.
   - **Suggested lane:** medium.
 
-- [ ] **M1.4 — Specify and test normalized collector schema v1**
+- [x] **M1.4 — Specify and test normalized collector schema v1**
   - **Files:** `collector/src/contract/schema-v1.ts`, `collector/src/contract/validate.ts`, `collector/test/contract/schema-v1.test.ts`, `docs/architecture/collector-contract.md`
   - **Work:** Define collection start/end timestamps, configured-provider records, four provider states, last-success timestamp, common usage windows, optional percentage/used/limit/reset fields, namespaced provider details, and secret-free status text. Define whole-document validation and explicit rejection of unsupported schema versions.
   - **Acceptance criteria:** Valid full, minimal, optional-field, partial-provider-failure, and unlimited-plan documents pass; malformed timestamps, percentages, counts, states, provider IDs, versions, and partial documents fail clearly; missing optional data is omitted; the documented examples validate.
+  - **Evidence (2026-07-10):** Test-first schema/runtime validator, contract documentation, and 23 explicit normalized fixtures completed. Final independent verification: `npm run typecheck` exit 0; `npm test` exit 0 with 121/121 across 14 suites; collector build exit 0; CLI output validates as schema v1; all 23 fixtures pass automatic and standalone secret scans. Scrutinize cycle 1 returned FIX-FIRST for type/runtime discrimination, stale retention, and fixture regression coverage; cycle 2 returned SHIP. Non-Anthropic deep code review returned APPROVED WITH FIXES; boundary and mixed-invalid-state tests plus timestamp clarity fixes were applied and self-verified without re-review.
   - **Dependencies:** M1.2 and M1.3.
   - **Suggested lane:** hard (contract choices constrain collector and QML).
 
@@ -210,6 +211,7 @@
 | G0 | Written specification reviewed and explicitly approved for implementation | PASS | Project owner approved the written spec on 2026-07-10; status recorded in the design document |
 | G1 | Milestone 1 foundation, contract, security boundary, and package skeleton verified | NOT STARTED | Requires G0 and M1 evidence |
 | M1.3 | Security-critical fixture safety and redaction task review | PASS | Scrutinize cycle 1: SHIP; deep review: APPROVED WITH FIXES; one mechanical fix cycle applied; post-fix typecheck exit 0 and tests 107/107 on 2026-07-10 |
+| M1.4 | Public normalized collector contract task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; DeepSeek code review: APPROVED WITH FIXES; two fix cycles total; final typecheck/build/CLI pass, tests 121/121, fixtures 23/23 secret-safe on 2026-07-10 |
 | G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |

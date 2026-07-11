@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "collectionStartedAt": "2026-07-11T12:00:00.000Z",
+  "collectionFinishedAt": "2026-07-11T12:00:01.000Z",
+  "providers": [
+    {
+      "id": "claude",
+      "state": "stale",
+      "status": "Synthetic cached usage",
+      "lastSuccessAt": "2026-07-10T12:00:00.000Z",
+      "windows": [
+        {
+          "id": "short-term",
+          "label": "Short-term",
+          "usedPercent": 55.5,
+          "used": 111,
+          "limit": 200,
+          "resetAt": "2026-07-11T17:00:00.000Z"
+        }
+      ],
+      "details": {
+        "claude": {
+          "model": "synthetic-cached-model",
+          "tokens": 1110
+        }
+      }
+    }
+  ]
+}

@@ -18,6 +18,10 @@ All test fixtures in the Kuota project must be **synthetic and recognizable as n
 
 7. **Fail-safe redaction of generic key names.** Fields literally named `key` or `token` are intentionally flagged by the scanner and redacted by `redact()`, even when the value is benign. This is a deliberate fail-safe: over-redacting a harmless field is preferable to leaking a real credential whose key happened to be generic. Safe fixtures must avoid those field names unless the fixture intentionally verifies rejection behavior.
 
+## Normalized contract fixtures
+
+The normalized schema fixtures under `tests/fixtures/normalized/` are classified by an explicit filename inventory in the contract tests; deleting or renaming one fails the suite. A valid `stale` provider always includes `lastSuccessAt` plus retained data: at least one usage window or a non-empty details object in the provider's matching namespace. The valid stale examples intentionally omit other optional fields, while invalid stale examples cover missing retention.
+
 ## How to verify
 
 ```bash

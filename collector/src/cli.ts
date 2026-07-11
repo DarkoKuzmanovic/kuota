@@ -1,13 +1,11 @@
-export interface PlaceholderOutput {
-  schemaVersion: number;
-  collectedAt: string;
-  providers: readonly unknown[];
-}
+import type { CollectorDocument } from "./contract/schema-v1.js";
 
 function main(): void {
-  const output: PlaceholderOutput = {
+  const collectionStartedAt = new Date().toISOString();
+  const output: CollectorDocument = {
     schemaVersion: 1,
-    collectedAt: new Date().toISOString(),
+    collectionStartedAt,
+    collectionFinishedAt: new Date().toISOString(),
     providers: [],
   };
   process.stdout.write(`${JSON.stringify(output)}\n`);
