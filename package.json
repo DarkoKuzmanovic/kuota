@@ -8,8 +8,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsc -p tsconfig.test.json && cd dist/tests && node --test",
-    "build:collector": "tsc -p tsconfig.build.json",
+    "test": "node scripts/clean-output.js tests && tsc -p tsconfig.test.json && cd dist/tests && node --test",
+    "build:collector": "node scripts/clean-output.js collector && tsc -p tsconfig.build.json",
     "validate:plasma": "kpackagetool6 --appstream-metainfo plasmoid && qmllint plasmoid/contents/ui/main.qml",
     "build:artifact": "npm run build:collector && node scripts/build-artifact.js"
   },

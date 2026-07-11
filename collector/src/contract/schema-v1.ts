@@ -111,6 +111,11 @@ export type ProviderRecord =
   | UmansProviderRecord
   | CodexProviderRecord;
 
+export type ProviderRecordFor<TId extends ProviderId> = Extract<
+  ProviderRecord,
+  { readonly id: TId }
+>;
+
 export interface CollectorDocument {
   readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly collectionStartedAt: string;

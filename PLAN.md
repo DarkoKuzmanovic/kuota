@@ -47,12 +47,13 @@
 - Do not hand-edit generated package artifacts or lockfiles; modify sources and regenerate with the documented command.
 - Project layout: Plasma sources live under `plasmoid/`; collector TypeScript under `collector/src/`; tests under `tests/`; generated collector and package artifacts under ignored `dist/`.
 - Build the collector with `npm run build:collector`; validate the package with `npm run validate:plasma`; build the distributable with `npm run build:artifact`.
+- Test and collector builds must clean only their own ignored output directory before TypeScript emit; stale compiled files can otherwise survive source deletion and create false-green test/build evidence.
 - Each milestone must pass its exit gate before the next begins. Increment milestone counters when reviews, correction rounds, oracle consultations, or direct implementation edits occur.
 
 ## Milestone 1 — Written-Spec Gate and Project Foundations
 
 **Outcome:** Obtain approval, establish the package/test skeleton, and freeze a tested normalized contract and security boundary before provider or UI feature work.  
-**Counters:** reviews: 5 · fix-cycles: 3 · oracle: 0 · direct-edits: 3
+**Counters:** reviews: 8 · fix-cycles: 6 · oracle: 1 (second failed M1.5 fix attempt) · direct-edits: 3
 
 - [x] **M1.1 — Complete and record written-spec approval**
   - **Files:** `docs/specs/2026-07-10-kuota-design.md`, `PLAN.md`
@@ -85,10 +86,11 @@
   - **Dependencies:** M1.2 and M1.3.
   - **Suggested lane:** hard (contract choices constrain collector and QML).
 
-- [ ] **M1.5 — Define provider adapter and collector orchestration interfaces**
+- [x] **M1.5 — Define provider adapter and collector orchestration interfaces**
   - **Files:** `collector/src/providers/types.ts`, `collector/src/providers/registry.ts`, `collector/src/collect/types.ts`, `collector/test/providers/registry.test.ts`
   - **Work:** Define adapters that accept isolated dependencies and return one normalized provider result without throwing secrets across the boundary. Define configured/enabled provider selection, stable IDs/order, timeout/cancellation inputs, and error-to-state mapping contracts; register only Claude, Umans, and Codex placeholders.
   - **Acceptance criteria:** Typecheck prevents provider-native payloads from leaking into common records; registry rejects unknown/duplicate IDs; disabled providers are not selected; adapter errors can be converted to safe states independently; no network or credential read occurs in registry tests.
+  - **Evidence (2026-07-10):** Explicit-ID adapters, mapped heterogeneous unions, correlated registrations/collection outcomes, nominal runtime-validated provider results, safe stale/error mapping, canonical placeholders, and clean output scripts completed test-first. Final verification: typecheck exit 0; tests 133/133 across 14 suites; collector/artifact builds and source+packaged CLI schema validation pass. Scrutinize cycles 1 and 2 both returned FIX-FIRST; the second-failed-fix oracle trigger was logged and a non-Anthropic Terra oracle prescribed the final contract shape. Oracle-guided fixes were independently verified, DeepSeek final review returned APPROVED, and its single mechanical frozen-selection fix was self-verified without re-review.
   - **Dependencies:** M1.4.
   - **Suggested lane:** medium.
 
@@ -212,6 +214,7 @@
 | G1 | Milestone 1 foundation, contract, security boundary, and package skeleton verified | NOT STARTED | Requires G0 and M1 evidence |
 | M1.3 | Security-critical fixture safety and redaction task review | PASS | Scrutinize cycle 1: SHIP; deep review: APPROVED WITH FIXES; one mechanical fix cycle applied; post-fix typecheck exit 0 and tests 107/107 on 2026-07-10 |
 | M1.4 | Public normalized collector contract task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; DeepSeek code review: APPROVED WITH FIXES; two fix cycles total; final typecheck/build/CLI pass, tests 121/121, fixtures 23/23 secret-safe on 2026-07-10 |
+| M1.5 | Provider adapter/registry public interface task review | PASS | Scrutinize cycles 1–2: FIX-FIRST; oracle: 1 (second failed fix attempt, Terra due Anthropic quota restriction); oracle-guided contract fix verified; DeepSeek final review: APPROVED; final typecheck/build/artifact/CLI pass and tests 133/133 on 2026-07-10 |
 | G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
