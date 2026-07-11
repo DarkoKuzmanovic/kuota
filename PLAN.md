@@ -128,7 +128,7 @@
 **Key deliverables:** Claude synthetic fixtures; credential lookup isolated in collector; cache freshness policy; normalized windows; safe auth-needed/error states; no OAuth mutation.  
 **Exit gate:** Valid/malformed/optional/model-window responses, cache precedence, stale fallback, 429/backoff, timeout, redaction, and normalized schema tests pass.  
 **Depends on:** Milestone 1.  
-**Counters:** reviews: 11 · fix-cycles: 5 · oracle: 1 (second failed M2.2 parser fix attempt) · direct-edits: 0
+**Counters:** reviews: 17 · fix-cycles: 9 · oracle: 1 (second failed M2.2 parser fix attempt) · direct-edits: 4
 
 - [x] **M2.1 — Implement Claude credential discovery and auth-state classification test-first**
   - Reads only the injected/default `anthropic` entry in `~/.pi/agent/auth.json`; no env or Claude Code fallback, mutation, cache, or network behavior.
@@ -142,6 +142,11 @@
 - [x] **M2.3 — Implement Kuota-owned Claude last-known-good cache test-first**
   - Uses exact versioned normalized-record envelopes at injected/default `~/.cache/kuota/claude.json`; safe reads never create directories, while writes prepare only a trusted private `kuota` child and atomically store 0600 data.
   - **Evidence (2026-07-11):** Exact envelope/runtime-record validation, fresh stale-record reconstruction, no-follow reads, corrupted-owned-cache replacement, trusted-parent/0700 directory creation, parent fsync, concurrency conflict handling, restrictive atomic writes, post-commit re-read semantics, and credential/raw-response exclusion completed. Final verification: typecheck exit 0; tests 246/246 across 14 suites; collector/artifact builds and Plasma validation pass. Scrutinize cycle 1 returned SHIP; final Opus security/API review returned APPROVED with no blockers or should-fixes.
+
+
+- [x] **M2.4 — Implement bounded Claude OAuth usage fetch and backoff classification test-first**
+  - Uses an injected native-fetch seam with the exact Claude usage endpoint and OAuth headers, token-only authorization, manual redirects, strict status/auth/rate-limit classification, clamped `Retry-After`, a streamed response-byte cap, orchestration-owned cancellation, and value-free failure outcomes; no cache or registry wiring yet.
+  - **Evidence (2026-07-12):** Exact request compatibility, pre/post-read abort handling, hostile chunk totality, zero-progress rejection, exact-cap acceptance, reader cancellation, strict status/header parsing, body-size bounds, token non-leakage, and safe outcome classification completed test-first. Scrutinize cycle 1 returned FIX-FIRST and cycle 2 SHIP; final deep security/API review returned APPROVED WITH FIXES for a resolving-reader cancellation/no-progress gap; focused sign-off correction cycles hardened mutation-sensitive coverage and removed a redundant non-owning cap guard; final focused review APPROVED. Fresh final verification: `npm run typecheck` exit 0; `npm test` exit 0 with 302/302 across 14 suites; `npm run build:collector` exit 0; `npm run validate:plasma` exit 0; `npm run build:artifact` exit 0.
 
 ## Milestone 3 — Codex Adapter and Safe OAuth Persistence
 
@@ -238,6 +243,7 @@
 | M1.8 / G1 | Foundation documentation, reproducibility, security, and architecture review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra final security/architecture review: APPROVED; detached clean-worktree reproduction at `bb60a2e` passed all foundation gates on 2026-07-11 |
 | M2.2 | Claude response normalization and schema review | PASS | Scrutinize cycles 1–2: FIX-FIRST; Opus Oracle escalation; cycle 3: SHIP; final code review APPROVED WITH FIXES; focused final sign-off APPROVED; typecheck/build/artifact/Plasma pass and tests 223/223 on 2026-07-11 |
 | M2.3 | Kuota-owned Claude cache security/API review | PASS | Scrutinize cycle 1: SHIP; final Opus review: APPROVED; typecheck/build/artifact/Plasma pass and tests 246/246 on 2026-07-11 |
+| M2.4 | Bounded Claude OAuth usage fetch and backoff security/API review | PASS | Scrutinize cycle 1 FIX-FIRST, cycle 2 SHIP; deep final review APPROVED WITH FIXES; three focused correction/sign-off cycles ending APPROVED; final typecheck/build/artifact/Plasma pass and tests 302/302 on 2026-07-12 |
 | G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
@@ -251,9 +257,9 @@
 ## Handoff Block
 
 - **Current gate:** G2 — Claude adapter verified.
-- **Next action:** Execute M2.4 only: bounded Claude OAuth usage fetch and backoff classification, test-first.
-- **First implementation action:** Define an injected fetch boundary with exact endpoint/headers, body-size cap, native cancellation, HTTP/auth/rate-limit classification, and parsed `Retry-After` without cache or registry wiring.
-- **Required inputs before execution:** Use only synthetic Response seams; never log or echo tokens, headers, bodies, account identifiers, or native errors.
+- **Next action:** Execute M2.5 only: compose Claude credential discovery, bounded fetch, response normalization, cache/backoff state, and stale fallback into the registered adapter, test-first.
+- **First implementation action:** Add failing adapter-level tests for fresh-cache precedence, bounded live success, 429 backoff retention, auth-needed classification, stale fallback, and safe independent failure before wiring the existing M2.1–M2.4 components.
+- **Required inputs before execution:** Use only synthetic auth/cache/fetch seams; never log or echo tokens, headers, bodies, account identifiers, native errors, or credential-file contents.
 - **Executor rules:** Work milestone-by-milestone; follow task dependencies; write tests first where required; keep secrets out of all artifacts; stop on contract/security ambiguity rather than guessing.
 - **Review protocol:** At each exit gate, run the listed checks, record commands/results in the Gate Log, obtain the required independent review, and update only that milestone's counters.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
