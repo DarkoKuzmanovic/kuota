@@ -22,6 +22,10 @@ export type ValidationResult =
   | { readonly ok: true; readonly value: CollectorDocument }
   | { readonly ok: false; readonly errors: readonly ValidationIssue[] };
 
+export type ProviderRecordValidationResult =
+  | { readonly ok: true; readonly value: ProviderRecord }
+  | { readonly ok: false; readonly errors: readonly ValidationIssue[] };
+
 const DOCUMENT_KEYS = new Set([
   "schemaVersion",
   "collectionStartedAt",
@@ -129,6 +133,15 @@ export function validateCollectorDocument(input: unknown): ValidationResult {
 
 export function isCollectorDocument(input: unknown): input is CollectorDocument {
   return validateCollectorDocument(input).ok;
+}
+
+export function validateProviderRecord(input: unknown): ProviderRecordValidationResult {
+  const errors: ValidationIssue[] = [];
+  const value = parseProvider(input, "$", errors);
+  if (value === undefined || errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return { ok: true, value };
 }
 
 function parseProvider(
@@ -644,7 +657,7 @@ function validateObjectKeys(
   allowed: ReadonlySet<string>,
   errors: ValidationIssue[],
 ): void {
-  for (const key of Object.keys(input)) {
+  for (const key of Object.getOwnPropertyNames(input)) {
     if (allowed.has(key)) {
       continue;
     }
@@ -652,6 +665,9 @@ function validateObjectKeys(
       ? "credential-shaped field"
       : "unknown field";
     addIssue(errors, `${path}.${key}`, reason);
+  }
+  if (Object.getOwnPropertySymbols(input).length > 0) {
+    addIssue(errors, path, "unknown field");
   }
 }
 
