@@ -128,7 +128,7 @@
 **Key deliverables:** Claude synthetic fixtures; credential lookup isolated in collector; cache freshness policy; normalized windows; safe auth-needed/error states; no OAuth mutation.  
 **Exit gate:** Valid/malformed/optional/model-window responses, cache precedence, stale fallback, 429/backoff, timeout, redaction, and normalized schema tests pass.  
 **Depends on:** Milestone 1.  
-**Counters:** reviews: 9 · fix-cycles: 5 · oracle: 1 (second failed M2.2 parser fix attempt) · direct-edits: 0
+**Counters:** reviews: 11 · fix-cycles: 5 · oracle: 1 (second failed M2.2 parser fix attempt) · direct-edits: 0
 
 - [x] **M2.1 — Implement Claude credential discovery and auth-state classification test-first**
   - Reads only the injected/default `anthropic` entry in `~/.pi/agent/auth.json`; no env or Claude Code fallback, mutation, cache, or network behavior.
@@ -138,6 +138,10 @@
   - Supports proven legacy windows plus current generic `limits[]`, null-id scoped model limits, offset timestamps, deterministic collision-safe IDs, typed extra-usage minor-unit details, and safe omission of unsupported spend/dashboard data.
   - **Decision (2026-07-11):** Kuota owns its last-known-good cache; it will not read or write pi-hud's private cache format.
   - **Evidence (2026-07-11):** Pure hostile-input-safe response normalization and schema-v1/runtime-validator parity completed. Final verification: typecheck exit 0; tests 223/223 across 14 suites; collector/artifact builds and Plasma validation pass. Scrutinize cycles 1 and 2 returned FIX-FIRST for live-shape drift, timestamp/scope/identity/precedence issues; Oracle resolved the second failed fix attempt, with a deliberate override to retain current null-id Fable limits using safe display identity; cycle 3 returned SHIP. Final code review returned APPROVED WITH FIXES for overage/drift isolation; two focused re-reviews found and closed credential-shaped currency/model-label isolation gaps; final sign-off returned APPROVED.
+
+- [x] **M2.3 — Implement Kuota-owned Claude last-known-good cache test-first**
+  - Uses exact versioned normalized-record envelopes at injected/default `~/.cache/kuota/claude.json`; safe reads never create directories, while writes prepare only a trusted private `kuota` child and atomically store 0600 data.
+  - **Evidence (2026-07-11):** Exact envelope/runtime-record validation, fresh stale-record reconstruction, no-follow reads, corrupted-owned-cache replacement, trusted-parent/0700 directory creation, parent fsync, concurrency conflict handling, restrictive atomic writes, post-commit re-read semantics, and credential/raw-response exclusion completed. Final verification: typecheck exit 0; tests 246/246 across 14 suites; collector/artifact builds and Plasma validation pass. Scrutinize cycle 1 returned SHIP; final Opus security/API review returned APPROVED with no blockers or should-fixes.
 
 ## Milestone 3 — Codex Adapter and Safe OAuth Persistence
 
@@ -208,7 +212,7 @@
 1. **Resolved:** The project owner approved Gate G0 in-session on 2026-07-10; the design document and Gate Log are the evidence.
 2. **Resolved:** Declare `X-Plasma-API-Minimum-Version: "6.0"`, `KPackageStructure: "Plasma/Applet"`, category `System Information`, package ID `io.github.darkokuzmanovic.kuota`, and V1 version `0.1.0`; the target machine runs Plasma 6.7.2.
 3. **Resolved:** Author the collector and tests in strict TypeScript, compile the collector to runnable JavaScript for installation/distribution, target system Node.js >=20, and require system Node for V1 rather than bundling a runtime; the target machine runs Node 24.12.0 and npm 11.18.0.
-4. What are the exact pi-hud shared-cache path, schema, freshness threshold, ownership, and permission expectations for Claude cache reuse?
+4. **Resolved:** Kuota owns Claude cache state at `~/.cache/kuota/claude.json`; it does not read or write pi-hud's private cache. The cache uses a versioned normalized-record envelope, private 0700 directory, 0600 atomic file writes, and no credential/raw-response fields.
 5. What minimum Claude 429 backoff and default refresh interval are approved, and may provider-specific refresh floors override the global interval?
 6. **Resolved from pi-hud provider code:** Claude uses `auth.anthropic = { type: "oauth", access }`; Codex uses `auth["openai-codex"] = { type: "oauth", access, accountId, refresh?, expires? }`; Umans accepts `auth.umans = { type: "oauth", access }` or `{ type: "api_key", key }`, then falls back to `UMANS_API_KEY` only when no supported file entry exists.
 7. Which Codex response conditions specifically qualify for curl fallback, and what curl availability/version assumptions are allowed?
@@ -233,6 +237,7 @@
 | M1.7 | Collector orchestration and CLI contract task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra final review: APPROVED; final typecheck/build/artifact/Plasma pass and tests 177/177 on 2026-07-11 |
 | M1.8 / G1 | Foundation documentation, reproducibility, security, and architecture review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra final security/architecture review: APPROVED; detached clean-worktree reproduction at `bb60a2e` passed all foundation gates on 2026-07-11 |
 | M2.2 | Claude response normalization and schema review | PASS | Scrutinize cycles 1–2: FIX-FIRST; Opus Oracle escalation; cycle 3: SHIP; final code review APPROVED WITH FIXES; focused final sign-off APPROVED; typecheck/build/artifact/Plasma pass and tests 223/223 on 2026-07-11 |
+| M2.3 | Kuota-owned Claude cache security/API review | PASS | Scrutinize cycle 1: SHIP; final Opus review: APPROVED; typecheck/build/artifact/Plasma pass and tests 246/246 on 2026-07-11 |
 | G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
@@ -246,9 +251,9 @@
 ## Handoff Block
 
 - **Current gate:** G2 — Claude adapter verified.
-- **Next action:** Execute M2.3 only: Kuota-owned Claude last-known-good cache, test-first.
-- **First implementation action:** Define and test the injected `~/.cache/kuota/claude.json` path, versioned normalized-record envelope, safe no-follow reads, atomic restrictive writes, and stale-record reconstruction.
-- **Required inputs before execution:** Cache only validated normalized Claude usage (never credentials/raw responses); use the committed atomic IO primitives and synthetic records.
+- **Next action:** Execute M2.4 only: bounded Claude OAuth usage fetch and backoff classification, test-first.
+- **First implementation action:** Define an injected fetch boundary with exact endpoint/headers, body-size cap, native cancellation, HTTP/auth/rate-limit classification, and parsed `Retry-After` without cache or registry wiring.
+- **Required inputs before execution:** Use only synthetic Response seams; never log or echo tokens, headers, bodies, account identifiers, or native errors.
 - **Executor rules:** Work milestone-by-milestone; follow task dependencies; write tests first where required; keep secrets out of all artifacts; stop on contract/security ambiguity rather than guessing.
 - **Review protocol:** At each exit gate, run the listed checks, record commands/results in the Gate Log, obtain the required independent review, and update only that milestone's counters.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
