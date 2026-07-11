@@ -68,6 +68,14 @@ Errors contain only:
 
 They never include the rejected raw value. The validator does not fetch providers, read credentials, or mutate caches.
 
+## Filesystem primitive guarantees
+
+The collector's JSON read opens the destination with no-follow semantics, checks the opened handle as a regular file, and reads from that same handle. Missing files are safe; handles are closed on every path. Permission-preserving replacement retains only ordinary `0o777` permission bits.
+
+Before creating a temporary file or replacing the destination, the immediate parent is `lstat`-checked as a real, non-symlink directory that is not group/other writable and, when the platform exposes the effective user ID, is owned by that user. Caller-supplied destination paths must live under trusted ancestors; this precondition does not protect against malicious replacement of an ancestor directory.
+
+A latest-read replacement carries the identity token (`dev`, `ino`, `size`, and nanosecond mtime) from that opened read through the final pre-rename check. A detected identity change aborts without overwriting. The residual `lstat`-to-`rename` race remains: this detects cooperative/conventional concurrent replacement but cannot make uncooperative external writers honor a lock. A directory-sync failure after rename is post-commit; callers must report it without a blind retry that could overwrite the committed result.
+
 ## Invalid examples
 
 These documents fail validation:

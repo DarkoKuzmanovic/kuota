@@ -48,12 +48,13 @@
 - Project layout: Plasma sources live under `plasmoid/`; collector TypeScript under `collector/src/`; tests under `tests/`; generated collector and package artifacts under ignored `dist/`.
 - Build the collector with `npm run build:collector`; validate the package with `npm run validate:plasma`; build the distributable with `npm run build:artifact`.
 - Test and collector builds must clean only their own ignored output directory before TypeScript emit; stale compiled files can otherwise survive source deletion and create false-green test/build evidence.
+- Atomic JSON/auth/cache paths must live under trusted ancestors; the immediate parent is required to be a real, current-user-owned directory without group/other write permission. Treat `post-commit` durability failure as indeterminate success and re-read instead of blindly retrying.
 - Each milestone must pass its exit gate before the next begins. Increment milestone counters when reviews, correction rounds, oracle consultations, or direct implementation edits occur.
 
 ## Milestone 1 — Written-Spec Gate and Project Foundations
 
 **Outcome:** Obtain approval, establish the package/test skeleton, and freeze a tested normalized contract and security boundary before provider or UI feature work.  
-**Counters:** reviews: 8 · fix-cycles: 6 · oracle: 1 (second failed M1.5 fix attempt) · direct-edits: 3
+**Counters:** reviews: 12 · fix-cycles: 8 · oracle: 1 (second failed M1.5 fix attempt) · direct-edits: 3
 
 - [x] **M1.1 — Complete and record written-spec approval**
   - **Files:** `docs/specs/2026-07-10-kuota-design.md`, `PLAN.md`
@@ -94,10 +95,11 @@
   - **Dependencies:** M1.4.
   - **Suggested lane:** medium.
 
-- [ ] **M1.6 — Build safe filesystem primitives test-first**
+- [x] **M1.6 — Build safe filesystem primitives test-first**
   - **Files:** `collector/src/io/atomic-write.ts`, `collector/src/io/permissions.ts`, `collector/src/io/json-file.ts`, `collector/test/io/atomic-write.test.ts`, `collector/test/io/json-file.test.ts`
   - **Work:** Implement latest-read JSON loading plus atomic replacement helpers for usage caches and future auth persistence. Separate cache-write mode from permission-preserving shared-auth writes; clean temporary files on failure; never truncate the destination on failed serialization or rename.
   - **Acceptance criteria:** Tests prove restrictive new-cache permissions, preserved existing auth mode, preserved unrelated JSON entries through a simulated merge, atomic destination replacement, failure-safe original contents, and cleanup of temporary files. Tests use temporary synthetic files only.
+  - **Evidence (2026-07-10):** Handle-based no-follow JSON reads, plain/cycle/getter-safe validation, same-directory exclusive temp writes, file+directory durability sync, ordinary-mode preservation, bounded collision retry, latest-read identity conflict detection, trusted-parent checks, fatal UTF-8 handling, and value-free failures completed test-first. Final verification: typecheck exit 0; tests 162/162 across 14 suites; collector/artifact builds pass. Scrutinize cycle 1 returned FIX-FIRST; cycle 2 returned SHIP. Terra review returned FIX-FIRST for fatal UTF-8/trusted-parent/real-CAS coverage; semantic fixes were independently verified and Terra re-review returned APPROVED.
   - **Dependencies:** M1.2 and M1.3; schema-aware cache tests may use M1.4.
   - **Suggested lane:** hard (security-sensitive shared-state boundary).
 
@@ -215,6 +217,7 @@
 | M1.3 | Security-critical fixture safety and redaction task review | PASS | Scrutinize cycle 1: SHIP; deep review: APPROVED WITH FIXES; one mechanical fix cycle applied; post-fix typecheck exit 0 and tests 107/107 on 2026-07-10 |
 | M1.4 | Public normalized collector contract task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; DeepSeek code review: APPROVED WITH FIXES; two fix cycles total; final typecheck/build/CLI pass, tests 121/121, fixtures 23/23 secret-safe on 2026-07-10 |
 | M1.5 | Provider adapter/registry public interface task review | PASS | Scrutinize cycles 1–2: FIX-FIRST; oracle: 1 (second failed fix attempt, Terra due Anthropic quota restriction); oracle-guided contract fix verified; DeepSeek final review: APPROVED; final typecheck/build/artifact/CLI pass and tests 133/133 on 2026-07-10 |
+| M1.6 | Security-sensitive atomic filesystem/JSON task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra review: FIX-FIRST then APPROVED after semantic re-review; final typecheck/build/artifact pass and tests 162/162 on 2026-07-10 |
 | G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
