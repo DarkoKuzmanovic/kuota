@@ -124,15 +124,20 @@
 
 ## Milestone 2 — Claude Adapter and Cache/Backoff Behavior
 
-**Outcome:** Deliver a test-first Claude adapter using Anthropic OAuth usage data, fresh pi-hud cache preference, Kuota last-known-good cache, model-specific windows, bounded live fetch, `Retry-After`, minimum 429 backoff, and stale fallback.  
+**Outcome:** Deliver a test-first Claude adapter using Anthropic OAuth usage data, a Kuota-owned last-known-good cache, model-specific windows, bounded live fetch, `Retry-After`, minimum 429 backoff, and stale fallback.
 **Key deliverables:** Claude synthetic fixtures; credential lookup isolated in collector; cache freshness policy; normalized windows; safe auth-needed/error states; no OAuth mutation.  
 **Exit gate:** Valid/malformed/optional/model-window responses, cache precedence, stale fallback, 429/backoff, timeout, redaction, and normalized schema tests pass.  
 **Depends on:** Milestone 1.  
-**Counters:** reviews: 3 · fix-cycles: 1 · oracle: 0 · direct-edits: 0
+**Counters:** reviews: 9 · fix-cycles: 5 · oracle: 1 (second failed M2.2 parser fix attempt) · direct-edits: 0
 
 - [x] **M2.1 — Implement Claude credential discovery and auth-state classification test-first**
   - Reads only the injected/default `anthropic` entry in `~/.pi/agent/auth.json`; no env or Claude Code fallback, mutation, cache, or network behavior.
   - **Evidence (2026-07-11):** Safe no-follow auth discovery, realistic forward-compatible Pi OAuth parsing, expiry classification, total value-free reader-error mapping, injected path/clock seams, and synthetic-only tests completed. Final verification: typecheck exit 0; tests 190/190 across 14 suites; collector/artifact builds pass. Scrutinize cycle 1 returned FIX-FIRST for unknown-field rejection and hostile thrown-value escape; cycle 2 returned SHIP. Terra final security/API review returned APPROVED with no findings.
+
+- [x] **M2.2 — Validate and normalize Claude usage responses test-first**
+  - Supports proven legacy windows plus current generic `limits[]`, null-id scoped model limits, offset timestamps, deterministic collision-safe IDs, typed extra-usage minor-unit details, and safe omission of unsupported spend/dashboard data.
+  - **Decision (2026-07-11):** Kuota owns its last-known-good cache; it will not read or write pi-hud's private cache format.
+  - **Evidence (2026-07-11):** Pure hostile-input-safe response normalization and schema-v1/runtime-validator parity completed. Final verification: typecheck exit 0; tests 223/223 across 14 suites; collector/artifact builds and Plasma validation pass. Scrutinize cycles 1 and 2 returned FIX-FIRST for live-shape drift, timestamp/scope/identity/precedence issues; Oracle resolved the second failed fix attempt, with a deliberate override to retain current null-id Fable limits using safe display identity; cycle 3 returned SHIP. Final code review returned APPROVED WITH FIXES for overage/drift isolation; two focused re-reviews found and closed credential-shaped currency/model-label isolation gaps; final sign-off returned APPROVED.
 
 ## Milestone 3 — Codex Adapter and Safe OAuth Persistence
 
@@ -227,6 +232,7 @@
 | M1.6 | Security-sensitive atomic filesystem/JSON task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra review: FIX-FIRST then APPROVED after semantic re-review; final typecheck/build/artifact pass and tests 162/162 on 2026-07-10 |
 | M1.7 | Collector orchestration and CLI contract task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra final review: APPROVED; final typecheck/build/artifact/Plasma pass and tests 177/177 on 2026-07-11 |
 | M1.8 / G1 | Foundation documentation, reproducibility, security, and architecture review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra final security/architecture review: APPROVED; detached clean-worktree reproduction at `bb60a2e` passed all foundation gates on 2026-07-11 |
+| M2.2 | Claude response normalization and schema review | PASS | Scrutinize cycles 1–2: FIX-FIRST; Opus Oracle escalation; cycle 3: SHIP; final code review APPROVED WITH FIXES; focused final sign-off APPROVED; typecheck/build/artifact/Plasma pass and tests 223/223 on 2026-07-11 |
 | G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
@@ -240,9 +246,9 @@
 ## Handoff Block
 
 - **Current gate:** G2 — Claude adapter verified.
-- **Next action:** Execute M2.2 only: Claude pi-hud cache discovery and freshness classification, test-first.
-- **First implementation action:** Define and test the injected pi-hud Anthropic cache path, strict response shape, freshness boundary, and value-free failure mapping without network calls.
-- **Required inputs before execution:** Reuse existing pi-hud cache semantics as source evidence; use only synthetic usage fixtures and safe no-follow reads.
+- **Next action:** Execute M2.3 only: Kuota-owned Claude last-known-good cache, test-first.
+- **First implementation action:** Define and test the injected `~/.cache/kuota/claude.json` path, versioned normalized-record envelope, safe no-follow reads, atomic restrictive writes, and stale-record reconstruction.
+- **Required inputs before execution:** Cache only validated normalized Claude usage (never credentials/raw responses); use the committed atomic IO primitives and synthetic records.
 - **Executor rules:** Work milestone-by-milestone; follow task dependencies; write tests first where required; keep secrets out of all artifacts; stop on contract/security ambiguity rather than guessing.
 - **Review protocol:** At each exit gate, run the listed checks, record commands/results in the Gate Log, obtain the required independent review, and update only that milestone's counters.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.

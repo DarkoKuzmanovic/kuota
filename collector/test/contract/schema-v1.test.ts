@@ -182,6 +182,45 @@ test("optional fields may be omitted", () => {
   assert.equal(result.ok, true);
 });
 
+test("Claude extra-usage details and integer credit windows remain schema-valid", () => {
+  const valid = validateCollectorDocument(
+    documentWith({
+      id: "claude",
+      state: "ok",
+      windows: [{ id: "extra-usage", label: "Extra usage", used: 2, limit: 10 }],
+      details: {
+        claude: {
+          extraUsageEnabled: false,
+          extraUsageUsedCredits: 2,
+          extraUsageMonthlyLimit: 10,
+          extraUsageCurrency: "USD",
+          extraUsageDecimalPlaces: 2,
+          extraUsageDisabledReason: "not_enabled",
+        },
+      },
+    }),
+  );
+  assert.equal(valid.ok, true);
+
+  const invalid = validateCollectorDocument(
+    documentWith({
+      id: "claude",
+      state: "ok",
+      details: { claude: { extraUsageEnabled: "synthetic" } },
+    }),
+  );
+  assert.equal(invalid.ok, false);
+
+  const fractionalWindow = validateCollectorDocument(
+    documentWith({
+      id: "claude",
+      state: "ok",
+      windows: [{ id: "session", label: "Session", used: 2.5 }],
+    }),
+  );
+  assert.equal(fractionalWindow.ok, false);
+});
+
 test("provider details namespaces must match provider IDs", () => {
   const mismatches = [
     { id: "claude", details: { umans: { plan: "synthetic-plan" } } },

@@ -48,7 +48,16 @@ const WINDOW_KEYS = new Set([
   "limit",
   "resetAt",
 ]);
-const CLAUDE_DETAIL_KEYS = new Set(["model", "tokens"]);
+const CLAUDE_DETAIL_KEYS = new Set([
+  "model",
+  "tokens",
+  "extraUsageEnabled",
+  "extraUsageUsedCredits",
+  "extraUsageMonthlyLimit",
+  "extraUsageCurrency",
+  "extraUsageDecimalPlaces",
+  "extraUsageDisabledReason",
+]);
 const UMANS_DETAIL_KEYS = new Set(["plan", "requests", "concurrency"]);
 const CODEX_DETAIL_KEYS = new Set(["plan", "credits", "cost", "tokens"]);
 const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
@@ -370,16 +379,65 @@ function parseClaudeDetails(
   validateObjectKeys(input, path, CLAUDE_DETAIL_KEYS, errors);
   const model = parseOptionalSafeText(input, "model", `${path}.model`, 100, errors);
   const tokens = parseOptionalCount(input, "tokens", `${path}.tokens`, errors);
+  const extraUsageEnabled = parseOptionalBoolean(
+    input,
+    "extraUsageEnabled",
+    `${path}.extraUsageEnabled`,
+    errors,
+  );
+  const extraUsageUsedCredits = parseOptionalCount(
+    input,
+    "extraUsageUsedCredits",
+    `${path}.extraUsageUsedCredits`,
+    errors,
+  );
+  const extraUsageMonthlyLimit = parseOptionalCount(
+    input,
+    "extraUsageMonthlyLimit",
+    `${path}.extraUsageMonthlyLimit`,
+    errors,
+  );
+  const extraUsageCurrency = parseOptionalSafeText(
+    input,
+    "extraUsageCurrency",
+    `${path}.extraUsageCurrency`,
+    16,
+    errors,
+  );
+  const extraUsageDecimalPlaces = parseOptionalCount(
+    input,
+    "extraUsageDecimalPlaces",
+    `${path}.extraUsageDecimalPlaces`,
+    errors,
+  );
+  const extraUsageDisabledReason = parseOptionalSafeText(
+    input,
+    "extraUsageDisabledReason",
+    `${path}.extraUsageDisabledReason`,
+    100,
+    errors,
+  );
   if (errors.length !== initialErrorCount) {
     return undefined;
   }
-  const details: { model?: string; tokens?: number } = {};
-  if (model !== undefined) {
-    details.model = model;
-  }
-  if (tokens !== undefined) {
-    details.tokens = tokens;
-  }
+  const details: {
+    model?: string;
+    tokens?: number;
+    extraUsageEnabled?: boolean;
+    extraUsageUsedCredits?: number;
+    extraUsageMonthlyLimit?: number;
+    extraUsageCurrency?: string;
+    extraUsageDecimalPlaces?: number;
+    extraUsageDisabledReason?: string;
+  } = {};
+  if (model !== undefined) details.model = model;
+  if (tokens !== undefined) details.tokens = tokens;
+  if (extraUsageEnabled !== undefined) details.extraUsageEnabled = extraUsageEnabled;
+  if (extraUsageUsedCredits !== undefined) details.extraUsageUsedCredits = extraUsageUsedCredits;
+  if (extraUsageMonthlyLimit !== undefined) details.extraUsageMonthlyLimit = extraUsageMonthlyLimit;
+  if (extraUsageCurrency !== undefined) details.extraUsageCurrency = extraUsageCurrency;
+  if (extraUsageDecimalPlaces !== undefined) details.extraUsageDecimalPlaces = extraUsageDecimalPlaces;
+  if (extraUsageDisabledReason !== undefined) details.extraUsageDisabledReason = extraUsageDisabledReason;
   return details;
 }
 
@@ -629,6 +687,23 @@ function parseOptionalCount(
   const value = input[key];
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     addIssue(errors, path, "count must be a non-negative safe integer");
+    return undefined;
+  }
+  return value;
+}
+
+function parseOptionalBoolean(
+  input: Record<string, unknown>,
+  key: string,
+  path: string,
+  errors: ValidationIssue[],
+): boolean | undefined {
+  if (!hasOwn(input, key) || input[key] === undefined) {
+    return undefined;
+  }
+  const value = input[key];
+  if (typeof value !== "boolean") {
+    addIssue(errors, path, "expected a boolean");
     return undefined;
   }
   return value;
