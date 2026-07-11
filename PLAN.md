@@ -128,7 +128,11 @@
 **Key deliverables:** Claude synthetic fixtures; credential lookup isolated in collector; cache freshness policy; normalized windows; safe auth-needed/error states; no OAuth mutation.  
 **Exit gate:** Valid/malformed/optional/model-window responses, cache precedence, stale fallback, 429/backoff, timeout, redaction, and normalized schema tests pass.  
 **Depends on:** Milestone 1.  
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 0
+**Counters:** reviews: 3 · fix-cycles: 1 · oracle: 0 · direct-edits: 0
+
+- [x] **M2.1 — Implement Claude credential discovery and auth-state classification test-first**
+  - Reads only the injected/default `anthropic` entry in `~/.pi/agent/auth.json`; no env or Claude Code fallback, mutation, cache, or network behavior.
+  - **Evidence (2026-07-11):** Safe no-follow auth discovery, realistic forward-compatible Pi OAuth parsing, expiry classification, total value-free reader-error mapping, injected path/clock seams, and synthetic-only tests completed. Final verification: typecheck exit 0; tests 190/190 across 14 suites; collector/artifact builds pass. Scrutinize cycle 1 returned FIX-FIRST for unknown-field rejection and hostile thrown-value escape; cycle 2 returned SHIP. Terra final security/API review returned APPROVED with no findings.
 
 ## Milestone 3 — Codex Adapter and Safe OAuth Persistence
 
@@ -236,9 +240,9 @@
 ## Handoff Block
 
 - **Current gate:** G2 — Claude adapter verified.
-- **Next action:** Execute M2.1 only: Claude credential discovery and auth-state classification, test-first.
-- **First implementation action:** Define and test Claude credential-source precedence and safe auth-state mapping without live credentials or network calls.
-- **Required inputs before execution:** Confirm supported Claude credential sources from the existing pi-hud/Pi-Pixoo implementation, inject all paths, and use only synthetic fixtures.
+- **Next action:** Execute M2.2 only: Claude pi-hud cache discovery and freshness classification, test-first.
+- **First implementation action:** Define and test the injected pi-hud Anthropic cache path, strict response shape, freshness boundary, and value-free failure mapping without network calls.
+- **Required inputs before execution:** Reuse existing pi-hud cache semantics as source evidence; use only synthetic usage fixtures and safe no-follow reads.
 - **Executor rules:** Work milestone-by-milestone; follow task dependencies; write tests first where required; keep secrets out of all artifacts; stop on contract/security ambiguity rather than guessing.
 - **Review protocol:** At each exit gate, run the listed checks, record commands/results in the Gate Log, obtain the required independent review, and update only that milestone's counters.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
