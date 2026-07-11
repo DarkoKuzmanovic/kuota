@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "collectionStartedAt": "2026-07-11T11:00:00.000Z",
+  "collectionFinishedAt": "2026-07-11T11:00:01.000Z",
+  "providers": [
+    {
+      "id": "umans",
+      "state": "ok",
+      "status": "Synthetic unlimited plan",
+      "windows": [
+        {
+          "id": "rolling",
+          "label": "Rolling requests",
+          "used": 150,
+          "resetAt": "2026-07-11T23:00:00.000Z"
+        }
+      ],
+      "details": {
+        "umans": {
+          "plan": "synthetic-unlimited-plan",
+          "requests": 150,
+          "concurrency": 3
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "collectionStartedAt": "2026-07-11T16:00:00.000Z",
+  "collectionFinishedAt": "2026-07-11T16:00:01.000Z",
+  "providers": [
+    {
+      "id": "umans",
+      "state": "ok",
+      "windows": [
+        {
+          "id": "requests",
+          "label": "Requests",
+          "used": -1
+        }
+      ]
+    },
+    {
+      "id": "codex",
+      "state": "ok",
+      "windows": [
+        {
+          "id": "primary",
+          "label": "Primary",
+          "used": 11,
+          "limit": 10
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "collectionStartedAt": "2026-07-11T10:00:00.000Z",
+  "collectionFinishedAt": "2026-07-11T10:00:01.000Z",
+  "providers": [
+    {
+      "id": "claude",
+      "state": "ok",
+      "status": "Synthetic fixture: usage is current",
+      "lastSuccessAt": "2026-07-11T10:00:01.000Z",
+      "windows": [
+        {
+          "id": "weekly",
+          "label": "Weekly",
+          "usedPercent": 42,
+          "used": 42,
+          "limit": 100,
+          "resetAt": "2026-07-14T10:00:00.000Z"
+        }
+      ],
+      "details": {
+        "claude": {
+          "model": "synthetic-model",
+          "tokens": 1200
+        }
+      }
+    },
+    {
+      "id": "umans",
+      "state": "ok",
+      "windows": [
+        {
+          "id": "requests",
+          "label": "Requests",
+          "used": 12,
+          "limit": 100
+        }
+      ],
+      "details": {
+        "umans": {
+          "plan": "synthetic-plan",
+          "requests": 12,
+          "concurrency": 2
+        }
+      }
+    },
+    {
+      "id": "codex",
+      "state": "ok",
+      "windows": [
+        {
+          "id": "primary",
+          "label": "Primary",
+          "usedPercent": 10,
+          "used": 100,
+          "limit": 1000,
+          "resetAt": "2026-07-12T10:00:00.000Z"
+        }
+      ],
+      "details": {
+        "codex": {
+          "plan": "synthetic-plan",
+          "credits": 20,
+          "cost": 1.5,
+          "tokens": 800
+        }
+      }
+    }
+  ]
+}

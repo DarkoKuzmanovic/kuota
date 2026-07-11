@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "collectionStartedAt": "2026-07-11T22:00:00.000Z",
+  "collectionFinishedAt": "2026-07-11T22:00:01.000Z",
+  "providers": [
+    {
+      "id": "claude",
+      "state": "ok",
+      "windows": [
+        {
+          "id": "at-limit",
+          "label": "At limit",
+          "used": 100,
+          "limit": 100,
+          "usedPercent": 100
+        },
+        {
+          "id": "empty",
+          "label": "Empty",
+          "used": 0,
+          "limit": 100,
+          "usedPercent": 0
+        },
+        {
+          "id": "zero-limit",
+          "label": "Zero limit",
+          "used": 0,
+          "limit": 0,
+          "usedPercent": 0
+        }
+      ]
+    }
+  ]
+}
