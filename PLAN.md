@@ -55,7 +55,7 @@
 ## Milestone 1 — Written-Spec Gate and Project Foundations
 
 **Outcome:** Obtain approval, establish the package/test skeleton, and freeze a tested normalized contract and security boundary before provider or UI feature work.  
-**Counters:** reviews: 15 · fix-cycles: 9 · oracle: 1 (second failed M1.5 fix attempt) · direct-edits: 3
+**Counters:** reviews: 18 · fix-cycles: 10 · oracle: 1 (second failed M1.5 fix attempt) · direct-edits: 4
 
 - [x] **M1.1 — Complete and record written-spec approval**
   - **Files:** `docs/specs/2026-07-10-kuota-design.md`, `PLAN.md`
@@ -112,10 +112,11 @@
   - **Dependencies:** M1.3–M1.6.
   - **Suggested lane:** hard.
 
-- [ ] **M1.8 — Verify and document the foundation gate**
+- [x] **M1.8 — Verify and document the foundation gate**
   - **Files:** `README.md`, `docs/architecture/overview.md`, `PLAN.md`
   - **Work:** Document layer ownership, commands, generated artifacts, fixture policy, stdout/stderr rules, and the bridge replacement boundary. Run typecheck, unit tests, secret scan, schema example validation, Plasma metadata validation, and minimal QML load validation; record results under Gate G1.
   - **Acceptance criteria:** Every command passes from a clean checkout; docs match actual scripts/layout; no provider logic or credentials have entered QML; a review confirms the contract and sensitive-write design; Gate G1 is recorded with evidence.
+  - **Evidence (2026-07-11):** Added and mechanically anchor-checked `README.md` and `docs/architecture/overview.md`, documenting present-vs-future boundaries, exact scripts/artifacts, schema/provider ownership, fixture policy, CLI purity/crash rules, atomic-IO caveats, and the replaceable unimplemented bridge. Standard working-tree gate passed typecheck, tests 177/177 across 14 suites, collector build, Plasma/QML validation, and artifact/packaged-CLI validation. A detached clean worktree at committed M1.7 revision `bb60a2e` reproduced the same gate after `npm ci --ignore-scripts` (3 packages, 0 vulnerabilities). Scrutinize cycle 1 returned FIX-FIRST for five factual overclaims; cycle 2 returned SHIP after corrections. Terra final security/architecture review returned APPROVED with no blocker, should-fix, or nit.
   - **Dependencies:** M1.2–M1.7.
   - **Suggested lane:** medium, plus a separate hard security/architecture review.
 
@@ -215,12 +216,13 @@
 | Gate | Requirement | Status | Evidence / owner / date |
 |---|---|---|---|
 | G0 | Written specification reviewed and explicitly approved for implementation | PASS | Project owner approved the written spec on 2026-07-10; status recorded in the design document |
-| G1 | Milestone 1 foundation, contract, security boundary, and package skeleton verified | PASS | M1.1–M1.7 complete; final standard-shell gate on 2026-07-11: typecheck, 177/177 tests, collector/artifact builds, Plasma validation, source/packaged CLI byte-contract smoke; independent scrutinize and final review recorded below |
+| G1 | Milestone 1 foundation, contract, security boundary, and package skeleton verified | PASS | M1.1–M1.8 complete. Working-tree and detached-clean-worktree gates passed on 2026-07-11: typecheck, tests 177/177, collector build, Plasma/QML validation, artifact and packaged-CLI validation; documentation anchor checks pass; scrutinize SHIP and final security/architecture review APPROVED |
 | M1.3 | Security-critical fixture safety and redaction task review | PASS | Scrutinize cycle 1: SHIP; deep review: APPROVED WITH FIXES; one mechanical fix cycle applied; post-fix typecheck exit 0 and tests 107/107 on 2026-07-10 |
 | M1.4 | Public normalized collector contract task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; DeepSeek code review: APPROVED WITH FIXES; two fix cycles total; final typecheck/build/CLI pass, tests 121/121, fixtures 23/23 secret-safe on 2026-07-10 |
 | M1.5 | Provider adapter/registry public interface task review | PASS | Scrutinize cycles 1–2: FIX-FIRST; oracle: 1 (second failed fix attempt, Terra due Anthropic quota restriction); oracle-guided contract fix verified; DeepSeek final review: APPROVED; final typecheck/build/artifact/CLI pass and tests 133/133 on 2026-07-10 |
 | M1.6 | Security-sensitive atomic filesystem/JSON task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra review: FIX-FIRST then APPROVED after semantic re-review; final typecheck/build/artifact pass and tests 162/162 on 2026-07-10 |
 | M1.7 | Collector orchestration and CLI contract task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra final review: APPROVED; final typecheck/build/artifact/Plasma pass and tests 177/177 on 2026-07-11 |
+| M1.8 / G1 | Foundation documentation, reproducibility, security, and architecture review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra final security/architecture review: APPROVED; detached clean-worktree reproduction at `bb60a2e` passed all foundation gates on 2026-07-11 |
 | G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
@@ -235,8 +237,8 @@
 
 - **Current gate:** G2 — Claude adapter verified.
 - **Next action:** Execute M2.1 only: Claude credential discovery and auth-state classification, test-first.
-- **First implementation action:** Define and test the Claude credential-source precedence and safe auth-state mapping without live credentials or network calls.
-- **Required inputs before execution:** Confirm Claude's supported local credential sources from the existing pi-hud/Pi-Pixoo implementation and inject all paths; use only synthetic fixtures.
+- **First implementation action:** Define and test Claude credential-source precedence and safe auth-state mapping without live credentials or network calls.
+- **Required inputs before execution:** Confirm supported Claude credential sources from the existing pi-hud/Pi-Pixoo implementation, inject all paths, and use only synthetic fixtures.
 - **Executor rules:** Work milestone-by-milestone; follow task dependencies; write tests first where required; keep secrets out of all artifacts; stop on contract/security ambiguity rather than guessing.
 - **Review protocol:** At each exit gate, run the listed checks, record commands/results in the Gate Log, obtain the required independent review, and update only that milestone's counters.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
