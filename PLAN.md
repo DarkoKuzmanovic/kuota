@@ -49,12 +49,13 @@
 - Build the collector with `npm run build:collector`; validate the package with `npm run validate:plasma`; build the distributable with `npm run build:artifact`.
 - Test and collector builds must clean only their own ignored output directory before TypeScript emit; stale compiled files can otherwise survive source deletion and create false-green test/build evidence.
 - Atomic JSON/auth/cache paths must live under trusted ancestors; the immediate parent is required to be a real, current-user-owned directory without group/other write permission. Treat `post-commit` durability failure as indeterminate success and re-read instead of blindly retrying.
+- Provider adapters are trusted in-process code and receive native fetch-compatible `AbortSignal`s. Abort listeners must never throw; callback failures must become adapter promise rejections. Direct CLI execution converts otherwise-uncaught failures to one constant diagnostic and immediate nonzero exit.
 - Each milestone must pass its exit gate before the next begins. Increment milestone counters when reviews, correction rounds, oracle consultations, or direct implementation edits occur.
 
 ## Milestone 1 — Written-Spec Gate and Project Foundations
 
 **Outcome:** Obtain approval, establish the package/test skeleton, and freeze a tested normalized contract and security boundary before provider or UI feature work.  
-**Counters:** reviews: 12 · fix-cycles: 8 · oracle: 1 (second failed M1.5 fix attempt) · direct-edits: 3
+**Counters:** reviews: 15 · fix-cycles: 9 · oracle: 1 (second failed M1.5 fix attempt) · direct-edits: 3
 
 - [x] **M1.1 — Complete and record written-spec approval**
   - **Files:** `docs/specs/2026-07-10-kuota-design.md`, `PLAN.md`
@@ -103,10 +104,11 @@
   - **Dependencies:** M1.2 and M1.3; schema-aware cache tests may use M1.4.
   - **Suggested lane:** hard (security-sensitive shared-state boundary).
 
-- [ ] **M1.7 — Create the collector CLI contract shell**
+- [x] **M1.7 — Create the collector CLI contract shell**
   - **Files:** `collector/src/cli.ts`, `collector/src/collect/collect.ts`, `collector/test/cli.test.ts`
   - **Work:** Wire dependency-injected placeholder adapters through bounded concurrent orchestration, validate the final schema, print exactly one JSON document to stdout, and redact stderr. Add exit behavior for catastrophic collection/validation failure without treating one provider failure as catastrophic.
   - **Acceptance criteria:** CLI tests prove one stdout document, schema validity, independent provider outcomes, bounded timeout behavior, deterministic completion timestamps, redacted diagnostics, no credential arguments, and no overlap within one invocation. No live provider request is made.
+  - **Evidence (2026-07-11):** Canonical concurrent orchestration, independent native cancellation budgets, abort-ignoring timeout races, correlated runtime result validation, deterministic timestamps, one-document CLI output, constant catastrophic diagnostics, direct-process crash hardening, and mandatory packaged-CLI contract validation completed test-first. Final standard-shell verification: typecheck exit 0; tests 177/177 across 14 suites; collector/artifact builds and Plasma validation pass; source and packaged CLIs each emit one newline-terminated schema-v1 document with byte-empty stderr. Scrutinize cycle 1 returned FIX-FIRST for abort-listener crash leakage and evidence gaps; cycle 2 returned SHIP after hardening. Terra final review returned APPROVED with no findings.
   - **Dependencies:** M1.3–M1.6.
   - **Suggested lane:** hard.
 
@@ -213,11 +215,12 @@
 | Gate | Requirement | Status | Evidence / owner / date |
 |---|---|---|---|
 | G0 | Written specification reviewed and explicitly approved for implementation | PASS | Project owner approved the written spec on 2026-07-10; status recorded in the design document |
-| G1 | Milestone 1 foundation, contract, security boundary, and package skeleton verified | NOT STARTED | Requires G0 and M1 evidence |
+| G1 | Milestone 1 foundation, contract, security boundary, and package skeleton verified | PASS | M1.1–M1.7 complete; final standard-shell gate on 2026-07-11: typecheck, 177/177 tests, collector/artifact builds, Plasma validation, source/packaged CLI byte-contract smoke; independent scrutinize and final review recorded below |
 | M1.3 | Security-critical fixture safety and redaction task review | PASS | Scrutinize cycle 1: SHIP; deep review: APPROVED WITH FIXES; one mechanical fix cycle applied; post-fix typecheck exit 0 and tests 107/107 on 2026-07-10 |
 | M1.4 | Public normalized collector contract task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; DeepSeek code review: APPROVED WITH FIXES; two fix cycles total; final typecheck/build/CLI pass, tests 121/121, fixtures 23/23 secret-safe on 2026-07-10 |
 | M1.5 | Provider adapter/registry public interface task review | PASS | Scrutinize cycles 1–2: FIX-FIRST; oracle: 1 (second failed fix attempt, Terra due Anthropic quota restriction); oracle-guided contract fix verified; DeepSeek final review: APPROVED; final typecheck/build/artifact/CLI pass and tests 133/133 on 2026-07-10 |
 | M1.6 | Security-sensitive atomic filesystem/JSON task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra review: FIX-FIRST then APPROVED after semantic re-review; final typecheck/build/artifact pass and tests 162/162 on 2026-07-10 |
+| M1.7 | Collector orchestration and CLI contract task review | PASS | Scrutinize cycle 1: FIX-FIRST; cycle 2: SHIP; Terra final review: APPROVED; final typecheck/build/artifact/Plasma pass and tests 177/177 on 2026-07-11 |
 | G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
@@ -230,10 +233,10 @@
 
 ## Handoff Block
 
-- **Current gate:** G1 — Milestone 1 foundation, contract, security boundary, and package skeleton.
-- **Next action:** Execute M1.2, then follow the Milestone 1 dependency order.
-- **First implementation action:** Execute M1.2 only; do not begin provider or QML feature work early.
-- **Required inputs before execution:** None. M1.2 may establish the proposed `package/`, `collector/src/`, and `collector/test/fixtures/` paths and record any change in Conventions.
+- **Current gate:** G2 — Claude adapter verified.
+- **Next action:** Execute M2.1 only: Claude credential discovery and auth-state classification, test-first.
+- **First implementation action:** Define and test the Claude credential-source precedence and safe auth-state mapping without live credentials or network calls.
+- **Required inputs before execution:** Confirm Claude's supported local credential sources from the existing pi-hud/Pi-Pixoo implementation and inject all paths; use only synthetic fixtures.
 - **Executor rules:** Work milestone-by-milestone; follow task dependencies; write tests first where required; keep secrets out of all artifacts; stop on contract/security ambiguity rather than guessing.
 - **Review protocol:** At each exit gate, run the listed checks, record commands/results in the Gate Log, obtain the required independent review, and update only that milestone's counters.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.

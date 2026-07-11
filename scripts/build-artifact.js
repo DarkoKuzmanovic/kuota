@@ -36,6 +36,10 @@ try {
   console.warn('zip is not available; artifact remains as an unpacked directory');
 }
 
+execFileSync(process.execPath, [join(root, 'scripts', 'check-artifact.js')], {
+  stdio: 'inherit',
+});
+
 console.log(`Artifact ${artifactName} created at ${artifactDir}`);
 if (zipped) {
   console.log(`Packaged as ${artifactName}.plasmoid`);

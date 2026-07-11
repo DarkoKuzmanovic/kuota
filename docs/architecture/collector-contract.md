@@ -68,6 +68,12 @@ Errors contain only:
 
 They never include the rejected raw value. The validator does not fetch providers, read credentials, or mutate caches.
 
+## Provider cancellation and CLI failure boundary
+
+Provider adapters are trusted internal code. The collector passes each adapter the native, fetch-compatible `AbortSignal`; it does not proxy or wrap the signal. Adapters MUST keep abort-listener callbacks non-throwing. If callback work fails, the adapter catches that failure and rejects its `collect()` promise so the collector can classify it as a provider failure. A throwing `EventTarget` callback is outside the adapter promise contract and is handled only by the direct CLI process boundary.
+
+The CLI validates and serializes the complete document before making its single stdout write. An injected writer must therefore use all-or-throw-before-write semantics. An arbitrary writer that partially writes and then throws cannot provide rollback, so the CLI cannot restore stdout purity after such a failure. Direct invocation installs a process-local catastrophic boundary that emits only the constant safe diagnostic and exits nonzero for uncaught exceptions or unhandled rejections; importing the CLI as a library installs no process handlers.
+
 ## Filesystem primitive guarantees
 
 The collector's JSON read opens the destination with no-follow semantics, checks the opened handle as a regular file, and reads from that same handle. Missing files are safe; handles are closed on every path. Permission-preserving replacement retains only ordinary `0o777` permission bits.
