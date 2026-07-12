@@ -15,6 +15,7 @@ import {
   providerOutcomeToRecord,
 } from "../../src/providers/types.js";
 import {
+  CLAUDE_ADAPTER,
   createProviderRegistration,
   createProviderRegistry,
   type ProviderRegistration,
@@ -212,13 +213,14 @@ test("normalized result construction rejects native extras and invalid values", 
   );
 });
 
-test("registry exposes exactly the canonical placeholder adapters", async () => {
+test("registry exposes the real Claude adapter and placeholder peers", async () => {
   const registry = createProviderRegistry();
 
   assert.deepEqual(
     registry.adapters.map((adapter) => adapter.id),
     canonicalIds,
   );
+  assert.equal(registry.adapters[0], CLAUDE_ADAPTER);
 
   const context: ProviderAdapterContext = {
     signal: new AbortController().signal,
@@ -226,7 +228,7 @@ test("registry exposes exactly the canonical placeholder adapters", async () => 
     deadlineAt: "2026-07-11T12:00:00.000Z",
     dependencies: {},
   };
-  for (const adapter of registry.adapters) {
+  for (const adapter of registry.adapters.slice(1)) {
     assert.deepEqual(await adapter.collect(context), {
       id: adapter.id,
       state: "error",

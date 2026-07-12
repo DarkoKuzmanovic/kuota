@@ -128,7 +128,7 @@
 **Key deliverables:** Claude synthetic fixtures; credential lookup isolated in collector; cache freshness policy; normalized windows; safe auth-needed/error states; no OAuth mutation.  
 **Exit gate:** Valid/malformed/optional/model-window responses, cache precedence, stale fallback, 429/backoff, timeout, redaction, and normalized schema tests pass.  
 **Depends on:** Milestone 1.  
-**Counters:** reviews: 17 · fix-cycles: 9 · oracle: 1 (second failed M2.2 parser fix attempt) · direct-edits: 4
+**Counters:** reviews: 22 · fix-cycles: 11 · oracle: 2 (M2.2 parser escalation; M2.5 high-risk composition critique) · direct-edits: 4
 
 - [x] **M2.1 — Implement Claude credential discovery and auth-state classification test-first**
   - Reads only the injected/default `anthropic` entry in `~/.pi/agent/auth.json`; no env or Claude Code fallback, mutation, cache, or network behavior.
@@ -147,6 +147,12 @@
 - [x] **M2.4 — Implement bounded Claude OAuth usage fetch and backoff classification test-first**
   - Uses an injected native-fetch seam with the exact Claude usage endpoint and OAuth headers, token-only authorization, manual redirects, strict status/auth/rate-limit classification, clamped `Retry-After`, a streamed response-byte cap, orchestration-owned cancellation, and value-free failure outcomes; no cache or registry wiring yet.
   - **Evidence (2026-07-12):** Exact request compatibility, pre/post-read abort handling, hostile chunk totality, zero-progress rejection, exact-cap acceptance, reader cancellation, strict status/header parsing, body-size bounds, token non-leakage, and safe outcome classification completed test-first. Scrutinize cycle 1 returned FIX-FIRST and cycle 2 SHIP; final deep security/API review returned APPROVED WITH FIXES for a resolving-reader cancellation/no-progress gap; focused sign-off correction cycles hardened mutation-sensitive coverage and removed a redundant non-owning cap guard; final focused review APPROVED. Fresh final verification: `npm run typecheck` exit 0; `npm test` exit 0 with 302/302 across 14 suites; `npm run build:collector` exit 0; `npm run validate:plasma` exit 0; `npm run build:artifact` exit 0.
+
+
+- [x] **M2.5 — Compose and register the Claude adapter with freshness, persisted backoff, and stale fallback test-first**
+  - Owns policy across the proven M2.1–M2.4 mechanisms: active bounded backoff, 5-minute Kuota-cache freshness, auth classification, bounded live fetch, recoverable cache self-healing, atomic LKG/backoff persistence, and normalized stale/auth/error fallback. Registers the real Claude adapter while Umans and Codex remain placeholders.
+  - **Decision (2026-07-12):** Backoff is a separate versioned, secret-free sidecar under Kuota cache ownership; the M2.3 successful-usage envelope remains unchanged. Valid persisted backoff is honored only through the fetch layer's 24-hour maximum. Benign cache corruption fetches through and self-heals; unsafe cache files fail closed.
+  - **Evidence (2026-07-12):** High-risk design critique completed before implementation. Test-first composition covers cache ages 0/<5m/=5m/future, backoff active/expired/corrupt/exact-max/over-max, direct atomic sidecar write/read/clear and trusted-parent failure semantics, live success, 429 retention, auth-needed, recoverable cache self-healing, unsafe-cache fail-closed behavior, stale fallback, hostile seam totality, persistence failures, registry wiring, and secret scans. Scrutinize cycle 1 FIX-FIRST for missing real sidecar persistence coverage; cycle 2 SHIP after correction. Final deep review APPROVED WITH FIXES for benign corrupt-cache recovery; focused post-fix sign-off APPROVED. Task-level verification: `npm run typecheck` exit 0; `npm test` exit 0 with 325/325 across 14 suites; `npm run build:collector` exit 0; `git diff --check` exit 0. G2 intentionally not run until M2.5 was complete.
 
 ## Milestone 3 — Codex Adapter and Safe OAuth Persistence
 
@@ -244,7 +250,8 @@
 | M2.2 | Claude response normalization and schema review | PASS | Scrutinize cycles 1–2: FIX-FIRST; Opus Oracle escalation; cycle 3: SHIP; final code review APPROVED WITH FIXES; focused final sign-off APPROVED; typecheck/build/artifact/Plasma pass and tests 223/223 on 2026-07-11 |
 | M2.3 | Kuota-owned Claude cache security/API review | PASS | Scrutinize cycle 1: SHIP; final Opus review: APPROVED; typecheck/build/artifact/Plasma pass and tests 246/246 on 2026-07-11 |
 | M2.4 | Bounded Claude OAuth usage fetch and backoff security/API review | PASS | Scrutinize cycle 1 FIX-FIRST, cycle 2 SHIP; deep final review APPROVED WITH FIXES; three focused correction/sign-off cycles ending APPROVED; final typecheck/build/artifact/Plasma pass and tests 302/302 on 2026-07-12 |
-| G2 | Claude adapter verified | NOT STARTED | Requires Milestone 2 |
+| M2.5 | Claude adapter composition, persisted backoff, cache recovery, and registry review | PASS | Scrutinize cycle 1 FIX-FIRST, cycle 2 SHIP; deep final review APPROVED WITH FIXES; focused post-fix sign-off APPROVED; task checks typecheck/build pass and tests 325/325 on 2026-07-12; G2 deferred until all M2 tasks completed |
+| G2 | Claude adapter verified | PASS | M2.1–M2.5 complete. Fresh exit gate on 2026-07-12: typecheck exit 0; tests 325/325 across 14 suites; collector build exit 0; Plasma/QML validation exit 0; artifact build exit 0; diff check clean. Independent whole-milestone security/architecture review traced success and major fallback paths with no Blocker/Important findings and returned G2 PASS. |
 | G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
 | G5 | Integrated collector verified | NOT STARTED | Requires Milestone 5 |
@@ -256,9 +263,9 @@
 
 ## Handoff Block
 
-- **Current gate:** G2 — Claude adapter verified.
-- **Next action:** Execute M2.5 only: compose Claude credential discovery, bounded fetch, response normalization, cache/backoff state, and stale fallback into the registered adapter, test-first.
-- **First implementation action:** Add failing adapter-level tests for fresh-cache precedence, bounded live success, 429 backoff retention, auth-needed classification, stale fallback, and safe independent failure before wiring the existing M2.1–M2.4 components.
+- **Current gate:** G3 — Codex adapter and auth persistence security-reviewed.
+- **Next action:** Begin Milestone 3 with M3.1 only: test-first Codex credential discovery and classification; do not run G3 until every Milestone 3 task is complete.
+- **First implementation action:** Add failing synthetic tests for `auth["openai-codex"]` OAuth discovery, missing/malformed/account-id/expiry states, and value-free read failures before adding production credential parsing.
 - **Required inputs before execution:** Use only synthetic auth/cache/fetch seams; never log or echo tokens, headers, bodies, account identifiers, native errors, or credential-file contents.
 - **Executor rules:** Work milestone-by-milestone; follow task dependencies; write tests first where required; keep secrets out of all artifacts; stop on contract/security ambiguity rather than guessing.
 - **Review protocol:** At each exit gate, run the listed checks, record commands/results in the Gate Log, obtain the required independent review, and update only that milestone's counters.
