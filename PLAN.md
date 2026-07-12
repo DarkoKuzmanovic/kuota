@@ -156,11 +156,53 @@
 
 ## Milestone 3 — Codex Adapter and Safe OAuth Persistence
 
-**Outcome:** Deliver a test-first Codex adapter with normal HTTP, stdin-configured curl fallback, primary/secondary windows, plan/credit details, one-time expired-token refresh, and latest-read atomic permission-preserving auth merge.  
-**Key deliverables:** Codex synthetic fixtures; Cloudflare fallback classifier; subprocess timeout/redaction; refresh-once logic; conflict-aware auth persistence tests preserving unrelated entries and mode.  
-**Exit gate:** HTTP success, fallback, malformed data, timeout, refresh success/failure, concurrent auth-change preservation, atomic failure, process-argument secrecy, redaction, and schema tests pass.  
-**Depends on:** Milestone 1; reuse only proven generic cache/I/O contracts from Milestone 2 without coupling adapters.  
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 0
+**Outcome:** Deliver a test-first Codex adapter with normal HTTP, stdin-configured curl fallback, primary/secondary windows, genuine plan/credit details, one-time expired-token refresh, and latest-read atomic permission-preserving auth merge.
+**Scope decision:** Standard tier with critical protected risk at the shared credential-persistence boundary. One repository and one provider outcome; architecture is resolved; verification is deterministic with synthetic seams. Allowed ceremony is task-local checks, one diagnostic midpoint review with no re-review, and one final G3 review with no repeated whole-milestone pass.
+**Review budget:** Exactly two planned review passes: (1) midpoint review after M3.4 and M3.6, focused on subprocess secrecy and auth persistence; (2) final whole-milestone G3 review after M3.1–M3.7. Findings from either pass are fixed and verified with focused checks plus the full required suite, not sent through another review. Any unresolved Blocker stops the milestone for owner decision.
+**Depends on:** Milestone 1; reuse only proven generic cache/I/O contracts from Milestone 2 without coupling adapters. No Codex cache policy is added before Milestone 5.
+**Counters:** reviews: 2/2 · fix-cycles: 1/2 · oracle: 0 · direct-edits: 7
+
+- [x] **M3.1 — Implement Codex credential discovery and classification test-first**
+  - Reads only `auth["openai-codex"]`; accepts OAuth `access` and `accountId` with optional non-empty `refresh` and optional finite `expires`; classifies missing, malformed, expired-with-refresh, expired-without-refresh, unsafe/read-failure, invalid-clock, and hostile values without exposing rejected data. No network or writes.
+  - **Evidence (2026-07-12):** RED first failed with missing Codex auth module; focused tests then passed 8/8. Independent verification found and corrected a requirement drift that had made `expires` mandatory: a new RED assertion proved absent expiry must remain available, then GREEN passed. Final current-tree evidence: focused tests 8/8; `npm run typecheck` exit 0; full suite 333/333 across 14 suites. Alternative path traced: absent expiry bypasses the injected clock and returns an available credential without an invented expiry.
+
+- [x] **M3.2 — Implement hostile-input-safe Codex usage normalization test-first**
+  - Normalize primary/secondary windows and only genuine provider-native plan, credit, cost, and token facts. Omit unavailable optional values; reject malformed recognized fields; tolerate unknown fields; enforce runtime schema and provider/detail correlation.
+  - **Field map frozen (2026-07-12):** OpenAI Codex backend-client source confirms `plan_type`, `rate_limit.primary_window` / `secondary_window` (`used_percent`, `limit_window_seconds`, `reset_at`), `credits` (`has_credits`, `unlimited`, string `balance`), and optional `spend_control.individual_limit` (string `used`). Kuota maps non-empty `plan_type` → `details.codex.plan`, a strict finite non-negative numeric credit balance when credits exist and are not unlimited → `credits`, and strict finite non-negative individual-limit `used` → `cost`; it omits `tokens` because this response does not supply a token total. Third-party captured payloads corroborate the wire names; unknown/additional limits remain out of this slice.
+  - **Evidence (2026-07-12):** Initial RED covered missing implementation and malformed fractional `reset_at`; worker GREEN passed 7/7. Independent verification added two mutation-sensitive RED→GREEN corrections: real payload identity metadata (`user_id`, `account_id`, `email`) must be ignored rather than causing whole-response rejection, and present `limit_window_seconds: 0` is malformed even beside a valid percentage. Final current-tree evidence: focused 7/7; `npm run typecheck` exit 0; full suite 340/340 across 14 suites; normalized records pass runtime schema and secret scans.
+
+- [x] **M3.3 — Implement bounded native Codex HTTP transport test-first**
+  - GET the approved usage endpoint with token/account data only in headers, manual redirects, native abort, streamed byte limit, strict status/body handling, and value-free outcomes.
+  - Curl eligibility is deliberately narrow: native HTTP `401` or `403` only. Redirects classify as auth-needed without curl; abort, network, timeout, 429, 5xx, and malformed responses terminate safely without curl.
+  - **Evidence (2026-07-12):** RED first failed because the transport module was absent; worker GREEN passed 12/12. Independent verification added a RED→GREEN resource-lifecycle correction proving every unconsumed response body is cancelled for curl-eligible, redirect, terminal HTTP, malformed-status, and declared-oversize paths. Final current-tree evidence: focused 12/12; `npm run typecheck` exit 0; full suite 352/352 across 14 suites.
+
+- [x] **M3.4 — Implement stdin-configured curl fallback (explicit non-TDD waiver)**
+  - Invoke only `curl --config -`; send credentials through child stdin, never argv or environment; bound stdout, stderr, and wall time; parse framed status strictly; terminate the child exactly once; expose no raw stderr, body, token, or account identifier.
+  - **Evidence (2026-07-12):** Tests were authored before production code, but the initial missing-module RED command was blocked by the session command guard and was not observed. The owner explicitly accepted a non-TDD waiver; this is not claimed as strict TDD. Independent verification covered exact argv/stdin secrecy, control-character rejection, framing/JSON/status classification, output bounds, timeout/abort/error races, one termination, post-close listener cleanup, and value-free outcomes. Final current-tree evidence: focused 7/7; `npm run typecheck` exit 0; full suite 359/359 across 14 suites; a real installed-curl check emitted the expected final marker from the production escaping form.
+
+- [x] **M3.5 — Implement one-request OAuth refresh transport and lock finite retry policy test-first**
+  - Refresh a locally expired credential before usage when possible; otherwise refresh only after the eligible native-plus-curl path remains auth-needed. Accept a strict refresh response with optional rotated refresh token and finite expiry; bound request and response handling.
+  - Per collection: at most one refresh and two usage pipelines; each pipeline performs one native request plus at most one eligible curl request; never retry after the post-refresh pipeline.
+  - **Evidence (2026-07-12):** Observed RED failed on the missing refresh module; worker GREEN passed 6/6. Independent RED→GREEN verification added the current public Codex OAuth client identity header and hard maximum byte ceilings for both native usage and refresh transports, closing caller-configured unbounded-response bypasses. The transport proves at most one refresh request per invocation; M3.7 remains responsible for table-driven enforcement of the locked one-refresh/two-usage-pipeline composition policy. Final current-tree evidence: refresh focused 6/6; native fetch focused 12/12; `npm run typecheck` exit 0; full suite 365/365 across 14 suites.
+
+- [x] **M3.6 — Implement latest-read atomic permission-preserving auth merge (explicit non-TDD waiver)**
+  - Re-read the latest auth document and require the initiating Codex type, account ID, access token, and refresh token to match before merging refreshed fields. Preserve unrelated root entries, unknown Codex fields, and existing mode; treat an already-equivalent refreshed entry as idempotent success.
+  - Use identity-bound same-directory atomic replacement with restrictive temp permissions, fsync durability, cleanup, trusted-parent enforcement, concurrent-change refusal, and post-commit re-read semantics. Persistence failure/conflict prevents use of unpersisted refreshed credentials.
+  - **Evidence (2026-07-12):** The worker did not produce an observed RED despite the explicit requirement; the owner accepted a second explicit non-TDD waiver because current-tree verification is strong and the planned midpoint review independently attacks this critical boundary. This is not claimed as strict TDD. Focused persistence tests pass 15/15, covering actual mode/unrelated/unknown-field preservation, omitted refresh/expiry preservation, zero-write idempotency, rotated-refresh conflict, missing/malformed/mismatched entries, metadata and external-writer races, open/write/fsync/chmod/close/rename/serialize failures, temp cleanup, and one post-commit read-back with indeterminate outcome. `npm run typecheck` exit 0; full suite 380/380 across 14 suites.
+
+- [x] **M3 midpoint review — diagnostic protected-boundary review, not a gate**
+  - **Verdict (2026-07-12):** No Blocker; one Important integration-coverage gap; two Minors. The reviewer verified curl argv/stdin secrecy, injection rejection, framing, bounds, race settlement, latest-read identity CAS, true post-image idempotency, mode/unrelated/unknown-field preservation, conflict cleanup, and post-commit indeterminate behavior. The Important finding was fixed without re-review by adding a production `defaultSpawn` round-trip test through an executable curl stub; focused curl tests now pass 8/8, typecheck exits 0, and the full suite passes 381/381.
+  - **Minor dispositions:** Do not add `curl -q` because the owner-approved contract currently requires exact argv `curl --config -`; the same-user `~/.curlrc` robustness risk remains documented. SIGKILL escalation/unref remains deferred as low-likelihood defense-in-depth because curl has both its own `max-time` and Kuota's wall timer. Per owner protocol, no re-review was dispatched.
+
+- [x] **M3.7 — Compose and register the finite Codex adapter (partial-TDD waiver)**
+  - Compose credential classification, normalization, native/curl transport, refresh-once logic, and persistence into one total adapter. Replace only the Codex registry placeholder; Claude remains unchanged and Umans remains a placeholder.
+  - Run adapter, registry, CLI, artifact, and mutation-sensitive tests under an injected synthetic `HOME`; no test or gate may read or write the real `~/.pi/agent/auth.json` or require a live account/network.
+  - **Evidence (2026-07-12):** The registry slice produced an observed RED for missing `CODEX_ADAPTER`; the adapter-specific RED command was superseded by the command guard, so the owner accepted an explicit partial-TDD waiver and no stronger TDD claim is made. Adapter tests pass 16/16, including hard maxima of one refresh, two native requests, and two curl requests; no post-refresh retry; persistence updated/already-current gating; conflict/error/indeterminate refusal; local-expiry and 401→curl paths; thrown seams; malformed parsing; and credential identity. Registry+CLI tests pass 28/28; typecheck and full suite pass 398/398 across 14 suites under synthetic `HOME`. Collector build, Plasma validation, and artifact build pass. Real `~/.pi/agent/auth.json` dev/ino/size/mtime/mode/SHA-256 remained unchanged across verification.
+
+- [x] **G3 — Run the single final whole-milestone gate review**
+  - **G3 PASS (2026-07-12):** Isolated synthetic-`HOME` gate: `npm run typecheck`, 398/398 tests across 14 suites, collector build, Plasma validation, artifact build, packaged-artifact check, and `git diff --check` all exit 0; real auth dev/ino/size/mtime/mode/SHA-256 remained unchanged.
+  - **Single final review:** Fresh deep whole-M3 review traced auth discovery, field normalization, native/curl/refresh bounds, process lifecycle, one-refresh/two-pipeline call caps, persistence gating, latest-read CAS, registry/CLI/artifact isolation, and design/PLAN consistency. Verdict **G3 SHIP** with no Blocker and no Important findings. Notes only reiterated the owner-waived same-user curlrc risk, public OAuth client-id provenance, and deliberate fail-closed bounds.
+  - No G3 findings required fixes, so no re-review or post-review correction cycle was dispatched.
 
 ## Milestone 4 — Umans Adapter
 
@@ -226,14 +268,15 @@
 4. **Resolved:** Kuota owns Claude cache state at `~/.cache/kuota/claude.json`; it does not read or write pi-hud's private cache. The cache uses a versioned normalized-record envelope, private 0700 directory, 0600 atomic file writes, and no credential/raw-response fields.
 5. What minimum Claude 429 backoff and default refresh interval are approved, and may provider-specific refresh floors override the global interval?
 6. **Resolved from pi-hud provider code:** Claude uses `auth.anthropic = { type: "oauth", access }`; Codex uses `auth["openai-codex"] = { type: "oauth", access, accountId, refresh?, expires? }`; Umans accepts `auth.umans = { type: "oauth", access }` or `{ type: "api_key", key }`, then falls back to `UMANS_API_KEY` only when no supported file entry exists.
-7. Which Codex response conditions specifically qualify for curl fallback, and what curl availability/version assumptions are allowed?
-8. How should a latest-read Codex auth merge detect that another process refreshed or replaced the same account during Kuota's refresh?
-9. Which compact metric is the default for each provider, and which alternatives are user-selectable?
-10. What default caution/critical thresholds apply when a metric is a remaining percentage versus a used percentage or count?
-11. Should multiple widget instances share Kuota's cache/backoff state only through files, and what lock or single-writer strategy prevents duplicate live requests?
-12. **Resolved:** The target machine provides `kpackagetool6`, `plasmawindowed`, `plasmoidviewer`, `qmllint`, `qmlformat`, and `qmltestrunner`; use them where applicable and keep collector tests under Node's test runner.
-13. Are provider/account identifiers allowed internally in memory if fully excluded from normalized output, logs, fixtures, settings, and caches, or must they be minimized further?
-14. What artifact format/name/versioning convention is required for later KDE Store suitability?
+7. **Resolved (2026-07-12):** Codex curl fallback is eligible only after native HTTP returns 401 or 403. Redirects classify as auth-needed without curl; abort, network, timeout, 429, 5xx, and malformed responses terminate without curl. Curl is invoked only as `curl --config -` with bounded execution and credentials supplied through stdin.
+8. **Resolved (2026-07-12):** A latest-read Codex auth merge requires the current Codex type, account ID, access token, and initiating refresh token to match before replacement; it preserves unrelated entries, unknown Codex fields, and mode, refuses identity/concurrency changes, and treats an already-equivalent refreshed entry as idempotent success.
+9. **Resolved (2026-07-12, owner-approved scope correction):** Replace the stale `https://chatgpt.com/backend-api/codex/usage` assumption with `https://chatgpt.com/backend-api/wham/usage`. Current OpenAI Codex backend-client source uses the `/wham/usage` ChatGPT path, corroborated by current captured payloads; the design spec was updated before M3.3.
+10. Which compact metric is the default for each provider, and which alternatives are user-selectable?
+11. What default caution/critical thresholds apply when a metric is a remaining percentage versus a used percentage or count?
+12. Should multiple widget instances share Kuota's cache/backoff state only through files, and what lock or single-writer strategy prevents duplicate live requests?
+13. **Resolved:** The target machine provides `kpackagetool6`, `plasmawindowed`, `plasmoidviewer`, `qmllint`, `qmlformat`, and `qmltestrunner`; use them where applicable and keep collector tests under Node's test runner.
+14. Are provider/account identifiers allowed internally in memory if fully excluded from normalized output, logs, fixtures, settings, and caches, or must they be minimized further?
+15. What artifact format/name/versioning convention is required for later KDE Store suitability?
 
 ## Gate Log
 
@@ -252,7 +295,7 @@
 | M2.4 | Bounded Claude OAuth usage fetch and backoff security/API review | PASS | Scrutinize cycle 1 FIX-FIRST, cycle 2 SHIP; deep final review APPROVED WITH FIXES; three focused correction/sign-off cycles ending APPROVED; final typecheck/build/artifact/Plasma pass and tests 302/302 on 2026-07-12 |
 | M2.5 | Claude adapter composition, persisted backoff, cache recovery, and registry review | PASS | Scrutinize cycle 1 FIX-FIRST, cycle 2 SHIP; deep final review APPROVED WITH FIXES; focused post-fix sign-off APPROVED; task checks typecheck/build pass and tests 325/325 on 2026-07-12; G2 deferred until all M2 tasks completed |
 | G2 | Claude adapter verified | PASS | M2.1–M2.5 complete. Fresh exit gate on 2026-07-12: typecheck exit 0; tests 325/325 across 14 suites; collector build exit 0; Plasma/QML validation exit 0; artifact build exit 0; diff check clean. Independent whole-milestone security/architecture review traced success and major fallback paths with no Blocker/Important findings and returned G2 PASS. |
-| G3 | Codex adapter and auth persistence security-reviewed | NOT STARTED | Requires Milestone 3 |
+| G3 | Codex adapter and auth persistence security-reviewed | PASS | M3.1–M3.7 complete. Isolated gate on 2026-07-12: typecheck exit 0; tests 398/398 across 14 suites; collector build, Plasma validation, artifact build/check, and diff check exit 0; real auth fingerprint/mode/identity unchanged. Midpoint review found one Important defaultSpawn integration-coverage gap, fixed without re-review; final fresh deep whole-milestone review returned G3 SHIP with no Blocker/Important findings. |
 | G4 | Umans adapter verified | NOT STARTED | Requires Milestone 4 |
 | G5 | Integrated collector verified | NOT STARTED | Requires Milestone 5 |
 | G6 | QML bridge and snapshot lifecycle verified | NOT STARTED | Requires Milestone 6 |
@@ -263,12 +306,13 @@
 
 ## Handoff Block
 
-- **Current gate:** G3 — Codex adapter and auth persistence security-reviewed.
-- **Next action:** Begin Milestone 3 with M3.1 only: test-first Codex credential discovery and classification; do not run G3 until every Milestone 3 task is complete.
-- **First implementation action:** Add failing synthetic tests for `auth["openai-codex"]` OAuth discovery, missing/malformed/account-id/expiry states, and value-free read failures before adding production credential parsing.
+- **Current gate:** G4 — Umans adapter verified.
+- **Next action:** Decompose Milestone 4 into bounded Umans credential, normalization, transport, and adapter-integration slices before implementation; run G4 only once at milestone end.
+- **Resolved blocker (2026-07-12):** The failures were model/provider stream failures that the watchdog correctly contained, but the fallback classifier did not treat watchdog aborts or MiniMax's missing-usage `input_tokens` TypeError as retryable. `pi-subagents` now classifies those two narrow failures for configured model fallback; recon falls back to Luna and worker falls back to Terra. Typecheck, 380 extension tests, Biome, and a fresh-process foreground no-op delegation pass.
+- **First implementation action:** Lock Umans credential precedence and unlimited-plan normalization from the approved design, then add the first failing synthetic auth test.
 - **Required inputs before execution:** Use only synthetic auth/cache/fetch seams; never log or echo tokens, headers, bodies, account identifiers, native errors, or credential-file contents.
 - **Executor rules:** Work milestone-by-milestone; follow task dependencies; write tests first where required; keep secrets out of all artifacts; stop on contract/security ambiguity rather than guessing.
-- **Review protocol:** At each exit gate, run the listed checks, record commands/results in the Gate Log, obtain the required independent review, and update only that milestone's counters.
+- **Review protocol:** Milestone 3 has exactly two planned review passes: one diagnostic midpoint protected-boundary review after M3.4/M3.6 and one final whole-milestone G3 review after M3.1–M3.7. Findings are fixed and verified deterministically without re-review; unresolved Blockers stop for owner decision.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
 - **Stop conditions:** Credential exposure, auth-file truncation/mode change, overlapping refresh, malformed snapshot acceptance, unbounded provider call, or any pressure to publish without separate approval.
 - **Completion definition:** G0–G10 pass, all milestone exit gates are satisfied, live smoke tests are recorded, a reproducible artifact is produced, and KDE Store publication remains explicitly unperformed.

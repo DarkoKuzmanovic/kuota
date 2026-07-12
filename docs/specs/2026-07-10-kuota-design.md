@@ -129,7 +129,7 @@ This preserves independent operation without needlessly colliding with pi-hud.
 
 ### Codex
 
-Source: `https://chatgpt.com/backend-api/codex/usage` using the existing `openai-codex` OAuth entry and account ID in `~/.pi/agent/auth.json`.
+Source: `https://chatgpt.com/backend-api/wham/usage` using the existing `openai-codex` OAuth entry and account ID in `~/.pi/agent/auth.json`. This path was updated with owner approval on 2026-07-12 after current OpenAI Codex backend-client source superseded the earlier `/backend-api/codex/usage` design assumption.
 
 Known data includes primary and secondary quota windows, percentages, reset timestamps, and any genuine plan or credit fields returned by the endpoint.
 

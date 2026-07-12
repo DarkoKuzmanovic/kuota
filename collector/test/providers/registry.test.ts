@@ -14,8 +14,10 @@ import {
   mapAdapterErrorToOutcome,
   providerOutcomeToRecord,
 } from "../../src/providers/types.js";
+import { createCodexAdapter } from "../../src/providers/codex/adapter.js";
 import {
   CLAUDE_ADAPTER,
+  CODEX_ADAPTER,
   createProviderRegistration,
   createProviderRegistry,
   type ProviderRegistration,
@@ -213,7 +215,7 @@ test("normalized result construction rejects native extras and invalid values", 
   );
 });
 
-test("registry exposes the real Claude adapter and placeholder peers", async () => {
+test("registry exposes real Claude and Codex adapters without collecting auth at registration", async () => {
   const registry = createProviderRegistry();
 
   assert.deepEqual(
@@ -221,6 +223,7 @@ test("registry exposes the real Claude adapter and placeholder peers", async () 
     canonicalIds,
   );
   assert.equal(registry.adapters[0], CLAUDE_ADAPTER);
+  assert.equal(registry.adapters[2], CODEX_ADAPTER);
 
   const context: ProviderAdapterContext = {
     signal: new AbortController().signal,
@@ -228,13 +231,50 @@ test("registry exposes the real Claude adapter and placeholder peers", async () 
     deadlineAt: "2026-07-11T12:00:00.000Z",
     dependencies: {},
   };
-  for (const adapter of registry.adapters.slice(1)) {
-    assert.deepEqual(await adapter.collect(context), {
-      id: adapter.id,
-      state: "error",
-      status: "Provider adapter unavailable",
-    });
-  }
+  const umans = registry.adapters[1];
+  if (umans === undefined) assert.fail("expected Umans placeholder");
+  assert.deepEqual(await umans.collect(context), {
+    id: "umans",
+    state: "error",
+    status: "Provider adapter unavailable",
+  });
+});
+
+test("registry selects an injected Codex adapter without consulting live auth", async () => {
+  const syntheticAuthPath = "/synthetic-home/.pi/agent/auth.json";
+  let pathCalls = 0;
+  let authCalls = 0;
+  const codex = createCodexAdapter({
+    resolveAuthPath: () => { pathCalls += 1; return syntheticAuthPath; },
+    readAuth: async ({ authPath }) => {
+      authCalls += 1;
+      assert.equal(authPath, syntheticAuthPath);
+      return { state: "auth-needed", reason: "missing-entry", status: "Authentication required" };
+    },
+  });
+  const registry = createProviderRegistry([
+    createProviderRegistration(adapterFor("claude")),
+    createProviderRegistration(adapterFor("umans")),
+    createProviderRegistration(codex),
+  ]);
+  assert.equal(pathCalls, 0);
+  assert.equal(authCalls, 0);
+
+  const selected = registry.selectEnabled([{ id: "codex", enabled: true }]);
+  assert.equal(pathCalls, 0);
+  assert.equal(authCalls, 0);
+  const selectedCodex = selected[0];
+  if (selectedCodex === undefined) assert.fail("expected Codex adapter");
+  assert.deepEqual(await selectedCodex.collect({
+    signal: new AbortController().signal,
+    dependencies: {},
+  }), {
+    id: "codex",
+    state: "auth-needed",
+    status: "Authentication required",
+  });
+  assert.equal(pathCalls, 1);
+  assert.equal(authCalls, 1);
 });
 
 test("selection rejects unknown configured provider IDs without echoing values", () => {
