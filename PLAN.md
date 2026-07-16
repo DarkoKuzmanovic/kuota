@@ -355,7 +355,27 @@
 **Key deliverables:** Reusable cards/rows; adaptive popup/desktop layout; omitted unavailable fields; live countdown; last-success/stale age display; partial-success presentation.  
 **Exit gate:** Popup/desktop resizing, each provider payload shape, optional fields, unlimited Umans, stale/auth/error/partial states, countdown updates, light/dark themes, and keyboard/accessibility checks pass.  
 **Depends on:** Milestones 6 and 7.  
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 0
+
+**Scope decision (owner-approved 2026-07-14):** Standard tier, **ordinary risk**. One repository, one user-visible outcome (the shared full representation used for both popup and desktop). Architecture resolved: renders the same already-validated `CollectorDocument` snapshot (`root.snapshot`) + provider `details`; no credential/network/auth/process surface enters M8; countdown is computed in QML from `resetAt` per Conventions. Reuses the M7 Plasma-independent-model + thin-view pattern. **Allowed ceremony:** no planner (surface known: `main.qml` `fullRepresentation` + a `full-model.js` module + a `FullRepresentation.qml`); one combined `reviewer` `lane:standard` at the G8 boundary; no oracle. **Outcome dispatch ceiling: 4.** **Promotion triggers:** a credential/process surface entering M8, or scope expanding beyond the single full view.
+
+**Git:** Continues on `main`, per-milestone commit style (owner-directed).
+
+**Data available (schema-v1):** window `{ id, label, usedPercent?, used?, limit?, resetAt? }`; details — Claude `{ model?, tokens?, extraUsageEnabled?, extraUsageUsedCredits?, extraUsageMonthlyLimit?, extraUsageCurrency?, extraUsageDecimalPlaces?, extraUsageDisabledReason? }`, Umans `{ plan?, requests?, concurrency?, concurrencyLimit? }`, Codex `{ plan?, credits?, cost?, tokens? }`. Omit every absent field — never manufacture symmetry.
+
+**Run metrics:** started-at: (pending M8 kickoff) · first-worker-at: (pending) · dispatches: 0/4 · review-bundles: 0 · review-dispatches: 0 · worker-retries: 0 · oracle: 0 · completed-outcomes: 0 · direct-edits: 0
+**Counters:** reviews: 0 · fix-cycles: 0/1 · oracle: 0 · direct-edits: 0
+
+- [ ] **M8.1 — Full-view presentation model JS module (test-first)**
+  - Add `plasmoid/contents/ui/full-model.js` (Plasma-independent, `.pragma library`, no Plasma/IO). Given one provider record, produce a presentable view model: ordered window rows each with `{ label, usedPercent? , used?, limit?, remaining?, progressFraction? (0..1 when a percentage or used/limit exists), thresholdLevel (reuse M7 rule), resetAt? }`; a provider-specific fact list built from `details` (Claude/Umans/Codex fields above), omitting absent fields, with human-readable labels and secret-free formatted values (respect `extraUsageCurrency`/`extraUsageDecimalPlaces` for credit amounts); a `lastSuccessAt` passthrough; and a state classification for `ok`/`stale`/`auth-needed`/`error` messaging. Never compute a live countdown here (QML owns that) — expose `resetAt` only.
+  - **Acceptance:** Qt 6/Node tests cover progressFraction from usedPercent and from used/limit, remaining = limit-used when derivable (omitted otherwise), each provider's fact extraction incl. empty/partial details, unlimited Umans (requests + reset, no invented percent), threshold reuse at 75/90, all four states, and no-secret/no-raw-value output. No Plasma import.
+  - Suggested difficulty: medium. Depends on: G7.
+- [ ] **M8.2 — Full representation QML: switcher, window rows, live countdown, facts, refresh, state (test-first / qmllint)**
+  - Replace the placeholder `fullRepresentation` with the shared responsive view (popup + desktop): a provider switcher (Claude/Umans/Codex, hidden providers omitted); the selected provider view consuming M8.1 — provider name + state, `lastSuccessAt`, one row per window with a progress bar where a fraction exists, used/remaining/limit values where derivable, reset time + a LIVE countdown (a QML `Timer` computing remaining time from `resetAt` and `Date.now()`), the provider-specific fact list, a manual Refresh action wired to `root.refresh()` (disabled/animated while `root.inFlight`), and concise login-needed / stale / error messaging. Adapt to available width/height; keyboard focus + Accessible names; light/dark theme legibility.
+  - **Acceptance:** Qt 6 harness / `qmllint` cover switching between providers, each provider payload shape, optional/absent fields omitted, unlimited Umans, progress bars, countdown updates (injected `now`), stale/auth-needed/error/partial-success states, refresh invocation + in-flight state, popup vs desktop sizing, keyboard/a11y, no credentials/raw values anywhere. Adds NO `org.kde.plasma.plasma5support` import (extend `tst_module_isolation.qml` `productionQmlFiles`).
+  - Suggested difficulty: hard. Depends on: M8.1.
+- [ ] **G8 — Full representation exit gate + combined review**
+  - Under synthetic `HOME` (0700 `.cache`): Qt 6 QML suite, full Node suite, typecheck, `build:collector`, `validate:plasma`, artifact/package check, secret scan, `git diff --check`. One fresh `reviewer` `lane:standard` combined pass (disprove-done, then quality/regressions/a11y/secret-safety/test adequacy).
+  - **Acceptance:** all checks green; no unresolved Blocker; `PLAN.md` gate log + Gate Log row updated; `README.md`/`AGENTS.md` reflect full-view behavior.
 
 ## Milestone 9 — Configuration and End-to-End UX Hardening
 
