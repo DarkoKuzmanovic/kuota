@@ -3,15 +3,19 @@
 Kuota is a standalone KDE Plasma 6 widget for showing authoritative Claude,
 Umans, and Codex usage without a running Pi session.
 
-Implemented through Milestone 8: the normalized collector contract and safe
+Implemented through Milestone 9: the normalized collector contract and safe
 filesystem primitives; live Claude, Umans, and Codex adapters with credential
 discovery, bounded fetches, backoff, and per-provider last-known-good caching;
 an integrated, cross-process-locked collector CLI; the isolated QML collector
 bridge with whole-document validation and snapshot retention; the compact
 panel representation; and the full popup/desktop representation with a provider
 switcher, per-window rows, live reset countdowns, provider-specific facts, and a
-refresh action. Not yet implemented: configuration UI and UX hardening (M9) and
-packaging/release (M10).
+refresh action; and a native configuration dialog — Appearance (display mode,
+entry separator, font scaling, reset-countdown visibility), Providers
+(per-provider visibility, ordering, and per-provider window selection), and
+Thresholds (caution / critical percentages and refresh interval) — whose
+settings persist and update the views live. Not yet implemented:
+packaging/release and remaining UX hardening (M10).
 
 ## Contents
 
@@ -87,7 +91,7 @@ newline-terminated schema-v1 JSON document and no stderr diagnostics.
 The widget's compact panel renders one horizontal line of enabled providers
 (default order Claude, Umans, Codex). Each entry shows its most useful current
 metric — a window's used percentage when available, otherwise a used count —
-with caution (≥75%) and critical (≥90%) threshold colors, concise
+with configurable caution (default ≥75%) and critical (default ≥90%) threshold colors, concise
 login-needed / stale / error markers, icon / text / icon+text modes, and
 keyboard-accessible click-to-open. Uncapped counts carry no threshold color.
 The widget's full representation (shared by the panel popup and the desktop
@@ -99,8 +103,11 @@ in QML from the window's reset timestamp, provider-specific facts (model, plan,
 token totals, request/concurrency counts, credits/cost/extra-usage — only when
 genuinely returned), and a manual refresh action that reflects in-flight state.
 Absent fields are omitted rather than shown as zero or placeholder, and no
-credentials or raw provider responses ever cross into the view. Threshold
-colors and per-provider metric choices become user-configurable in Milestone 9.
+credentials or raw provider responses ever cross into the view. Thresholds,
+refresh interval, per-provider visibility / order / window, and the compact
+display options are user-configurable through the widget's configuration
+dialog; every setting persists and updates the views live, and invalid values
+fall back to safe defaults at a single read boundary before reaching the views.
 
 The normalized contract uses provider states `ok`, `stale`, `auth-needed`, and
 `error`. Optional values are omitted, stale records retain real data, and

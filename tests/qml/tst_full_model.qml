@@ -323,4 +323,45 @@ TestCase {
         compare(model.windows[0].label, "A");
         compare(model.windows[1].label, "B");
     }
+
+    function test_injectedThresholdBoundariesOverrideDefaults() {
+        var thresholds = { caution: 50, critical: 60 };
+
+        var below = windowRow(FullModel.buildFullViewModel(
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 49 })] }),
+            thresholds
+        ), 0);
+        compare(below.thresholdLevel, "none");
+
+        var atCaution = windowRow(FullModel.buildFullViewModel(
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 50 })] }),
+            thresholds
+        ), 0);
+        compare(atCaution.thresholdLevel, "caution");
+
+        var justBelowCritical = windowRow(FullModel.buildFullViewModel(
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 59 })] }),
+            thresholds
+        ), 0);
+        compare(justBelowCritical.thresholdLevel, "caution");
+
+        var atCritical = windowRow(FullModel.buildFullViewModel(
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 60 })] }),
+            thresholds
+        ), 0);
+        compare(atCritical.thresholdLevel, "critical");
+    }
+
+    function test_omittedThresholdsStillDefaultTo75And90() {
+        var record = Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 80 })] });
+        var row = windowRow(FullModel.buildFullViewModel(record), 0);
+        compare(row.thresholdLevel, "caution");
+    }
+
+    function test_invertedInjectedThresholdsFallBackToDefaults() {
+        var record = Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 80 })] });
+        var row = windowRow(FullModel.buildFullViewModel(record, { caution: 90, critical: 50 }), 0);
+        // Invalid (caution >= critical) → falls back to the 75/90 default rule.
+        compare(row.thresholdLevel, "caution");
+    }
 }

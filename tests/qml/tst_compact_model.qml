@@ -282,4 +282,74 @@ TestCase {
         compare(providerEntry(entries, "umans").label, "Umans");
         compare(providerEntry(entries, "codex").label, "Codex");
     }
+
+    function test_selectedWindowHonoredWhenPresent() {
+        var snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({
+                windows: [
+                    Fixtures.validWindow({ id: "session", usedPercent: 10 }),
+                    Fixtures.validWindow({ id: "weekly-all", usedPercent: 88 })
+                ]
+            })
+        ]);
+        var config = defaultConfig({ window: { claude: "weekly-all" } });
+        var claude = providerEntry(CompactModel.buildCompactEntries(snapshot, config), "claude");
+        verify(claude !== null);
+        compare(claude.displayValue, "88%");
+        compare(claude.thresholdLevel, "caution");
+    }
+
+    function test_selectedWindowFallsBackToPrimaryWhenAbsent() {
+        var snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({
+                windows: [
+                    Fixtures.validWindow({ id: "session", usedPercent: 10 }),
+                    Fixtures.validWindow({ id: "weekly-all", usedPercent: 88 })
+                ]
+            })
+        ]);
+        // "weekly-oauth-apps" is not among this provider's live windows.
+        var config = defaultConfig({ window: { claude: "weekly-oauth-apps" } });
+        var claude = providerEntry(CompactModel.buildCompactEntries(snapshot, config), "claude");
+        verify(claude !== null);
+        compare(claude.displayValue, "10%");
+        compare(claude.thresholdLevel, "none");
+    }
+
+    function test_injectedThresholdCustomBoundaries() {
+        var config = defaultConfig({ cautionThreshold: 50, criticalThreshold: 60 });
+
+        var below = providerEntry(CompactModel.buildCompactEntries(
+            sampleSnapshot([Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 49 })] })]),
+            config
+        ), "claude");
+        compare(below.thresholdLevel, "none");
+
+        var atCaution = providerEntry(CompactModel.buildCompactEntries(
+            sampleSnapshot([Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 50 })] })]),
+            config
+        ), "claude");
+        compare(atCaution.thresholdLevel, "caution");
+
+        var justBelowCritical = providerEntry(CompactModel.buildCompactEntries(
+            sampleSnapshot([Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 59 })] })]),
+            config
+        ), "claude");
+        compare(justBelowCritical.thresholdLevel, "caution");
+
+        var atCritical = providerEntry(CompactModel.buildCompactEntries(
+            sampleSnapshot([Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 60 })] })]),
+            config
+        ), "claude");
+        compare(atCritical.thresholdLevel, "critical");
+    }
+
+    function test_defaultThresholdsApplyWhenDisplayConfigOmitsThem() {
+        // defaultConfig() with no threshold overrides must still use 75/90 (unchanged default rule).
+        var snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 80 })] })
+        ]);
+        var claude = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "claude");
+        compare(claude.thresholdLevel, "caution");
+    }
 }

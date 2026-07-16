@@ -11,7 +11,7 @@
     "test": "node scripts/clean-output.js tests && tsc -p tsconfig.test.json && cd dist/tests && node --test",
     "test:qml": "node scripts/run-qml-tests.js",
     "build:collector": "node scripts/clean-output.js collector && tsc -p tsconfig.build.json",
-    "validate:plasma": "kpackagetool6 --appstream-metainfo plasmoid && qmllint plasmoid/contents/ui/main.qml plasmoid/contents/ui/CollectorBridge.qml plasmoid/contents/ui/collector-validator.js plasmoid/contents/ui/snapshot-state.js plasmoid/contents/ui/collector-command.js plasmoid/contents/ui/bridge-lifecycle.js plasmoid/contents/ui/compact-model.js plasmoid/contents/ui/CompactRepresentation.qml plasmoid/contents/ui/full-model.js plasmoid/contents/ui/FullRepresentation.qml",
+    "validate:plasma": "kpackagetool6 --appstream-metainfo plasmoid && qmllint plasmoid/contents/ui/main.qml plasmoid/contents/ui/CollectorBridge.qml plasmoid/contents/ui/collector-validator.js plasmoid/contents/ui/snapshot-state.js plasmoid/contents/ui/collector-command.js plasmoid/contents/ui/bridge-lifecycle.js plasmoid/contents/ui/compact-model.js plasmoid/contents/ui/CompactRepresentation.qml plasmoid/contents/ui/full-model.js plasmoid/contents/ui/FullRepresentation.qml plasmoid/contents/ui/config-model.js plasmoid/contents/ui/configAppearance.qml plasmoid/contents/ui/configProviders.qml plasmoid/contents/ui/configThresholds.qml",
     "build:artifact": "npm run build:collector && node scripts/build-artifact.js"
   },
   "devDependencies": {

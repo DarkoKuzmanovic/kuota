@@ -11,14 +11,17 @@ FocusScope {
     property var snapshot: null
     property var displayConfig: defaultDisplayConfig
     property string compactDisplayMode: "icons+text"
+    property string separator: " · "
+    property real fontScale: 1.0
 
     readonly property real contentMargin: Kirigami.Units.smallSpacing
     implicitWidth: contentRow.childrenRect.width + 2 * contentMargin
     implicitHeight: contentRow.childrenRect.height + 2 * contentMargin
-    property real fontPointSize: Kirigami.Theme.defaultFont.pointSize
+    property real fontPointSize: Kirigami.Theme.defaultFont.pointSize * fontScale
     property int narrowWidthThreshold: 140
 
     readonly property alias clickTarget: clickCapture
+    readonly property alias entryRepeaterItem: entryRepeater
 
     signal requestExpand()
 
@@ -107,6 +110,7 @@ FocusScope {
         }
 
         Repeater {
+            id: entryRepeater
             model: compactRoot.hasEntries ? compactRoot.entries : []
 
             delegate: Row {
@@ -117,17 +121,24 @@ FocusScope {
                 required property int index
 
                 property var stateInfo: compactRoot.stateIndicator(modelData)
+                // Computed on entryRow itself (reading its own required `index`
+                // directly) rather than in the nested Heading's binding below —
+                // a nested child reading a parent delegate's required property
+                // directly was observed to capture a stale pre-injection value
+                // with no reactive re-trigger. Mirrors the stateInfo pattern above.
+                property bool showSeparator: index > 0 && compactRoot.separator.length > 0
 
                 Accessible.role: Accessible.StaticText
                 Accessible.name: modelData.label + ", " + modelData.displayValue
                     + (stateInfo.show ? ", " + stateInfo.label : "")
 
-                Rectangle {
-                    visible: index > 0
-                    width: 1
-                    height: parent.height * 0.6
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: Kirigami.Theme.disabledTextColor
+                Kirigami.Heading {
+                    objectName: "separatorLabel"
+                    level: 5
+                    visible: showSeparator
+                    opacity: 0.6
+                    font.pointSize: compactRoot.fontPointSize
+                    text: compactRoot.separator
                 }
 
                 Kirigami.Icon {

@@ -16,7 +16,31 @@ var STATE_MESSAGES = Object.freeze({
     error: "Error"
 });
 
-function buildFullViewModel(record) {
+var DEFAULT_CAUTION_THRESHOLD = 75;
+var DEFAULT_CRITICAL_THRESHOLD = 90;
+
+// Injected thresholds (M9, D5) override the 75/90 default. Malformed or
+// inverted (caution >= critical) input falls back to the default pair —
+// same semantics as config-model.js's own threshold sanitizer.
+function normalizeThresholds(thresholds) {
+    var caution = DEFAULT_CAUTION_THRESHOLD;
+    var critical = DEFAULT_CRITICAL_THRESHOLD;
+    if (isRecord(thresholds)) {
+        if (typeof thresholds.caution === "number" && isFinite(thresholds.caution)) {
+            caution = thresholds.caution;
+        }
+        if (typeof thresholds.critical === "number" && isFinite(thresholds.critical)) {
+            critical = thresholds.critical;
+        }
+    }
+    if (!(caution < critical)) {
+        return { caution: DEFAULT_CAUTION_THRESHOLD, critical: DEFAULT_CRITICAL_THRESHOLD };
+    }
+    return { caution: caution, critical: critical };
+}
+
+function buildFullViewModel(record, thresholds) {
+    var resolvedThresholds = normalizeThresholds(thresholds);
     if (!isRecord(record) || typeof record.id !== "string") {
         return emptyModel();
     }
@@ -28,7 +52,7 @@ function buildFullViewModel(record) {
         providerId: providerId,
         state: state,
         lastSuccessAt: optionalString(record.lastSuccessAt),
-        windows: buildWindowRows(record),
+        windows: buildWindowRows(record, resolvedThresholds),
         facts: buildFacts(record),
         stateMessage: stateMessageFor(state)
     };
@@ -44,7 +68,7 @@ function emptyModel() {
     };
 }
 
-function buildWindowRows(record) {
+function buildWindowRows(record, thresholds) {
     if (!Array.isArray(record.windows)) {
         return [];
     }
@@ -55,12 +79,12 @@ function buildWindowRows(record) {
         if (!isRecord(window)) {
             continue;
         }
-        rows.push(buildWindowRow(window));
+        rows.push(buildWindowRow(window, thresholds));
     }
     return rows;
 }
 
-function buildWindowRow(window) {
+function buildWindowRow(window, thresholds) {
     var row = {
         label: typeof window.label === "string" ? window.label : "",
         thresholdLevel: THRESHOLD_LEVEL.NONE
@@ -80,7 +104,7 @@ function buildWindowRow(window) {
     }
 
     var utilization = utilizationPercent(window);
-    row.thresholdLevel = thresholdLevelFromUtilization(utilization);
+    row.thresholdLevel = thresholdLevelFromUtilization(utilization, thresholds);
 
     var fraction = progressFractionFromWindow(window);
     if (fraction !== undefined) {
@@ -122,14 +146,15 @@ function utilizationPercent(window) {
     return undefined;
 }
 
-function thresholdLevelFromUtilization(utilization) {
+function thresholdLevelFromUtilization(utilization, thresholds) {
     if (typeof utilization !== "number" || !isFinite(utilization)) {
         return THRESHOLD_LEVEL.NONE;
     }
-    if (utilization >= 90) {
+    var resolved = isRecord(thresholds) ? thresholds : normalizeThresholds(undefined);
+    if (utilization >= resolved.critical) {
         return THRESHOLD_LEVEL.CRITICAL;
     }
-    if (utilization >= 75) {
+    if (utilization >= resolved.caution) {
         return THRESHOLD_LEVEL.CAUTION;
     }
     return THRESHOLD_LEVEL.NONE;

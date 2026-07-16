@@ -13,6 +13,13 @@ FocusScope {
     property real nowMs: Date.now()
     property bool autoAdvanceClock: true
     property var providerOrder: ["claude", "umans", "codex"]
+    // Injected caution/critical thresholds (M9, D5). Defaults preserve M8's
+    // 75/90 behavior for standalone instantiation (e.g. existing tests that
+    // never set this).
+    property var thresholds: ({ caution: 75, critical: 90 })
+    // Gates the live reset countdown text (M9, D8). The reset timestamp
+    // itself may still show; only the ticking "Resets in …" phrase is hidden.
+    property bool showCountdown: true
 
     signal requestRefresh()
 
@@ -59,7 +66,7 @@ FocusScope {
     }
 
     readonly property var activeRecord: effectiveProviderId.length > 0 ? findRecord(effectiveProviderId) : null
-    readonly property var activeModel: activeRecord !== null ? FullModel.buildFullViewModel(activeRecord) : null
+    readonly property var activeModel: activeRecord !== null ? FullModel.buildFullViewModel(activeRecord, fullRoot.thresholds) : null
 
     Accessible.role: Accessible.Pane
     Accessible.name: hasProviders
@@ -138,6 +145,9 @@ FocusScope {
 
     function resetLineText(resetAt) {
         var timestamp = formatTimestamp(resetAt);
+        if (!fullRoot.showCountdown) {
+            return timestamp;
+        }
         var countdown = countdownText(resetAt);
         if (timestamp.length === 0) {
             return countdown;

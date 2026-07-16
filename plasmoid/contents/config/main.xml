@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+
+  <!--
+    Flat typed KConfigXT keys for Kuota V1 configuration (M9).
+    Keys are a stable, additive-only contract: future versions may ADD keys
+    but must not rename/remove these within the compatibility window.
+    Semantic constraints (interval floor, threshold order) are enforced at
+    the QML read boundary by config-model.js, not by KConfig alone.
+    fontScale is a unit multiplier (1.0 = 100% of theme font), not a percent integer.
+  -->
+
+  <group name="General">
+    <entry name="providerOrder" type="StringList">
+      <label>Ordered list of provider IDs for compact and full views.</label>
+      <default>claude,umans,codex</default>
+    </entry>
+    <entry name="claudeVisible" type="Bool">
+      <label>Whether Claude is shown in the widget.</label>
+      <default>true</default>
+    </entry>
+    <entry name="umansVisible" type="Bool">
+      <label>Whether Umans is shown in the widget.</label>
+      <default>true</default>
+    </entry>
+    <entry name="codexVisible" type="Bool">
+      <label>Whether Codex is shown in the widget.</label>
+      <default>true</default>
+    </entry>
+    <entry name="claudeWindow" type="String">
+      <label>Selected Claude usage window ID for the compact line. Empty uses the primary window.</label>
+      <default></default>
+    </entry>
+    <entry name="codexWindow" type="String">
+      <label>Selected Codex usage window ID for the compact line. Empty uses the primary window.</label>
+      <default></default>
+    </entry>
+    <entry name="displayMode" type="String">
+      <label>Compact representation mode: icons, text, or icons+text.</label>
+      <default>icons+text</default>
+    </entry>
+    <entry name="separator" type="String">
+      <label>Separator glyph between compact provider entries.</label>
+      <default> · </default>
+    </entry>
+    <entry name="fontScale" type="Double">
+      <label>Compact font scale multiplier (1.0 = theme default size).</label>
+      <default>1.0</default>
+    </entry>
+    <entry name="showCountdown" type="Bool">
+      <label>Whether reset countdowns are shown in the full representation.</label>
+      <default>true</default>
+    </entry>
+    <entry name="refreshIntervalMinutes" type="Int">
+      <label>Global refresh interval in minutes. Enforced floor is 5 (Claude-safe TTL).</label>
+      <default>5</default>
+    </entry>
+    <entry name="cautionThreshold" type="Int">
+      <label>Utilization percent at which the caution threshold applies (must be less than critical).</label>
+      <default>75</default>
+    </entry>
+    <entry name="criticalThreshold" type="Int">
+      <label>Utilization percent at which the critical threshold applies.</label>
+      <default>90</default>
+    </entry>
+  </group>
+</kcfg>
