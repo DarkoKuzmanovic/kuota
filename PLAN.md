@@ -319,7 +319,32 @@
 **Key deliverables:** Responsive compact QML; provider model; defaults Claude/Umans/Codex; concise stale/auth/error treatment; accessible labels and focus behavior.  
 **Exit gate:** Panel sizing, narrow widths, all display modes, ordering/visibility, thresholds, theme legibility, keyboard access, and representation switching pass.  
 **Depends on:** Milestone 6; configuration persistence completes in Milestone 9.  
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 0
+
+**Scope decision (owner-approved 2026-07-14):** Standard tier, **ordinary risk**. One repository, one user-visible outcome (compact panel line). Architecture is resolved: the compact representation renders `root.snapshot` (an already-validated `CollectorDocument`) plus provider display config; no credential, network, auth, or process surface enters M7. >5 tasks (metric/threshold logic, provider model, three display modes, threshold colors, per-provider state treatment, click-to-open, keyboard/a11y, narrow-width). **Allowed ceremony:** no planner (file surface known: `main.qml` `compactRepresentation` + a Plasma-independent JS model module tested via the Qt 6 runner); one combined `reviewer` `lane:standard` at the G7 outcome boundary; no oracle. **Outcome dispatch ceiling: 4.** **Promotion triggers:** a credential/process surface appearing in M7 (contained protected), or scope expanding beyond the single compact line.
+
+**Git:** Continues on `main` in the project's established per-milestone commit style (owner-directed 2026-07-14; branch-first was never applied to M1–M6). Promote to a `crew/m7` branch only on owner request.
+
+**Product decisions (owner-approved 2026-07-14):**
+- **Compact metric (Q#10):** primary window's `usedPercent` when present; otherwise the `used` count (e.g. Umans unlimited/rolling). User-selectable alternative only where >1 meaningful value genuinely exists. Never invent a value.
+- **Threshold semantics (Q#11):** utilization-based — caution when used ≥ 75%, critical when used ≥ 90% (higher = worse). A raw count with no `limit`/`usedPercent` is neutral (no threshold color). Threshold values ship as defaults now; user-configurable controls land in M9.
+
+**Product decisions grill:** offered 2026-07-14; owner chose to skip and decompose directly.
+
+**Run metrics:** started-at: 2026-07-14T09:40:00+02:00 (resume) · first-worker-at: (pending) · dispatches: 0/4 · review-bundles: 0 · review-dispatches: 0 · worker-retries: 0 · oracle: 0 · completed-outcomes: 0 · direct-edits: 0
+**Counters:** reviews: 0 · fix-cycles: 0/1 · oracle: 0 · direct-edits: 0
+
+- [ ] **M7.1 — Compact provider model + metric/threshold selection JS module (test-first)**
+  - Add a Plasma-independent JS module (e.g. `plasmoid/contents/ui/compact-model.js`) that, given a validated snapshot and provider display config (order, visibility, per-provider metric choice), returns ordered compact entries. Each entry carries: `providerId`, resolved `label`, `displayValue` string, `thresholdLevel` (`none`/`caution`/`critical`), and provider `state`.
+  - Implements Q#10 metric rule (usedPercent primary, else used count, else state-only) and Q#11 threshold rule (≥75 caution / ≥90 critical on utilization; uncapped counts → `none`). Default order Claude/Umans/Codex; hidden providers omitted; missing/optional fields omitted, never invented.
+  - **Acceptance:** Qt 6 (and/or Node) tests cover: usedPercent primary path, used-count fallback, state-only fallback, boundary cases (74.9/75/89.9/90), each state `ok`/`stale`/`auth-needed`/`error`, ordering, visibility filtering, empty/omitted windows, and no-secret/no-raw-value output. Module imports no Plasma executable API. `qmllint`/typecheck clean where applicable.
+  - Suggested difficulty: medium. Depends on: G6.
+- [ ] **M7.2 — Compact QML representation wiring modes, states, colors, and interaction (test-first / qmllint)**
+  - Replace the placeholder `compactRepresentation` with a responsive one-line summary consuming M7.1 entries: icons / text / icons+text modes; labels, separators, font sizing; Plasma-theme-legible provider accent + caution/critical colors in light and dark; concise per-provider `stale`/`auth-needed`/`error` treatment; click-to-open the full representation; keyboard focus and accessible labels; graceful narrow-width behavior.
+  - **Acceptance:** Qt 6 harness / `qmllint` cover display modes, ordering/visibility, threshold color mapping, each provider state, narrow width, theme legibility, click-to-open, and keyboard access; no credentials or raw values in any surface; the component keeps M6's executable-isolation invariant (no new `plasma5support` import).
+  - Suggested difficulty: medium. Depends on: M7.1.
+- [ ] **G7 — Compact representation exit gate + combined review**
+  - Under a synthetic `HOME` (0700 `.cache`): Qt 6 QML suite, full Node suite, typecheck, `build:collector`, `validate:plasma`, artifact/package check, source/fixture secret scan, `git diff --check`. One fresh `reviewer` `lane:standard` combined pass: first disprove completeness (stubs, mock-only tests, unrun checks), then review correctness/regressions/a11y/conventions/test adequacy for the compact slice.
+  - **Acceptance:** all checks green; reviewer returns no unresolved Blocker; `PLAN.md` gate log and Gate Log row updated; `README.md`/`AGENTS.md` reflect compact-view behavior if user-facing.
 
 ## Milestone 8 — Full Popup and Desktop Representation
 
