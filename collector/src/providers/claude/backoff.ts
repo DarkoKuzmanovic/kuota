@@ -9,11 +9,11 @@ import {
 } from "../../io/atomic-write.js";
 import { isJsonValue, readJsonFile } from "../../io/json-file.js";
 import {
-  ensureClaudeCacheDirectory,
+  ensureKuotaCacheDirectory,
   nodeCacheDirectoryFileSystem,
-  resolveClaudeCacheDirectory,
+  resolveKuotaCacheDirectory,
   type CacheDirectoryFileSystem,
-} from "./cache.js";
+} from "../../io/cache-directory.js";
 
 /** Separate from the LKG envelope so only successful usage records live there. */
 export const CLAUDE_BACKOFF_SCHEMA_VERSION = 1 as const;
@@ -44,7 +44,7 @@ export interface ClaudeBackoffWriteOptions {
 }
 
 export function resolveClaudeBackoffPath(homeDirectory: string): string {
-  return join(resolveClaudeCacheDirectory(homeDirectory), "claude-backoff.json");
+  return join(resolveKuotaCacheDirectory(homeDirectory), "claude-backoff.json");
 }
 
 /** Reads an untrusted sidecar; malformed or unsafe content fails open at policy level. */
@@ -89,7 +89,7 @@ async function writeEnvelope(
   const envelope = { schemaVersion: CLAUDE_BACKOFF_SCHEMA_VERSION, retryAt };
   if (!isJsonValue(envelope)) return { state: "error" };
   try {
-    await ensureClaudeCacheDirectory(
+    await ensureKuotaCacheDirectory(
       dirname(path),
       options.directoryFs ?? nodeCacheDirectoryFileSystem,
     );

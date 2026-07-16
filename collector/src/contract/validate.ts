@@ -58,7 +58,7 @@ const CLAUDE_DETAIL_KEYS = new Set([
   "extraUsageDecimalPlaces",
   "extraUsageDisabledReason",
 ]);
-const UMANS_DETAIL_KEYS = new Set(["plan", "requests", "concurrency"]);
+const UMANS_DETAIL_KEYS = new Set(["plan", "requests", "concurrency", "concurrencyLimit"]);
 const CODEX_DETAIL_KEYS = new Set(["plan", "credits", "cost", "tokens"]);
 const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -465,19 +465,25 @@ function parseUmansDetails(
     `${path}.concurrency`,
     errors,
   );
+  const concurrencyLimit = parseOptionalCount(
+    input,
+    "concurrencyLimit",
+    `${path}.concurrencyLimit`,
+    errors,
+  );
   if (errors.length !== initialErrorCount) {
     return undefined;
   }
-  const details: { plan?: string; requests?: number; concurrency?: number } = {};
-  if (plan !== undefined) {
-    details.plan = plan;
-  }
-  if (requests !== undefined) {
-    details.requests = requests;
-  }
-  if (concurrency !== undefined) {
-    details.concurrency = concurrency;
-  }
+  const details: {
+    plan?: string;
+    requests?: number;
+    concurrency?: number;
+    concurrencyLimit?: number;
+  } = {};
+  if (plan !== undefined) details.plan = plan;
+  if (requests !== undefined) details.requests = requests;
+  if (concurrency !== undefined) details.concurrency = concurrency;
+  if (concurrencyLimit !== undefined) details.concurrencyLimit = concurrencyLimit;
   return details;
 }
 

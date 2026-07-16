@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -414,8 +414,9 @@ test("direct CLI converts a throwing native abort listener into one safe failure
   const registryModule = pathToFileURL(
     resolve(sourceDirectory, "../src/providers/registry.js"),
   ).href;
-  const temporaryDirectory = mkdtempSync(join(tmpdir(), "kuota-cli-"));
-  const hookPath = join(temporaryDirectory, "abort-hook.mjs");
+  const temporaryHome = mkdtempSync(join(tmpdir(), "kuota-cli-"));
+  mkdirSync(join(temporaryHome, ".cache"), { mode: 0o700 });
+  const hookPath = join(temporaryHome, "abort-hook.mjs");
   writeFileSync(
     hookPath,
     `const originalSetTimeout = globalThis.setTimeout;
@@ -432,10 +433,13 @@ for (const adapter of registry.PLACEHOLDER_ADAPTERS) {
     `,
     "utf8",
   );
+  const env: NodeJS.ProcessEnv = { ...process.env, HOME: temporaryHome };
+  delete env.UMANS_API_KEY;
 
   try {
     const child = spawnSync(process.execPath, ["--import", hookPath, sourceCli], {
       encoding: "utf8",
+      env,
     });
     assert.notEqual(child.status, 0);
     assert.equal(child.stdout, "");
@@ -443,7 +447,7 @@ for (const adapter of registry.PLACEHOLDER_ADAPTERS) {
     assert.equal(child.stderr.includes("synthetic abort-listener marker"), false);
     assert.equal(child.stderr.includes("    at "), false);
   } finally {
-    rmSync(temporaryDirectory, { recursive: true, force: true });
+    rmSync(temporaryHome, { recursive: true, force: true });
   }
 });
 
@@ -579,4 +583,174 @@ test("passes bounded UTC deadline context to each provider", async () => {
     { timeoutMs: 25, deadlineAt: "2026-07-11T12:00:00.025Z" },
     { timeoutMs: 25, deadlineAt: "2026-07-11T12:00:00.025Z" },
   ]);
+});
+
+const CLI_ARGV_SECRET = "synthetic-cli-argv-secret-value";
+
+async function importCliArgv(): Promise<{
+  parseCliArgv: (argv: unknown) => unknown;
+  CliArgvParseError: new () => Error;
+}> {
+  return import("../src/cli.js") as Promise<{
+    parseCliArgv: (argv: unknown) => unknown;
+    CliArgvParseError: new () => Error;
+  }>;
+}
+
+function assertValueFreeArgvError(
+  action: () => unknown,
+  errorClass: new () => Error,
+): void {
+  assert.throws(action, (error: unknown) => {
+    if (!(error instanceof errorClass)) return false;
+    assert.equal((error as Error).message.includes(CLI_ARGV_SECRET), false);
+    return true;
+  });
+}
+
+test("parseCliArgv accepts no arguments and returns no configuration input", async () => {
+  const { parseCliArgv } = await importCliArgv();
+  assert.equal(parseCliArgv([]), undefined);
+});
+
+test("parseCliArgv parses a single enabled-providers option including the empty set", async () => {
+  const { parseCliArgv } = await importCliArgv();
+  assert.deepEqual(parseCliArgv(["--enabled-providers=claude"]), {
+    enabledProviders: ["claude"],
+  });
+  assert.deepEqual(parseCliArgv(["--enabled-providers=claude,umans,codex"]), {
+    enabledProviders: ["claude", "umans", "codex"],
+  });
+  assert.deepEqual(parseCliArgv(["--enabled-providers="]), { enabledProviders: [] });
+});
+
+test("parseCliArgv rejects missing equals, extra arguments, positionals, and secret-shaped options", async () => {
+  const { parseCliArgv, CliArgvParseError } = await importCliArgv();
+  for (const argv of [
+    ["--enabled-providers"],
+    ["--enabled-providers=claude", "extra"],
+    ["extra", "--enabled-providers=claude"],
+    ["claude"],
+    [`--access-token=${CLI_ARGV_SECRET}`],
+    [`--enabled-providers=claude`, `--access-token=${CLI_ARGV_SECRET}`],
+  ]) {
+    assertValueFreeArgvError(() => parseCliArgv(argv), CliArgvParseError);
+  }
+});
+
+test("parseCliArgv rejects hostile arrays, proxies, and accessor-shaped argv without invoking them", async () => {
+  const { parseCliArgv, CliArgvParseError } = await importCliArgv();
+
+  const proxyArgv = new Proxy(["--enabled-providers=claude"], {});
+  const arrayLike = { 0: "--enabled-providers=claude", length: 1 };
+  const accessorArgv: string[] = ["--enabled-providers=claude"];
+  Object.defineProperty(accessorArgv, "0", {
+    configurable: true,
+    enumerable: true,
+    get: (): string => {
+      throw new Error(CLI_ARGV_SECRET);
+    },
+  });
+  const symbolArgv: unknown[] = ["--enabled-providers=claude"];
+  (symbolArgv as unknown as Record<PropertyKey, unknown>)[Symbol("synthetic")] = CLI_ARGV_SECRET;
+  const sparseArgv: unknown[] = [];
+  sparseArgv.length = 1;
+
+  for (const argv of [
+    undefined,
+    null,
+    "--enabled-providers=claude",
+    42,
+    proxyArgv,
+    arrayLike,
+    accessorArgv,
+    symbolArgv,
+    sparseArgv,
+  ]) {
+    assertValueFreeArgvError(() => parseCliArgv(argv), CliArgvParseError);
+  }
+});
+
+test("CLI transport composes with parseCollectorConfig for canonical order and rejects semantic violations", async () => {
+  const { parseCliArgv } = await importCliArgv();
+  const { parseCollectorConfig, DEFAULT_COLLECTOR_CONFIG, CollectorConfigParseError } = await import(
+    "../src/collect/config.js"
+  );
+
+  assert.deepEqual(parseCollectorConfig(parseCliArgv([])), DEFAULT_COLLECTOR_CONFIG);
+  assert.deepEqual(
+    parseCollectorConfig(parseCliArgv(["--enabled-providers=codex,claude"])),
+    parseCollectorConfig({ enabledProviders: ["claude", "codex"] }),
+  );
+  const allDisabled = parseCollectorConfig(parseCliArgv(["--enabled-providers="]));
+  assert.deepEqual(
+    allDisabled.providers.map((provider) => provider.enabled),
+    [false, false, false],
+  );
+
+  for (const argv of [
+    ["--enabled-providers=claude,claude"],
+    ["--enabled-providers=unknown-provider"],
+    ["--enabled-providers= claude"],
+    ["--enabled-providers=claude, codex"],
+    ["--enabled-providers=claude,,codex"],
+    ["--enabled-providers=claude,"],
+  ]) {
+    assertValueFreeArgvError(
+      () => parseCollectorConfig(parseCliArgv(argv)),
+      CollectorConfigParseError,
+    );
+  }
+});
+
+test("direct CLI accepts a safe enabled-providers subset with no live credentials or network", () => {
+  const sourceDirectory = dirname(fileURLToPath(import.meta.url));
+  const sourceCli = resolve(sourceDirectory, "../src/cli.js");
+  const temporaryHome = mkdtempSync(join(tmpdir(), "kuota-cli-transport-"));
+  const env: NodeJS.ProcessEnv = { ...process.env, HOME: temporaryHome };
+  delete env.UMANS_API_KEY;
+
+  try {
+    const child = spawnSync(process.execPath, [sourceCli, "--enabled-providers=claude"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(child.status, 0);
+    assert.equal(child.stderr, "");
+    assert.equal(child.stdout.endsWith("\n"), true);
+    const parsed: unknown = JSON.parse(child.stdout);
+    assert.deepEqual(
+      (parsed as { providers: Array<{ id: string }> }).providers.map((provider) => provider.id),
+      ["claude"],
+    );
+  } finally {
+    rmSync(temporaryHome, { recursive: true, force: true });
+  }
+});
+
+test("direct CLI rejects malformed transport with one constant diagnostic and no leaked argument", () => {
+  const sourceDirectory = dirname(fileURLToPath(import.meta.url));
+  const sourceCli = resolve(sourceDirectory, "../src/cli.js");
+  const temporaryHome = mkdtempSync(join(tmpdir(), "kuota-cli-transport-"));
+  const env: NodeJS.ProcessEnv = { ...process.env, HOME: temporaryHome };
+  delete env.UMANS_API_KEY;
+
+  try {
+    for (const args of [
+      ["--enabled-providers=claude", "extra"],
+      [`--access-token=${CLI_ARGV_SECRET}`],
+      ["--enabled-providers=unknown-provider"],
+    ]) {
+      const child = spawnSync(process.execPath, [sourceCli, ...args], {
+        encoding: "utf8",
+        env,
+      });
+      assert.equal(child.status, 1);
+      assert.equal(child.stdout, "");
+      assert.equal(child.stderr, "Kuota collector failed\n");
+      assert.equal(child.stderr.includes(CLI_ARGV_SECRET), false);
+    }
+  } finally {
+    rmSync(temporaryHome, { recursive: true, force: true });
+  }
 });

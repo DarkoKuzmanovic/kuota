@@ -10,6 +10,7 @@ import {
 } from "./types.js";
 import { createClaudeAdapter } from "./claude/adapter.js";
 import { createCodexAdapter } from "./codex/adapter.js";
+import { createUmansAdapter } from "./umans/adapter.js";
 
 export interface ConfiguredProvider {
   readonly id: string;
@@ -87,27 +88,25 @@ function placeholderFor<TId extends ProviderId>(
   };
 }
 
-/** Claude and Codex are real; Umans remains an isolated placeholder until M4. */
+/** All V1 provider adapters are real; construction itself remains inert. */
 export const CLAUDE_ADAPTER = createClaudeAdapter();
-const UMANS_PLACEHOLDER_ADAPTER = placeholderFor("umans");
+export const UMANS_ADAPTER = createUmansAdapter();
 export const CODEX_ADAPTER = createCodexAdapter();
 
-/** Legacy name retained for collector test seams; only its peer entries are placeholders. */
+/** Legacy name retained for collector test seams; all entries are real adapters. */
 export const PLACEHOLDER_ADAPTERS = [
   CLAUDE_ADAPTER,
-  UMANS_PLACEHOLDER_ADAPTER,
+  UMANS_ADAPTER,
   CODEX_ADAPTER,
 ] as const satisfies readonly RegisteredProviderAdapter[];
 
 const CLAUDE_REGISTRATION = createProviderRegistration(CLAUDE_ADAPTER);
-const UMANS_PLACEHOLDER_REGISTRATION = createProviderRegistration(
-  UMANS_PLACEHOLDER_ADAPTER,
-);
+const UMANS_REGISTRATION = createProviderRegistration(UMANS_ADAPTER);
 const CODEX_REGISTRATION = createProviderRegistration(CODEX_ADAPTER);
 
 export const PLACEHOLDER_PROVIDER_REGISTRATIONS = [
   CLAUDE_REGISTRATION,
-  UMANS_PLACEHOLDER_REGISTRATION,
+  UMANS_REGISTRATION,
   CODEX_REGISTRATION,
 ] as const satisfies readonly ProviderRegistration[];
 

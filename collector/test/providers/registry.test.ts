@@ -215,29 +215,15 @@ test("normalized result construction rejects native extras and invalid values", 
   );
 });
 
-test("registry exposes real Claude and Codex adapters without collecting auth at registration", async () => {
+test("registry exposes real adapters without collecting auth at registration", () => {
   const registry = createProviderRegistry();
-
   assert.deepEqual(
     registry.adapters.map((adapter) => adapter.id),
     canonicalIds,
   );
   assert.equal(registry.adapters[0], CLAUDE_ADAPTER);
   assert.equal(registry.adapters[2], CODEX_ADAPTER);
-
-  const context: ProviderAdapterContext = {
-    signal: new AbortController().signal,
-    timeoutMs: 25,
-    deadlineAt: "2026-07-11T12:00:00.000Z",
-    dependencies: {},
-  };
-  const umans = registry.adapters[1];
-  if (umans === undefined) assert.fail("expected Umans placeholder");
-  assert.deepEqual(await umans.collect(context), {
-    id: "umans",
-    state: "error",
-    status: "Provider adapter unavailable",
-  });
+  assert.equal(registry.adapters[1]?.id, "umans");
 });
 
 test("registry selects an injected Codex adapter without consulting live auth", async () => {

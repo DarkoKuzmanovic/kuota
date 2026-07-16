@@ -40,7 +40,8 @@
         "umans": {
           "plan": "synthetic-plan",
           "requests": 12,
-          "concurrency": 2
+          "concurrency": 2,
+          "concurrencyLimit": 3
         }
       }
     },

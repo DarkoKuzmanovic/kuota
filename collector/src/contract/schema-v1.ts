@@ -30,6 +30,7 @@ export interface UmansDetails {
   readonly plan?: string;
   readonly requests?: number;
   readonly concurrency?: number;
+  readonly concurrencyLimit?: number;
 }
 
 export interface CodexDetails {
@@ -58,9 +59,10 @@ type NonEmptyClaudeDetails =
   | (ClaudeDetails & { readonly extraUsageDecimalPlaces: number })
   | (ClaudeDetails & { readonly extraUsageDisabledReason: string });
 type NonEmptyUmansDetails =
-  | { readonly plan: string; readonly requests?: number; readonly concurrency?: number }
-  | { readonly plan?: string; readonly requests: number; readonly concurrency?: number }
-  | { readonly plan?: string; readonly requests?: number; readonly concurrency: number };
+  | { readonly plan: string; readonly requests?: number; readonly concurrency?: number; readonly concurrencyLimit?: number }
+  | { readonly plan?: string; readonly requests: number; readonly concurrency?: number; readonly concurrencyLimit?: number }
+  | { readonly plan?: string; readonly requests?: number; readonly concurrency: number; readonly concurrencyLimit?: number }
+  | { readonly plan?: string; readonly requests?: number; readonly concurrency?: number; readonly concurrencyLimit: number };
 type NonEmptyCodexDetails =
   | { readonly plan: string; readonly credits?: number; readonly cost?: number; readonly tokens?: number }
   | { readonly plan?: string; readonly credits: number; readonly cost?: number; readonly tokens?: number }

@@ -313,3 +313,23 @@ test("rejects invalid configured timeout and byte bounds before calling fetch", 
     assert.equal(capture.calls, 0);
   }
 });
+
+
+test("keeps the local timeout active while a successful Codex response body is streaming", { timeout: 250 }, async () => {
+  let cancelled = 0;
+  const seam: CodexUsageFetchSeam = async (_url, init) => ({
+    status: 200,
+    headers: fakeHeaders(),
+    body: {
+      getReader: (): ResponseBodyReaderLike => ({
+        read: () => new Promise<BodyReadChunk>((resolve) => {
+          init.signal.addEventListener("abort", () => resolve({ done: true }), { once: true });
+        }),
+        cancel: async (): Promise<void> => { cancelled += 1; },
+      }),
+    },
+  });
+  const result = await run(seam, { timeoutMs: 10 });
+  assertError(result, "timeout");
+  assert.equal(cancelled, 1);
+});

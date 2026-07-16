@@ -163,7 +163,8 @@ export async function fetchCodexUsage(
       return errorResult("malformed-response");
     }
     if (status >= 200 && status < 300) {
-      return handleSuccess(response, maxResponseBytes, controller.signal, timedOut);
+      const result = await handleSuccess(response, maxResponseBytes, controller.signal, timedOut);
+      return controller.signal.aborted ? abortResult(timedOut) : result;
     }
     await cancelResponseBodyQuietly(response);
     if (status === 401 || status === 403) return { outcome: "curl-eligible" };
