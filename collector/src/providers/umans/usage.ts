@@ -34,11 +34,19 @@ function finiteCount(value: unknown): number | typeof INVALID | undefined {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : INVALID;
 }
 
-function timestampFromEpoch(value: unknown): string | typeof INVALID | undefined {
+/** Live Umans API sends resets_at as an ISO 8601 string; older fixtures used epoch seconds. Accept both. */
+function parseResetTimestamp(value: unknown): string | typeof INVALID | undefined {
   if (value === MISSING || value === null) return undefined;
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) return INVALID;
-  const date = new Date(value * 1000);
-  return Number.isFinite(date.getTime()) ? date.toISOString() : INVALID;
+  if (typeof value === "number") {
+    if (!Number.isSafeInteger(value) || value < 0) return INVALID;
+    const date = new Date(value * 1000);
+    return Number.isFinite(date.getTime()) ? date.toISOString() : INVALID;
+  }
+  if (typeof value === "string") {
+    const time = Date.parse(value);
+    return Number.isFinite(time) ? new Date(time).toISOString() : INVALID;
+  }
+  return INVALID;
 }
 
 function normalizeObservedAt(value: string): string | undefined {
@@ -76,7 +84,7 @@ export function parseUmansUsageResponse(input: unknown, observedAt: string): Uma
     const concurrencyLimit = isPlainRecord(concurrencyLimitObject) ? finiteCount(ownValue(concurrencyLimitObject, "limit")) : undefined;
     const requests = usage === undefined ? undefined : finiteCount(ownValue(usage, "requests_in_window"));
     const concurrency = usage === undefined ? undefined : finiteCount(ownValue(usage, "concurrent_sessions"));
-    const resetAt = window === undefined ? undefined : timestampFromEpoch(ownValue(window, "resets_at"));
+    const resetAt = window === undefined ? undefined : parseResetTimestamp(ownValue(window, "resets_at"));
     const remainingMinutes = window === undefined ? undefined : finiteCount(ownValue(window, "remaining_minutes"));
     if (
       requestLimit === INVALID ||

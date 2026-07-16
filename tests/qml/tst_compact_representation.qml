@@ -169,9 +169,19 @@ TestCase {
         }
     }
 
-    function test_narrowWidthDegradesToIcons() {
+    function test_narrowWidthStillHonorsChosenModeNoBindingLoop() {
         compact.width = 96;
         compact.compactDisplayMode = "icons+text";
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 5 })] })
+        ]);
+        compare(compact.effectiveDisplayMode, "icons+text");
+        compare(compact.showText, true);
+    }
+
+    function test_narrowWidthExplicitIconsModeHidesText() {
+        compact.width = 96;
+        compact.compactDisplayMode = "icons";
         compact.snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 5 })] })
         ]);

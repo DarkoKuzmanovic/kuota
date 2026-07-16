@@ -18,7 +18,6 @@ FocusScope {
     implicitWidth: contentRow.childrenRect.width + 2 * contentMargin
     implicitHeight: contentRow.childrenRect.height + 2 * contentMargin
     property real fontPointSize: Kirigami.Theme.defaultFont.pointSize * fontScale
-    property int narrowWidthThreshold: 140
 
     readonly property alias clickTarget: clickCapture
     readonly property alias entryRepeaterItem: entryRepeater
@@ -31,12 +30,12 @@ FocusScope {
     )
 
     readonly property bool hasEntries: entries.length > 0
-    readonly property string effectiveDisplayMode: {
-        if (width > 0 && width < narrowWidthThreshold && compactDisplayMode !== "icons") {
-            return "icons";
-        }
-        return compactDisplayMode;
-    }
+    // Honors the user's explicit displayMode (M9 config) rather than reading own
+    // width: a width-based auto-degrade previously created a binding loop
+    // (implicitWidth -> childrenRect -> text visibility -> showText ->
+    // effectiveDisplayMode -> width -> implicitWidth) that froze the panel in
+    // icons-only mode. See AGENTS.md Lessons (2026-07-16, M7 sizing gotcha superseded).
+    readonly property string effectiveDisplayMode: compactDisplayMode
 
     readonly property bool showIcons: effectiveDisplayMode === "icons" || effectiveDisplayMode === "icons+text"
     readonly property bool showText: effectiveDisplayMode === "text" || effectiveDisplayMode === "icons+text"

@@ -29,6 +29,24 @@ test("normalizes genuine limited Umans request and concurrency facts", () => {
   assert.equal(validateProviderRecord(result.record).ok, true);
 });
 
+test("accepts window.resets_at as an ISO 8601 string (live API shape)", () => {
+  const result = parse({
+    limits: { requests: { limit: 100, window_seconds: 3600 }, concurrency: { limit: 3 } },
+    window: { started_at: "2026-07-13T19:00:00.000Z", resets_at: "2026-07-13T21:00:00.000Z", remaining_minutes: 30 },
+    usage: { requests_in_window: 25, concurrent_sessions: 2 },
+  });
+  assert.equal(result.ok, true);
+  if (!result.ok) throw new Error("expected normalized Umans result");
+  assert.deepEqual(result.record, {
+    id: "umans",
+    state: "ok",
+    lastSuccessAt: OBSERVED_AT,
+    windows: [{ id: "requests", label: "Requests", used: 25, limit: 100, usedPercent: 25, resetAt: "2026-07-13T21:00:00.000Z" }],
+    details: { umans: { requests: 25, concurrency: 2, concurrencyLimit: 3 } },
+  });
+  assert.equal(validateProviderRecord(result.record).ok, true);
+});
+
 test("preserves unlimited request count and reset while omitting invented limit and percentage", () => {
   const result = parse({
     limits: { requests: { window_seconds: 3600 }, concurrency: {} },
