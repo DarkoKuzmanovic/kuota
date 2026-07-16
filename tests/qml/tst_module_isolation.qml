@@ -21,13 +21,15 @@ TestCase {
         "../../plasmoid/contents/ui/collector-validator.js",
         "../../plasmoid/contents/ui/snapshot-state.js",
         "../../plasmoid/contents/ui/collector-command.js",
-        "../../plasmoid/contents/ui/bridge-lifecycle.js"
+        "../../plasmoid/contents/ui/bridge-lifecycle.js",
+        "../../plasmoid/contents/ui/compact-model.js"
     ]
 
     // Every production QML file that could plausibly import the executable
     // compatibility bridge. Exactly one is allowed to.
     property var productionQmlFiles: [
         "../../plasmoid/contents/ui/main.qml",
+        "../../plasmoid/contents/ui/CompactRepresentation.qml",
         "../../plasmoid/contents/ui/CollectorBridge.qml"
     ]
     property string executableBridgeImport: "org.kde.plasma.plasma5support"

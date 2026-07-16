@@ -3,6 +3,7 @@ import org.kde.plasma.plasmoid 2.1
 import org.kde.kirigami 2.20 as Kirigami
 
 import "snapshot-state.js" as SnapshotState
+import "compact-model.js" as CompactModel
 
 PlasmoidItem {
     id: root
@@ -32,8 +33,14 @@ PlasmoidItem {
         onTriggered: root.refresh()
     }
 
-    compactRepresentation: Kirigami.Icon {
-        source: "network-server"
+    property string compactDisplayMode: "icons+text"
+    property var compactDisplayConfig: CompactModel.createDefaultDisplayConfig()
+
+    compactRepresentation: CompactRepresentation {
+        snapshot: root.snapshot
+        displayConfig: root.compactDisplayConfig
+        compactDisplayMode: root.compactDisplayMode
+        onRequestExpand: root.expanded = true
     }
 
     fullRepresentation: Kirigami.ScrollablePage {

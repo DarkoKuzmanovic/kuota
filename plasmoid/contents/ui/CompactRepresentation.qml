@@ -1,0 +1,181 @@
+import QtQuick
+import org.kde.kirigami 2.20 as Kirigami
+
+import "compact-model.js" as CompactModel
+
+FocusScope {
+    id: compactRoot
+
+    readonly property var defaultDisplayConfig: CompactModel.createDefaultDisplayConfig()
+
+    property var snapshot: null
+    property var displayConfig: defaultDisplayConfig
+    property string compactDisplayMode: "icons+text"
+
+    readonly property real contentMargin: Kirigami.Units.smallSpacing
+    implicitWidth: contentRow.childrenRect.width + 2 * contentMargin
+    implicitHeight: contentRow.childrenRect.height + 2 * contentMargin
+    property real fontPointSize: Kirigami.Theme.defaultFont.pointSize
+    property int narrowWidthThreshold: 140
+
+    readonly property alias clickTarget: clickCapture
+
+    signal requestExpand()
+
+    readonly property var entries: CompactModel.buildCompactEntries(
+        snapshot,
+        displayConfig !== undefined && displayConfig !== null ? displayConfig : defaultDisplayConfig
+    )
+
+    readonly property bool hasEntries: entries.length > 0
+    readonly property string effectiveDisplayMode: {
+        if (width > 0 && width < narrowWidthThreshold && compactDisplayMode !== "icons") {
+            return "icons";
+        }
+        return compactDisplayMode;
+    }
+
+    readonly property bool showIcons: effectiveDisplayMode === "icons" || effectiveDisplayMode === "icons+text"
+    readonly property bool showText: effectiveDisplayMode === "text" || effectiveDisplayMode === "icons+text"
+
+    activeFocusOnTab: true
+    Accessible.role: Accessible.Button
+    Accessible.name: hasEntries
+        ? qsTr("Kuota usage summary, %1 providers").arg(entries.length)
+        : qsTr("Kuota usage summary, no data")
+
+    Keys.onReturnPressed: compactRoot.requestExpand()
+    Keys.onSpacePressed: compactRoot.requestExpand()
+
+    function providerIconName(providerId) {
+        switch (providerId) {
+        case "claude":
+            return "assistant";
+        case "umans":
+            return "applications-development";
+        case "codex":
+            return "utilities-terminal";
+        default:
+            return "network-server";
+        }
+    }
+
+    function valueTextColor(thresholdLevel) {
+        switch (thresholdLevel) {
+        case "critical":
+            return Kirigami.Theme.negativeTextColor;
+        case "caution":
+            return Kirigami.Theme.neutralTextColor;
+        default:
+            return Kirigami.Theme.textColor;
+        }
+    }
+
+    function stateIndicator(entry) {
+        if (entry.state === "auth-needed") {
+            return { icon: "object-locked", label: qsTr("Login needed"), show: true };
+        }
+        if (entry.state === "error") {
+            return { icon: "dialog-warning", label: qsTr("Error"), show: true };
+        }
+        if (entry.state === "stale") {
+            return { icon: "view-refresh", label: qsTr("Stale"), show: true };
+        }
+        return { icon: "", label: "", show: false };
+    }
+
+
+    Row {
+        id: contentRow
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.margins: contentMargin
+        spacing: Kirigami.Units.smallSpacing
+
+        Kirigami.Icon {
+            visible: !compactRoot.hasEntries
+            width: Kirigami.Units.iconSizes.smallMedium
+            height: width
+            source: "network-server"
+        }
+
+        Kirigami.Heading {
+            visible: !compactRoot.hasEntries
+            level: 5
+            opacity: 0.7
+            text: qsTr("Kuota")
+        }
+
+        Repeater {
+            model: compactRoot.hasEntries ? compactRoot.entries : []
+
+            delegate: Row {
+                id: entryRow
+                spacing: Kirigami.Units.smallSpacing
+
+                required property var modelData
+                required property int index
+
+                property var stateInfo: compactRoot.stateIndicator(modelData)
+
+                Accessible.role: Accessible.StaticText
+                Accessible.name: modelData.label + ", " + modelData.displayValue
+                    + (stateInfo.show ? ", " + stateInfo.label : "")
+
+                Rectangle {
+                    visible: index > 0
+                    width: 1
+                    height: parent.height * 0.6
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: Kirigami.Theme.disabledTextColor
+                }
+
+                Kirigami.Icon {
+                    visible: compactRoot.showIcons
+                    width: Kirigami.Units.iconSizes.smallMedium
+                    height: width
+                    source: compactRoot.providerIconName(modelData.providerId)
+                }
+
+                Kirigami.Heading {
+                    visible: compactRoot.showText
+                    level: 5
+                    font.pointSize: compactRoot.fontPointSize
+                    color: Kirigami.Theme.highlightColor
+                    text: modelData.label
+                }
+
+                Kirigami.Heading {
+                    visible: compactRoot.showText && modelData.displayValue.length > 0
+                    level: 5
+                    font.pointSize: compactRoot.fontPointSize
+                    color: compactRoot.valueTextColor(modelData.thresholdLevel)
+                    text: modelData.displayValue
+                }
+
+                Kirigami.Icon {
+                    visible: stateInfo.show && compactRoot.showIcons
+                    width: Kirigami.Units.iconSizes.small
+                    height: width
+                    source: stateInfo.icon
+                }
+
+                Kirigami.Heading {
+                    visible: stateInfo.show && compactRoot.showText
+                    level: 5
+                    font.pointSize: compactRoot.fontPointSize - 1
+                    opacity: 0.85
+                    text: stateInfo.label
+                }
+            }
+        }
+    }
+
+    MouseArea {
+        id: clickCapture
+        z: 1
+        anchors.fill: parent
+        hoverEnabled: true
+        onClicked: compactRoot.requestExpand()
+    }
+}
