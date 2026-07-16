@@ -18,6 +18,9 @@ var THRESHOLD_LEVEL = Object.freeze({
     CRITICAL: "critical"
 });
 
+var DEFAULT_CAUTION_THRESHOLD = 75;
+var DEFAULT_CRITICAL_THRESHOLD = 90;
+
 function createDefaultDisplayConfig() {
     return {
         order: DEFAULT_ORDER.slice(),
@@ -26,7 +29,10 @@ function createDefaultDisplayConfig() {
             umans: true,
             codex: true
         },
-        metric: {}
+        metric: {},
+        window: {},
+        cautionThreshold: DEFAULT_CAUTION_THRESHOLD,
+        criticalThreshold: DEFAULT_CRITICAL_THRESHOLD
     };
 }
 
@@ -78,7 +84,25 @@ function normalizeDisplayConfig(displayConfig) {
         base.metric = displayConfig.metric;
     }
 
+    if (isRecord(displayConfig.window)) {
+        base.window = displayConfig.window;
+    }
+
+    base.cautionThreshold = sanitizeThresholdNumber(displayConfig.cautionThreshold, base.cautionThreshold);
+    base.criticalThreshold = sanitizeThresholdNumber(displayConfig.criticalThreshold, base.criticalThreshold);
+    if (!(base.cautionThreshold < base.criticalThreshold)) {
+        base.cautionThreshold = DEFAULT_CAUTION_THRESHOLD;
+        base.criticalThreshold = DEFAULT_CRITICAL_THRESHOLD;
+    }
+
     return base;
+}
+
+function sanitizeThresholdNumber(value, fallback) {
+    if (typeof value !== "number" || !isFinite(value)) {
+        return fallback;
+    }
+    return value;
 }
 
 function indexProviders(providers) {
@@ -94,42 +118,59 @@ function indexProviders(providers) {
 
 function buildEntry(record, config) {
     var providerId = record.id;
-    var primaryWindow = primaryUsageWindow(record);
-    var utilization = primaryWindow ? utilizationPercent(primaryWindow) : undefined;
-    var displayValue = resolveDisplayValue(record, primaryWindow, config, utilization);
+    var displayWindow = resolveDisplayWindow(record, config);
+    var utilization = displayWindow ? utilizationPercent(displayWindow) : undefined;
+    var displayValue = resolveDisplayValue(record, displayWindow, config, utilization);
 
     return {
         providerId: providerId,
         label: PROVIDER_LABELS[providerId] || providerId,
         displayValue: displayValue,
-        thresholdLevel: thresholdLevelFromUtilization(utilization),
+        thresholdLevel: thresholdLevelFromUtilization(utilization, config),
         state: record.state
     };
 }
 
-function primaryUsageWindow(record) {
+// Resolves the window this compact entry displays (D4): honor the
+// configured per-provider window selection when it names a window ID that
+// is actually PRESENT in this record's live windows; otherwise fall back to
+// the Q10 primary-window default (windows[0]). config-model.js already
+// restricts window[providerId] to the static known catalog at sanitize
+// time; this is purely the live-availability check.
+function resolveDisplayWindow(record, config) {
     if (!Array.isArray(record.windows) || record.windows.length === 0) {
         return undefined;
     }
-    var window = record.windows[0];
-    return isRecord(window) ? window : undefined;
+
+    var selectedId = isRecord(config.window) ? config.window[record.id] : undefined;
+    if (typeof selectedId === "string" && selectedId.length > 0) {
+        for (var i = 0; i < record.windows.length; i++) {
+            var candidate = record.windows[i];
+            if (isRecord(candidate) && candidate.id === selectedId) {
+                return candidate;
+            }
+        }
+    }
+
+    var primary = record.windows[0];
+    return isRecord(primary) ? primary : undefined;
 }
 
-function resolveDisplayValue(record, primaryWindow, config, utilization) {
+function resolveDisplayValue(record, displayWindow, config, utilization) {
     var metricChoice = config.metric[record.id];
 
-    if (primaryWindow !== undefined) {
-        if (metricChoice === "used" && typeof primaryWindow.used === "number") {
-            return formatUsedCount(primaryWindow.used);
+    if (displayWindow !== undefined) {
+        if (metricChoice === "used" && typeof displayWindow.used === "number") {
+            return formatUsedCount(displayWindow.used);
         }
-        if (typeof primaryWindow.usedPercent === "number") {
-            return formatPercent(primaryWindow.usedPercent);
+        if (typeof displayWindow.usedPercent === "number") {
+            return formatPercent(displayWindow.usedPercent);
         }
-        if (typeof primaryWindow.used === "number") {
-            if (typeof primaryWindow.limit === "number" && primaryWindow.limit > 0 && utilization !== undefined) {
+        if (typeof displayWindow.used === "number") {
+            if (typeof displayWindow.limit === "number" && displayWindow.limit > 0 && utilization !== undefined) {
                 return formatPercent(utilization);
             }
-            return formatUsedCount(primaryWindow.used);
+            return formatUsedCount(displayWindow.used);
         }
     }
 
@@ -153,14 +194,16 @@ function utilizationPercent(window) {
     return undefined;
 }
 
-function thresholdLevelFromUtilization(utilization) {
+function thresholdLevelFromUtilization(utilization, config) {
     if (typeof utilization !== "number" || !isFinite(utilization)) {
         return THRESHOLD_LEVEL.NONE;
     }
-    if (utilization >= 90) {
+    var critical = (config && typeof config.criticalThreshold === "number") ? config.criticalThreshold : DEFAULT_CRITICAL_THRESHOLD;
+    var caution = (config && typeof config.cautionThreshold === "number") ? config.cautionThreshold : DEFAULT_CAUTION_THRESHOLD;
+    if (utilization >= critical) {
         return THRESHOLD_LEVEL.CRITICAL;
     }
-    if (utilization >= 75) {
+    if (utilization >= caution) {
         return THRESHOLD_LEVEL.CAUTION;
     }
     return THRESHOLD_LEVEL.NONE;

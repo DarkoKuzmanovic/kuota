@@ -4,6 +4,7 @@ import org.kde.kirigami 2.20 as Kirigami
 
 import "snapshot-state.js" as SnapshotState
 import "compact-model.js" as CompactModel
+import "config-model.js" as ConfigModel
 
 PlasmoidItem {
     id: root
@@ -24,28 +25,70 @@ PlasmoidItem {
         id: _bridge
     }
 
+    // Test seam (M9.3): `plasmoid` is null whenever this file is loaded
+    // outside a real Applet host (e.g. the offscreen Loader-based Qt Test
+    // harness — verified empirically, kf.plasma.quick logs "PlasmoidItem
+    // which is not the root QML item"). Production leaves this null so live
+    // plasmoid.configuration applies; tests set it to inject fake settings.
+    property var configOverride: null
+
+    readonly property var rawConfig: configOverride !== null
+        ? configOverride
+        : ((plasmoid !== null && plasmoid !== undefined) ? plasmoid.configuration : null)
+
+    // Read-boundary sanitization (D6): every semantic constraint (refresh
+    // floor, threshold clamp/order, garbage fallback) is enforced once here
+    // via config-model.js before any value reaches the compact/full models.
+    readonly property var sanitizedSettings: ConfigModel.sanitize(root.rawConfig)
+
+    readonly property string compactDisplayMode: root.sanitizedSettings.displayMode
+
+    readonly property var compactDisplayConfig: {
+        var assembled = ConfigModel.assembleDisplayConfig(root.sanitizedSettings);
+        return {
+            order: assembled.order,
+            visibility: assembled.visibility,
+            metric: assembled.metric,
+            window: assembled.window,
+            cautionThreshold: root.sanitizedSettings.cautionThreshold,
+            criticalThreshold: root.sanitizedSettings.criticalThreshold
+        };
+    }
+
+    readonly property var fullThresholds: {
+        return {
+            caution: root.sanitizedSettings.cautionThreshold,
+            critical: root.sanitizedSettings.criticalThreshold
+        };
+    }
+
+    // Test-only visibility into the live-bound timer interval.
+    readonly property alias refreshTimerInterval: _refreshTimer.interval
+
     Timer {
         id: _refreshTimer
-        interval: 5 * 60 * 1000
+        interval: root.sanitizedSettings.refreshIntervalMinutes * 60 * 1000
         running: true
         repeat: true
         triggeredOnStart: true
         onTriggered: root.refresh()
     }
 
-    property string compactDisplayMode: "icons+text"
-    property var compactDisplayConfig: CompactModel.createDefaultDisplayConfig()
-
     compactRepresentation: CompactRepresentation {
         snapshot: root.snapshot
         displayConfig: root.compactDisplayConfig
         compactDisplayMode: root.compactDisplayMode
+        separator: root.sanitizedSettings.separator
+        fontScale: root.sanitizedSettings.fontScale
         onRequestExpand: root.expanded = true
     }
 
     fullRepresentation: FullRepresentation {
         snapshot: root.snapshot
         inFlight: root.inFlight
+        providerOrder: root.compactDisplayConfig.order
+        thresholds: root.fullThresholds
+        showCountdown: root.sanitizedSettings.showCountdown
         onRequestRefresh: root.refresh()
     }
 }

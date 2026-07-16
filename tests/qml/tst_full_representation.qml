@@ -290,4 +290,26 @@ TestCase {
             verify(blob.toLowerCase().indexOf(forbidden[i].toLowerCase()) === -1);
         }
     }
+
+    function test_defaultShowCountdownIsTrue() {
+        compare(full.showCountdown, true);
+    }
+
+    function test_showCountdownFalseHidesCountdownButKeepsTimestamp() {
+        full.nowMs = Date.parse("2026-07-14T09:00:00.000Z");
+
+        full.showCountdown = true;
+        var withCountdown = full.resetLineText("2026-07-14T10:00:00.000Z");
+        verify(withCountdown.indexOf("Resets in") !== -1);
+
+        full.showCountdown = false;
+        var withoutCountdown = full.resetLineText("2026-07-14T10:00:00.000Z");
+        verify(withoutCountdown.indexOf("Resets in") === -1);
+        verify(withoutCountdown.length > 0);
+    }
+
+    function test_showCountdownFalseWithNoResetAtYieldsEmpty() {
+        full.showCountdown = false;
+        compare(full.resetLineText(undefined), "");
+    }
 }

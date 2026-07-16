@@ -8,6 +8,11 @@ TestCase {
     id: testCase
     name: "CompactRepresentation"
     when: windowShown
+    // TestCase's own `visible` defaults to false; QQuickItem::isVisible() returns
+    // *effective* (ancestor-combined) visibility, so without this every descendant
+    // reads visible=false regardless of its own binding. Needed because this file
+    // is the first to assert on a rendered item's `.visible` property.
+    visible: true
 
     property var compactLoader: null
     property var compact: null
@@ -214,5 +219,61 @@ TestCase {
         for (var i = 0; i < forbidden.length; i++) {
             verify(blob.toLowerCase().indexOf(forbidden[i].toLowerCase()) === -1);
         }
+    }
+
+    function findByObjectName(item, objectName) {
+        for (var i = 0; i < item.children.length; i++) {
+            if (item.children[i].objectName === objectName) {
+                return item.children[i];
+            }
+        }
+        return null;
+    }
+
+    function twoProviderSnapshot() {
+        return sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] }),
+            Fixtures.validUmansProvider({ windows: [Fixtures.validWindow({ used: 3, limit: undefined, usedPercent: undefined })] })
+        ]);
+    }
+
+    function test_separatorRendersBetweenEntriesWithConfiguredGlyph() {
+        compact.compactDisplayMode = "icons+text";
+        compact.separator = " | ";
+        compact.snapshot = twoProviderSnapshot();
+        compare(compact.entries.length, 2);
+
+        var firstEntry = compact.entryRepeaterItem.itemAt(0);
+        var secondEntry = compact.entryRepeaterItem.itemAt(1);
+        var firstSeparator = findByObjectName(firstEntry, "separatorLabel");
+        var secondSeparator = findByObjectName(secondEntry, "separatorLabel");
+
+        verify(firstSeparator !== null);
+        compare(firstSeparator.visible, false);
+        verify(secondSeparator !== null);
+        compare(secondSeparator.visible, true);
+        compare(secondSeparator.text, " | ");
+    }
+
+    function test_emptySeparatorRendersNoVisibleSeparator() {
+        compact.compactDisplayMode = "icons+text";
+        compact.separator = "";
+        compact.snapshot = twoProviderSnapshot();
+
+        var secondEntry = compact.entryRepeaterItem.itemAt(1);
+        var secondSeparator = findByObjectName(secondEntry, "separatorLabel");
+        verify(secondSeparator !== null);
+        compare(secondSeparator.visible, false);
+    }
+
+    function test_fontScaleMultipliesEffectivePointSize() {
+        compact.fontScale = 1.0;
+        var baseline = compact.fontPointSize;
+        compact.fontScale = 1.5;
+        compare(compact.fontPointSize, baseline * 1.5);
+    }
+
+    function test_defaultFontScaleIsUnitMultiplier() {
+        compare(compact.fontScale, 1.0);
     }
 }
