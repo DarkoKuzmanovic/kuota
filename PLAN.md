@@ -439,6 +439,11 @@
 - **Threshold write-path guard** — UI permits caution ≥ critical (warns); runtime correctly falls back to 75/90, but reopening the dialog still shows the invalid pair. Optional write-path guard reduces confusion.
 - **l10n system choice** — config pages ship `qsTr()` for codebase consistency; decide KI18n/`i18n` catalog vs Qt tr for the whole plasmoid as one deliberate decision, then align strings.
 
+**Post-G9 real-panel smoke-test hotfixes (2026-07-16, owner-directed):** first live run on an actual panel surfaced two *pre-existing* defects (neither an M9 regression); both fixed test-first, verified, uncommitted pending owner review.
+- **Umans parser vs. drifted live API** (M3/collector, not M9): Umans reported `error`/"Provider unavailable" (warning triangle) because the live API now sends `window.resets_at` as an **ISO 8601 string**; `usage.ts` accepted only epoch-seconds numbers → `INVALID` → `malformed-response` → `error`. Fix: `parseResetTimestamp` accepts epoch-number OR ISO-string (garbage still rejected). New regression test (RED 447/1 → GREEN 448/0). Live confirm: Umans now `state: ok` (`used=610`, `resetAt=2026-07-16T21:44:05.819Z`).
+- **Compact panel showed icons only, never text** (M7 `9ad463d`, not M9): the `width < narrowWidthThreshold → icons` auto-degrade created a QML **binding loop** (`implicitWidth → childrenRect → text visibility → showText → effectiveDisplayMode → width`) that Qt broke by freezing the panel in icons. Fix: `effectiveDisplayMode` now returns `compactDisplayMode` directly (M9's explicit displayMode config is the source of truth); `narrowWidthThreshold` removed. Tests repurposed (`test_narrowWidthStillHonorsChosenModeNoBindingLoop`, `test_narrowWidthExplicitIconsModeHidesText`); QML 257→258. AGENTS.md Lessons updated (supersedes the M7 narrow-width sizing gotcha).
+- **Independent verification (2026-07-16):** Node 448/448, Qt 6 QML 258/258, typecheck 0, validate:plasma 0, build:artifact 0 (`dist/artifact/kuota-v0.1.0.plasmoid`), live collector all three providers `ok`. Partially satisfies the G10 live-smoke record (real-panel text render + live Umans path now exercised); interactive config-dialog Apply/reopen still pending a display session.
+
 ## Open Questions
 
 1. **Resolved:** The project owner approved Gate G0 in-session on 2026-07-10; the design document and Gate Log are the evidence.
