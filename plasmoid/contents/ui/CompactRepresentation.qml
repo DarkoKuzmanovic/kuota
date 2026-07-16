@@ -100,7 +100,7 @@ FocusScope {
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
         anchors.margins: contentMargin
-        spacing: Kirigami.Units.smallSpacing
+        spacing: Kirigami.Units.largeSpacing
 
         Kirigami.Icon {
             visible: !compactRoot.hasEntries
@@ -122,7 +122,7 @@ FocusScope {
 
             delegate: Row {
                 id: entryRow
-                spacing: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.smallSpacing / 2
 
                 required property var modelData
                 required property int index
@@ -159,7 +159,8 @@ FocusScope {
                     visible: compactRoot.showText
                     level: 5
                     font.pointSize: compactRoot.fontPointSize
-                    color: Kirigami.Theme.highlightColor
+                    color: Kirigami.Theme.textColor
+                    opacity: 0.7
                     text: modelData.label
                 }
 
@@ -167,8 +168,19 @@ FocusScope {
                     visible: compactRoot.showText && modelData.displayValue.length > 0
                     level: 5
                     font.pointSize: compactRoot.fontPointSize
+                    font.weight: Font.DemiBold
                     color: compactRoot.valueTextColor(modelData.thresholdLevel)
                     text: modelData.displayValue
+                }
+
+                Rectangle {
+                    width: Kirigami.Units.smallSpacing
+                    height: width
+                    radius: width / 2
+                    antialiasing: true
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: compactRoot.valueTextColor(modelData.thresholdLevel)
+                    visible: compactRoot.showText && modelData.displayValue.length > 0
                 }
 
                 Kirigami.Icon {

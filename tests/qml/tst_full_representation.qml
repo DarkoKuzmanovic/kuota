@@ -300,11 +300,11 @@ TestCase {
 
         full.showCountdown = true;
         var withCountdown = full.resetLineText("2026-07-14T10:00:00.000Z");
-        verify(withCountdown.indexOf("Resets in") !== -1);
+        verify(withCountdown.indexOf("(in ") !== -1);
 
         full.showCountdown = false;
         var withoutCountdown = full.resetLineText("2026-07-14T10:00:00.000Z");
-        verify(withoutCountdown.indexOf("Resets in") === -1);
+        verify(withoutCountdown.indexOf("(in ") === -1);
         verify(withoutCountdown.length > 0);
     }
 
