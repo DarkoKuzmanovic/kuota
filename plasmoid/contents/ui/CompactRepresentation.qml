@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import org.kde.kirigami 2.20 as Kirigami
 
 import "compact-model.js" as CompactModel
@@ -15,8 +16,15 @@ FocusScope {
     property real fontScale: 1.0
 
     readonly property real contentMargin: Kirigami.Units.smallSpacing
-    implicitWidth: contentRow.childrenRect.width + 2 * contentMargin
-    implicitHeight: contentRow.childrenRect.height + 2 * contentMargin
+    // Size to the Row positioner's own implicit content size (reliable) rather
+    // than childrenRect, which under-reports width to the panel and let the
+    // widget overlap its neighbor. Expose Layout hints so a horizontal panel
+    // allocates the full content width (bare implicitWidth is not honored for
+    // panel width allocation — Layout.preferredWidth is). Panel controls height.
+    implicitWidth: contentRow.implicitWidth + 2 * contentMargin
+    implicitHeight: contentRow.implicitHeight + 2 * contentMargin
+    Layout.minimumWidth: implicitWidth
+    Layout.preferredWidth: implicitWidth
     property real fontPointSize: Kirigami.Theme.defaultFont.pointSize * fontScale
 
     readonly property alias clickTarget: clickCapture
