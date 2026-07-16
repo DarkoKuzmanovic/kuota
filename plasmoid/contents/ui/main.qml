@@ -43,10 +43,9 @@ PlasmoidItem {
         onRequestExpand: root.expanded = true
     }
 
-    fullRepresentation: Kirigami.ScrollablePage {
-        Kirigami.PlaceholderMessage {
-            anchors.centerIn: parent
-            text: "Kuota"
-        }
+    fullRepresentation: FullRepresentation {
+        snapshot: root.snapshot
+        inFlight: root.inFlight
+        onRequestRefresh: root.refresh()
     }
 }
