@@ -128,7 +128,13 @@ FocusScope {
 
     // Live countdown is computed here from resetAt + nowMs; full-model.js
     // only ever passes resetAt through unmodified.
-    function countdownText(resetAt) {
+    //
+    // countdownDurationText() returns the bare duration phrase ("in 10m 5s" /
+    // "now") with no "Resets" prefix, so resetLineText() can compose a single
+    // "Resets <ts> (in <dur>)" line without duplicating the word "Resets".
+    // countdownText() builds on it and keeps its own "Resets in …"/"Resets
+    // now" wording for standalone callers/tests.
+    function countdownDurationText(resetAt) {
         if (typeof resetAt !== "string" || resetAt.length === 0) {
             return "";
         }
@@ -138,9 +144,17 @@ FocusScope {
         }
         var remainingMs = resetTime - fullRoot.nowMs;
         if (remainingMs <= 0) {
-            return qsTr("Resets now");
+            return qsTr("now");
         }
-        return qsTr("Resets in %1").arg(formatDuration(remainingMs));
+        return qsTr("in %1").arg(formatDuration(remainingMs));
+    }
+
+    function countdownText(resetAt) {
+        var duration = countdownDurationText(resetAt);
+        if (duration.length === 0) {
+            return "";
+        }
+        return qsTr("Resets %1").arg(duration);
     }
 
     function resetLineText(resetAt) {
@@ -152,7 +166,7 @@ FocusScope {
         if (timestamp.length === 0) {
             return countdown;
         }
-        return qsTr("Resets %1 (%2)").arg(timestamp).arg(countdown);
+        return qsTr("Resets %1 (%2)").arg(timestamp).arg(countdownDurationText(resetAt));
     }
 
     function windowAccessibleName(row) {
@@ -203,11 +217,6 @@ FocusScope {
                 RowLayout {
                     Layout.fillWidth: true
 
-                    Kirigami.Heading {
-                        level: 3
-                        text: fullRoot.providerDisplayName(fullRoot.effectiveProviderId)
-                    }
-
                     Item { Layout.fillWidth: true }
 
                     Controls.Label {
@@ -217,16 +226,40 @@ FocusScope {
                             : ""
                         opacity: 0.7
                     }
+
+                    Controls.ToolButton {
+                        id: refreshButton
+                        display: Controls.AbstractButton.IconOnly
+                        icon.name: "view-refresh"
+                        text: fullRoot.inFlight ? qsTr("Refreshing…") : qsTr("Refresh")
+                        enabled: !fullRoot.inFlight
+                        Accessible.name: text
+                        onClicked: fullRoot.requestRefresh()
+                    }
                 }
 
-                Controls.Label {
+                Kirigami.InlineMessage {
                     Layout.fillWidth: true
-                    wrapMode: Text.WordWrap
+                    showCloseButton: false
                     visible: fullRoot.activeModel !== null
                         && fullRoot.activeModel.stateMessage !== undefined
                         && fullRoot.activeModel.stateMessage.length > 0
                     text: (fullRoot.activeModel !== null && fullRoot.activeModel.stateMessage !== undefined) ? fullRoot.activeModel.stateMessage : ""
-                    color: Kirigami.Theme.neutralTextColor
+                    type: {
+                        if (fullRoot.activeRecord === null) {
+                            return Kirigami.MessageType.Information;
+                        }
+                        switch (fullRoot.activeRecord.state) {
+                        case "error":
+                            return Kirigami.MessageType.Error;
+                        case "auth-needed":
+                            return Kirigami.MessageType.Warning;
+                        case "stale":
+                            return Kirigami.MessageType.Information;
+                        default:
+                            return Kirigami.MessageType.Information;
+                        }
+                    }
                 }
 
                 Controls.Label {
@@ -241,65 +274,98 @@ FocusScope {
                 Repeater {
                     model: fullRoot.activeModel !== null ? fullRoot.activeModel.windows : []
 
-                    delegate: ColumnLayout {
+                    delegate: Controls.Frame {
                         id: windowRow
                         required property var modelData
 
                         Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing / 2
+                        padding: Kirigami.Units.smallSpacing
 
                         Accessible.role: Accessible.Grouping
                         Accessible.name: fullRoot.windowAccessibleName(windowRow.modelData)
 
-                        RowLayout {
-                            Layout.fillWidth: true
-
-                            Kirigami.Heading {
-                                level: 5
-                                text: windowRow.modelData.label
-                            }
-
-                            Item { Layout.fillWidth: true }
-
-                            Controls.Label {
-                                visible: windowRow.modelData.usedPercent !== undefined
-                                text: Math.floor(windowRow.modelData.usedPercent) + "%"
-                                color: fullRoot.valueTextColor(windowRow.modelData.thresholdLevel)
-                            }
+                        background: Rectangle {
+                            color: Kirigami.Theme.alternateBackgroundColor
+                            radius: Kirigami.Units.smallSpacing
+                            border.color: Kirigami.Theme.disabledTextColor
+                            border.width: 1
                         }
 
-                        Controls.ProgressBar {
-                            Layout.fillWidth: true
-                            visible: windowRow.modelData.progressFraction !== undefined
-                            from: 0
-                            to: 1
-                            value: windowRow.modelData.progressFraction !== undefined ? windowRow.modelData.progressFraction : 0
-                            Accessible.name: qsTr("%1 progress").arg(windowRow.modelData.label)
-                        }
+                        contentItem: ColumnLayout {
+                            spacing: Kirigami.Units.smallSpacing / 2
 
-                        RowLayout {
-                            Layout.fillWidth: true
+                            RowLayout {
+                                Layout.fillWidth: true
 
-                            Controls.Label {
-                                visible: windowRow.modelData.used !== undefined
-                                text: windowRow.modelData.limit !== undefined
-                                    ? qsTr("%1 of %2 used").arg(windowRow.modelData.used).arg(windowRow.modelData.limit)
-                                    : qsTr("%1 used").arg(windowRow.modelData.used)
-                                color: fullRoot.valueTextColor(windowRow.modelData.thresholdLevel)
+                                Kirigami.Heading {
+                                    level: 5
+                                    text: windowRow.modelData.label
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Controls.Label {
+                                    visible: windowRow.modelData.usedPercent !== undefined
+                                    text: Math.floor(windowRow.modelData.usedPercent) + "%"
+                                    color: fullRoot.valueTextColor(windowRow.modelData.thresholdLevel)
+                                }
                             }
 
-                            Item { Layout.fillWidth: true }
-
-                            Controls.Label {
-                                visible: windowRow.modelData.remaining !== undefined
-                                text: qsTr("%1 remaining").arg(windowRow.modelData.remaining)
+                            Controls.ProgressBar {
+                                Layout.fillWidth: true
+                                visible: windowRow.modelData.progressFraction !== undefined
+                                from: 0
+                                to: 1
+                                value: windowRow.modelData.progressFraction !== undefined ? windowRow.modelData.progressFraction : 0
+                                Accessible.name: qsTr("%1 progress").arg(windowRow.modelData.label)
+                                palette.highlight: {
+                                    switch (windowRow.modelData.thresholdLevel) {
+                                    case "critical":
+                                        return Kirigami.Theme.negativeTextColor;
+                                    case "caution":
+                                        return Kirigami.Theme.neutralTextColor;
+                                    default:
+                                        return Kirigami.Theme.highlightColor;
+                                    }
+                                }
                             }
-                        }
 
-                        Controls.Label {
-                            visible: windowRow.modelData.resetAt !== undefined
-                            text: fullRoot.resetLineText(windowRow.modelData.resetAt)
-                            opacity: 0.8
+                            RowLayout {
+                                Layout.fillWidth: true
+
+                                Controls.Label {
+                                    visible: windowRow.modelData.used !== undefined
+                                    text: windowRow.modelData.limit !== undefined
+                                        ? qsTr("%1 of %2 used").arg(windowRow.modelData.used).arg(windowRow.modelData.limit)
+                                        : qsTr("%1 used").arg(windowRow.modelData.used)
+                                    color: fullRoot.valueTextColor(windowRow.modelData.thresholdLevel)
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Controls.Label {
+                                    visible: windowRow.modelData.remaining !== undefined
+                                    text: qsTr("%1 remaining").arg(windowRow.modelData.remaining)
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Kirigami.Units.smallSpacing
+                                visible: windowRow.modelData.resetAt !== undefined
+
+                                Kirigami.Icon {
+                                    source: "clock"
+                                    implicitWidth: Kirigami.Units.iconSizes.small
+                                    implicitHeight: Kirigami.Units.iconSizes.small
+                                    opacity: 0.6
+                                }
+
+                                Controls.Label {
+                                    text: fullRoot.resetLineText(windowRow.modelData.resetAt)
+                                    opacity: 0.8
+                                }
+                            }
                         }
                     }
                 }
@@ -311,21 +377,40 @@ FocusScope {
                     visible: fullRoot.activeModel !== null && fullRoot.activeModel.facts.length > 0
                 }
 
-                Repeater {
-                    model: fullRoot.activeModel !== null ? fullRoot.activeModel.facts : []
+                GridLayout {
+                    // Two-column key/value grid, NOT Kirigami.FormLayout: activeModel.facts
+                    // is a fresh array reference on every provider switch, and pairing a
+                    // Repeater's reassigned array model with FormLayout was observed here
+                    // to transiently break FormLayout's per-child bookkeeping ("Cannot read
+                    // property 'Accessible' of null") during the destroy/recreate churn
+                    // — the same landmine documented in configProviders.qml. GridLayout has
+                    // no such interaction and gives the same aligned-columns result.
+                    Layout.fillWidth: true
+                    columns: 2
+                    columnSpacing: Kirigami.Units.smallSpacing
+                    rowSpacing: Kirigami.Units.smallSpacing / 2
 
-                    delegate: RowLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
+                    Repeater {
+                        model: fullRoot.activeModel !== null ? fullRoot.activeModel.facts : []
 
-                        Controls.Label {
+                        delegate: Controls.Label {
+                            required property var modelData
+                            required property int index
+                            Layout.column: 0
+                            Layout.row: index
                             text: modelData.label + ":"
                             opacity: 0.8
                         }
+                    }
 
-                        Item { Layout.fillWidth: true }
+                    Repeater {
+                        model: fullRoot.activeModel !== null ? fullRoot.activeModel.facts : []
 
-                        Controls.Label {
+                        delegate: Controls.Label {
+                            required property var modelData
+                            required property int index
+                            Layout.column: 1
+                            Layout.row: index
                             text: modelData.value
                         }
                     }
@@ -340,19 +425,14 @@ FocusScope {
             icon.name: "network-server"
             text: qsTr("Kuota")
             explanation: qsTr("No provider data yet")
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-
-            Item { Layout.fillWidth: true }
-
-            Controls.Button {
-                id: refreshButton
+            // Refresh lives in the provider header (F4), which is gated on
+            // hasProviders; give the empty state its own retry affordance so
+            // the user is never stranded without a way to refresh.
+            helpfulAction: Kirigami.Action {
+                icon.name: "view-refresh"
                 text: fullRoot.inFlight ? qsTr("Refreshing…") : qsTr("Refresh")
                 enabled: !fullRoot.inFlight
-                Accessible.name: text
-                onClicked: fullRoot.requestRefresh()
+                onTriggered: fullRoot.requestRefresh()
             }
         }
     }
