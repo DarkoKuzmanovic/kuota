@@ -1,18 +1,23 @@
 # Kuota
 
 Kuota is a standalone KDE Plasma 6 widget for showing authoritative Claude,
-Umans, and Codex usage without a running Pi session. The repository is currently
-at the M1 foundation gate: the package skeleton, normalized collector contract,
-provider boundaries, safety primitives, and placeholder CLI are implemented.
-Live provider adapters, credentials, caching, and the QML collector bridge are
-not implemented yet.
+Umans, and Codex usage without a running Pi session.
+
+Implemented through Milestone 7: the normalized collector contract and safe
+filesystem primitives; live Claude, Umans, and Codex adapters with credential
+discovery, bounded fetches, backoff, and per-provider last-known-good caching;
+an integrated, cross-process-locked collector CLI; the isolated QML collector
+bridge with whole-document validation and snapshot retention; and the compact
+panel representation showing per-provider usage. Not yet implemented: the full
+popup/desktop view (M8), configuration UI and UX hardening (M9), and
+packaging/release (M10).
 
 ## Contents
 
 - [Requirements](#requirements)
 - [Repository layout](#repository-layout)
 - [Development commands](#development-commands)
-- [Current foundation behavior](#current-foundation-behavior)
+- [Current behavior](#current-behavior)
 - [Security boundaries](#security-boundaries)
 - [Documentation](#documentation)
 
@@ -58,8 +63,9 @@ validation plus the synthetic-fixture secret scan and redaction tests.
 `npm run build:collector` cleans `dist/collector` and emits runnable Node
 JavaScript. `npm run validate:plasma` runs
 `kpackagetool6 --appstream-metainfo plasmoid` and
-`qmllint plasmoid/contents/ui/main.qml`; this is the current minimal QML
-load-equivalent check, not a runtime rendering harness.
+`qmllint` over the widget QML (`main.qml`, `CollectorBridge.qml`, and the
+Plasma-independent JS modules); this is a QML load-equivalent check, not a
+runtime rendering harness. The Qt 6 QML test suite runs via `npm run test:qml`.
 
 `npm run build:artifact` rebuilds the collector and runs
 `scripts/build-artifact.js`. The script always creates the unpacked directory
@@ -70,14 +76,21 @@ required for build success. The check executes the packaged CLI, validates its
 schema-v1 JSON, and verifies a credential-shaped argument fails with the safe
 constant diagnostic.
 
-## Current foundation behavior
+## Current behavior
 
-The CLI currently wires three canonical placeholder adapters (`claude`,
-`umans`, and `codex`) through bounded concurrent orchestration. No network
-request, credential read, auth refresh, or live provider behavior occurs. A
-normal invocation emits exactly one newline-terminated schema-v1 JSON document
-and no stderr diagnostics; its provider records report the exact
-`Provider adapter unavailable` placeholder status.
+The collector CLI runs the live Claude, Umans, and Codex adapters through
+bounded concurrent orchestration, a whole-collector last-known-good cache, and
+strict cross-process locking. A normal invocation emits exactly one
+newline-terminated schema-v1 JSON document and no stderr diagnostics.
+
+The widget's compact panel renders one horizontal line of enabled providers
+(default order Claude, Umans, Codex). Each entry shows its most useful current
+metric — a window's used percentage when available, otherwise a used count —
+with caution (≥75%) and critical (≥90%) threshold colors, concise
+login-needed / stale / error markers, icon / text / icon+text modes, and
+keyboard-accessible click-to-open. Uncapped counts carry no threshold color.
+Threshold colors and per-provider metric choices become user-configurable in
+Milestone 9.
 
 The normalized contract uses provider states `ok`, `stale`, `auth-needed`, and
 `error`. Optional values are omitted, stale records retain real data, and
@@ -88,10 +101,12 @@ full contract and validation rules are in
 ## Security boundaries
 
 QML is presentation-only: it contains no provider I/O, credentials, auth
-settings, or network behavior. The future executable bridge will be one
-isolated QML boundary; its initial compatibility mechanism may use the
-`org.kde.plasma.plasma5support` executable DataSource, but that boundary is not
-yet implemented and must remain replaceable.
+settings, or network behavior. The executable collector bridge is one isolated
+QML component (`CollectorBridge.qml`) — the only file permitted to import
+`org.kde.plasma.plasma5support`; an automated isolation test enforces that no
+other production QML imports it, so the compatibility mechanism stays
+replaceable. Only normalized, secret-free JSON crosses into QML, and the
+compact model derives display values from that validated snapshot alone.
 
 The collector is the future owner of credential access and provider I/O. Only
 normalized, secret-free JSON may cross into QML. Current diagnostics and status
