@@ -1,16 +1,20 @@
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { mkdir as nodeMkdir } from "node:fs/promises";
 
 import {
   atomicWriteJson,
   AtomicWriteError,
   nodeFileSystem,
   type AtomicFileSystem,
-  type DirectoryHandle,
-  type FileMetadata,
   type RandomSource,
 } from "../../io/atomic-write.js";
+import {
+  CacheDirectoryError,
+  ensureKuotaCacheDirectory as ensureClaudeCacheDirectory,
+  nodeCacheDirectoryFileSystem,
+  resolveKuotaCacheDirectory as resolveClaudeCacheDirectory,
+  type CacheDirectoryFileSystem,
+} from "../../io/cache-directory.js";
 import {
   isJsonValue,
   JsonFileError,
@@ -38,8 +42,6 @@ export const CLAUDE_CACHE_SCHEMA_VERSION = 1 as const;
 /** The only provider this cache stores. */
 export const CLAUDE_CACHE_PROVIDER = "claude" as const;
 
-/** Mode used when creating the private cache directory. */
-const CACHE_DIRECTORY_MODE = 0o700;
 
 const ENVELOPE_KEYS: ReadonlySet<string> = new Set([
   "schemaVersion",
@@ -121,32 +123,6 @@ export type ClaudeCacheWriteResult =
 export type ClaudeCacheReader = (path: string) => Promise<unknown>;
 export type ClaudeCacheClock = () => number;
 
-/**
- * A narrow injected directory seam. Only the immediate private cache directory
- * is created; the parent must already exist as a trusted local directory.
- */
-export interface CacheDirectoryFileSystem {
-  lstat(path: string): Promise<FileMetadata>;
-  mkdir(path: string, mode: number): Promise<void>;
-  getEffectiveUserId?(): number | bigint | undefined;
-  openDirectory?(path: string): Promise<DirectoryHandle>;
-}
-
-/** The production directory seam; tests may replace every operation. */
-export const nodeCacheDirectoryFileSystem: CacheDirectoryFileSystem = {
-  lstat(path: string): Promise<FileMetadata> {
-    return nodeFileSystem.lstat(path);
-  },
-  getEffectiveUserId(): number | bigint | undefined {
-    return nodeFileSystem.getEffectiveUserId?.();
-  },
-  async mkdir(path: string, mode: number): Promise<void> {
-    await nodeMkdir(path, { recursive: false, mode });
-  },
-  openDirectory(path: string): Promise<DirectoryHandle> {
-    return nodeFileSystem.openDirectory(path);
-  },
-};
 
 export interface ClaudeCacheReadOptions {
   /** Used only when cachePath is omitted; no filesystem lookup occurs here. */
@@ -171,17 +147,13 @@ export interface ClaudeCacheWriteOptions {
   readonly random?: RandomSource;
 }
 
-/** A value-free failure while preparing the private cache directory. */
-export class CacheDirectoryError extends Error {
-  constructor() {
-    super("Cache directory preparation failed");
-    this.name = "CacheDirectoryError";
-  }
-}
-
-export function resolveClaudeCacheDirectory(homeDirectory: string): string {
-  return join(homeDirectory, ".cache", "kuota");
-}
+export {
+  CacheDirectoryError,
+  ensureClaudeCacheDirectory,
+  nodeCacheDirectoryFileSystem,
+  resolveClaudeCacheDirectory,
+};
+export type { CacheDirectoryFileSystem };
 
 export function resolveClaudeCachePath(homeDirectory: string): string {
   return join(resolveClaudeCacheDirectory(homeDirectory), "claude.json");
@@ -439,123 +411,6 @@ function computeSavedAt(now: ClaudeCacheClock): string | undefined {
   return isCanonicalUtcTimestamp(iso) ? iso : undefined;
 }
 
-// ---------------------------------------------------------------------------
-// Directory preparation
-// ---------------------------------------------------------------------------
-
-/**
- * Ensures only the immediate private cache directory exists. The parent must
- * already be a real, current-user-owned directory without group/other write
- * permission; the child is created non-recursively with mode 0700, tolerating
- * an EEXIST race and revalidating afterwards. This trusts the ancestor chain
- * above the parent — it is a caller-path precondition, not protection against a
- * malicious ancestor replacement.
- */
-export async function ensureClaudeCacheDirectory(
-  directory: string,
-  fs: CacheDirectoryFileSystem = nodeCacheDirectoryFileSystem,
-): Promise<void> {
-  const parent = dirname(directory);
-  const parentMeta = await requiredLstat(fs, parent);
-  assertPrivateDirectory(parentMeta, fs);
-
-  const existing = await optionalLstat(fs, directory);
-  if (existing !== undefined) {
-    assertPrivateDirectory(existing, fs);
-    return;
-  }
-
-  let created = false;
-  try {
-    await fs.mkdir(directory, CACHE_DIRECTORY_MODE);
-    created = true;
-  } catch (error: unknown) {
-    if (errorCode(error) !== "EEXIST") {
-      throw new CacheDirectoryError();
-    }
-  }
-
-  if (created) {
-    await syncDirectory(fs, parent);
-  }
-
-  const revalidated = await requiredLstat(fs, directory);
-  assertPrivateDirectory(revalidated, fs);
-}
-
-function assertPrivateDirectory(
-  metadata: FileMetadata,
-  fs: CacheDirectoryFileSystem,
-): void {
-  if (
-    !metadata.isDirectory() ||
-    metadata.isSymbolicLink() ||
-    (metadata.mode & 0o022) !== 0
-  ) {
-    throw new CacheDirectoryError();
-  }
-  const effectiveUserId = fs.getEffectiveUserId?.();
-  if (
-    effectiveUserId !== undefined &&
-    (metadata.uid === undefined ||
-      String(metadata.uid) !== String(effectiveUserId))
-  ) {
-    throw new CacheDirectoryError();
-  }
-}
-
-async function requiredLstat(
-  fs: CacheDirectoryFileSystem,
-  path: string,
-): Promise<FileMetadata> {
-  try {
-    return await fs.lstat(path);
-  } catch {
-    throw new CacheDirectoryError();
-  }
-}
-
-async function optionalLstat(
-  fs: CacheDirectoryFileSystem,
-  path: string,
-): Promise<FileMetadata | undefined> {
-  try {
-    return await fs.lstat(path);
-  } catch (error: unknown) {
-    if (errorCode(error) === "ENOENT") {
-      return undefined;
-    }
-    throw new CacheDirectoryError();
-  }
-}
-
-async function syncDirectory(
-  fs: CacheDirectoryFileSystem,
-  path: string,
-): Promise<void> {
-  if (fs.openDirectory === undefined) {
-    return;
-  }
-  let handle: DirectoryHandle | undefined;
-  let failed = false;
-  try {
-    handle = await fs.openDirectory(path);
-    await handle.sync();
-  } catch {
-    failed = true;
-  } finally {
-    if (handle !== undefined) {
-      try {
-        await handle.close();
-      } catch {
-        failed = true;
-      }
-    }
-  }
-  if (failed) {
-    throw new CacheDirectoryError();
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -663,12 +518,4 @@ function isJsonFileErrorKind(value: string): value is JsonFileErrorKind {
     value === "not-object" ||
     value === "update"
   );
-}
-
-function errorCode(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("code" in error)) {
-    return undefined;
-  }
-  const code = error.code;
-  return typeof code === "string" ? code : undefined;
 }

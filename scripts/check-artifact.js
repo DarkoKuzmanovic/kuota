@@ -83,5 +83,56 @@ function checkCredentialArgv() {
   }
 }
 
+function checkEnabledProvidersSubset() {
+  const result = runCli(['--enabled-providers=claude']);
+  if (result.status !== 0) {
+    fail('enabled-providers subset invocation did not succeed');
+  }
+  if (result.stderr !== '') {
+    fail('enabled-providers subset invocation wrote stderr');
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    fail('enabled-providers subset invocation wrote invalid JSON');
+  }
+  const validation = validateCollectorDocument(parsed);
+  if (!validation.ok) {
+    fail('enabled-providers subset invocation violated the collector schema');
+  }
+  const providerIds = validation.value.providers.map((provider) => provider.id);
+  if (JSON.stringify(providerIds) !== JSON.stringify(['claude'])) {
+    fail('enabled-providers subset invocation did not select only the requested provider');
+  }
+}
+
+function checkEmptyEnabledProviders() {
+  const result = runCli(['--enabled-providers=']);
+  if (result.status !== 0) {
+    fail('empty enabled-providers invocation did not succeed');
+  }
+  if (result.stderr !== '') {
+    fail('empty enabled-providers invocation wrote stderr');
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    fail('empty enabled-providers invocation wrote invalid JSON');
+  }
+  const validation = validateCollectorDocument(parsed);
+  if (!validation.ok) {
+    fail('empty enabled-providers invocation violated the collector schema');
+  }
+  if (validation.value.providers.length !== 0) {
+    fail('empty enabled-providers invocation collected a provider');
+  }
+}
+
 checkNormalInvocation();
 checkCredentialArgv();
+checkEnabledProvidersSubset();
+checkEmptyEnabledProviders();

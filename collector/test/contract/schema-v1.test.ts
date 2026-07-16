@@ -174,6 +174,22 @@ test("unlimited windows omit invented limits and percentages", () => {
   assert.equal(result.ok, true);
 });
 
+
+test("Umans concurrencyLimit is optional, namespaced, and a non-negative integer", () => {
+  const valid = validateCollectorDocument(documentWith({
+    id: "umans",
+    state: "ok",
+    details: { umans: { concurrency: 2, concurrencyLimit: 3 } },
+  }));
+  const malformed = validateCollectorDocument(documentWith({
+    id: "umans",
+    state: "ok",
+    details: { umans: { concurrencyLimit: -1 } },
+  }));
+  assert.equal(valid.ok, true);
+  assert.equal(malformed.ok, false);
+});
+
 test("optional fields may be omitted", () => {
   const result = validateCollectorDocument(
     documentWith({ id: "codex", state: "ok" }),
