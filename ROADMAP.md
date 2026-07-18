@@ -14,11 +14,13 @@ still requires the normal spec → grill → scope checkpoint → confirmation f
 
 ## Current
 
-- **v1.0.0** — Approved 3-provider V1 (Claude, Umans, Codex): Plasma 6 widget,
-  bundled short-lived Node collector, compact + full representations,
-  configuration layer. Milestones M1–M9 PASS (G0–G9). M10 (packaging, local
-  lifecycle, release candidate) pending. KDE Store publication is a separate
-  explicitly approved step, not part of this version.
+- **v0.1.0** (product label "V1") — Approved 3-provider V1 (Claude, Umans,
+  Codex): Plasma 6 widget, bundled short-lived Node collector, compact + full
+  representations, configuration layer. Package version `0.1.0` per resolved Q2;
+  the "V1" / "v1.x" label denotes the product release, not the package semver.
+  Milestones M1–M9 PASS (G0–G9). M10 (packaging, local lifecycle, release
+  candidate) pending. KDE Store publication is a separate explicitly approved
+  step, not part of this version.
 
 ## Planned
 

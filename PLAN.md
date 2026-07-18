@@ -438,7 +438,8 @@
 - **D-G5** — M10 docs = (a) new install/update/uninstall + troubleshooting README sections, AND (b) `readme-freshness-audit` over README + overview.md + collector-contract.md reconciling G1-era claims against shipped V1. AGENTS.md stays current.
 - **D-G6** — Resolve Q10/Q11 (confirm M9 defaults are intentional, not placeholder) + Q14 (reaffirm account-ID minimization policy) in M10. Q15 deferred (out of V1).
 - **D-G7** — `update.sh` is package-only, no Pi precondition. "Pi stopped" is smoke-test-only.
-**Run metrics:** started-at: 2026-07-18 · first-worker-at: (pending) · dispatches: 0/5 · review-bundles: 0 · review-dispatches: 0 · worker-retries: 0 · oracle: 0 · completed-outcomes: 0 · direct-edits: 0
+- **D-G8** — Package version stays `0.1.0` per resolved Q2 ("V1 version 0.1.0"). "v1.0.0" in ROADMAP.md was a product-label drift; ROADMAP relabeled to `v0.1.0` (product label "V1"). The artifact remains `kuota-v0.1.0.plasmoid`. No metadata.json change. (Resolved 2026-07-18.)
+**Run metrics:** started-at: 2026-07-18 · first-worker-at: (pending) · dispatches: 0/5 · review-bundles: 0 · review-dispatches: 0 · worker-retries: 0 · oracle: 0 · completed-outcomes: 0 · direct-edits: 2 (ROADMAP version-label fix + D-G8 record; both trivial docs, decision-locked)
 **Key deliverables:** Local lifecycle scripts; README setup/troubleshooting; architecture/security notes; artifact build; complete automated suite; live smoke-test record; uninstall/reinstall safety proof.  
 **Exit gate:** All tests pass; all three configured accounts refresh with Pi stopped; credentials are absent from arguments/logs/stdout/settings/caches; panel and desktop coexist; refreshes do not overlap; network failure retains readable stale data; reinstall does not damage auth or Pi caches; artifact installs cleanly. KDE Store publication remains blocked pending separate approval.  
 **Depends on:** Milestones 1–9.  
