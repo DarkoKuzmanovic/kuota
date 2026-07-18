@@ -23,10 +23,14 @@ if [ ! -f "$artifact" ]; then
     npm run build:artifact
 fi
 
-if kpackagetool6 -i "$artifact" 2>/dev/null; then
+# Install with the explicit package type. Without -t, kpackagetool6 installs
+# to kpackage/generic/, but Plasma loads plasmoids from plasma/plasmoids/ —
+# so an untyped install never reaches the running widget. -t Plasma/Applet
+# targets the path Plasma actually loads from.
+if kpackagetool6 -t Plasma/Applet -i "$artifact" 2>/dev/null; then
     printf "Installed %s\n" "$package_id"
 else
-    if kpackagetool6 -u "$artifact" 2>/dev/null; then
+    if kpackagetool6 -t Plasma/Applet -u "$artifact" 2>/dev/null; then
         printf "Upgraded %s\n" "$package_id"
     else
         printf "Failed to install %s\n" "$package_id" >&2

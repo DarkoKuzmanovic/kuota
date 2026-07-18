@@ -23,5 +23,7 @@ if [ ! -f "$artifact" ]; then
     npm run build:artifact
 fi
 
-kpackagetool6 -u "$artifact"
+# Upgrade with the explicit package type — Plasma loads from plasma/plasmoids/,
+# not kpackage/generic/ where an untyped upgrade would land. See install.sh.
+kpackagetool6 -t Plasma/Applet -u "$artifact"
 printf "Upgraded %s. Restart Plasma or re-add the widget to load the new version.\n" "$package_id"

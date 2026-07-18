@@ -5,7 +5,11 @@
 package_id="io.github.darkokuzmanovic.kuota"
 cache_dir="$HOME/.cache/kuota"
 
-if kpackagetool6 -r "$package_id" 2>/dev/null; then
+# Remove with the explicit package type. Without -t, kpackagetool6 -r only
+# removes the kpackage/generic/ path and leaves the plasma/plasmoids/ copy
+# that Plasma actually loads — so an untyped uninstall silently leaves a
+# stale widget installed. -t Plasma/Applet removes the loaded copy.
+if kpackagetool6 -t Plasma/Applet -r "$package_id" 2>/dev/null; then
     printf "Removed %s\n" "$package_id"
 else
     printf "Package %s was not installed or removal produced a warning; continuing.\n" "$package_id"
