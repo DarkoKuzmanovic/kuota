@@ -37,7 +37,7 @@ TestCase {
         compare(tooBig.fontScale, 3.0);
 
         var tooSmall = ConfigModel.sanitize({ fontScale: 0.25 });
-        compare(tooSmall.fontScale, 1.0);
+        compare(tooSmall.fontScale, 0.5);
 
         var valid = ConfigModel.sanitize({ fontScale: 2.5 });
         compare(valid.fontScale, 2.5);
@@ -45,8 +45,12 @@ TestCase {
         var atMax = ConfigModel.sanitize({ fontScale: 3.0 });
         compare(atMax.fontScale, 3.0);
 
-        var atMin = ConfigModel.sanitize({ fontScale: 1.0 });
-        compare(atMin.fontScale, 1.0);
+        var atMin = ConfigModel.sanitize({ fontScale: 0.5 });
+        compare(atMin.fontScale, 0.5);
+
+        // 1.0 is no longer the floor (0.5 is); it passes through unchanged.
+        var oneZero = ConfigModel.sanitize({ fontScale: 1.0 });
+        compare(oneZero.fontScale, 1.0);
 
         var garbage = ConfigModel.sanitize({ fontScale: "big" });
         compare(garbage.fontScale, 1.0);
