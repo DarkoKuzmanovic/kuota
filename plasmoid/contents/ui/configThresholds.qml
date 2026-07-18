@@ -12,6 +12,7 @@ Kirigami.FormLayout {
 
     Controls.SpinBox {
         id: cautionSpin
+        objectName: "cautionThresholdSpin"
         Kirigami.FormData.label: qsTr("Caution at:")
         Accessible.name: qsTr("Caution threshold percent")
         from: 0
@@ -19,10 +20,16 @@ Kirigami.FormLayout {
         stepSize: 1
         textFromValue: function (value) { return value + "%"; }
         valueFromText: function (text) { return parseInt(text, 10); }
+        onValueModified: {
+            if (value >= criticalSpin.value) {
+                criticalSpin.value = Math.min(100, value + 1);
+            }
+        }
     }
 
     Controls.SpinBox {
         id: criticalSpin
+        objectName: "criticalThresholdSpin"
         Kirigami.FormData.label: qsTr("Critical at:")
         Accessible.name: qsTr("Critical threshold percent")
         from: 0
@@ -30,12 +37,17 @@ Kirigami.FormLayout {
         stepSize: 1
         textFromValue: function (value) { return value + "%"; }
         valueFromText: function (text) { return parseInt(text, 10); }
+        onValueModified: {
+            if (value <= cautionSpin.value) {
+                cautionSpin.value = Math.max(0, value - 1);
+            }
+        }
     }
 
     Controls.Label {
         Kirigami.FormData.label: ""
         visible: cautionSpin.value >= criticalSpin.value
-        text: qsTr("Caution must be lower than critical; an invalid combination reverts to the defaults (75% / 90%).")
+        text: qsTr("Caution must stay lower than critical. Adjusting values to keep the pair valid.")
         color: Kirigami.Theme.neutralTextColor
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
