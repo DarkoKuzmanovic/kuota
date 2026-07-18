@@ -40,7 +40,7 @@ var DEFAULTS = Object.freeze({
 });
 
 var REFRESH_INTERVAL_FLOOR_MINUTES = 5;
-var FONT_SCALE_MIN = 1.0;
+var FONT_SCALE_MIN = 0.5;  // matches configAppearance.qml SpinBox from: 50
 var FONT_SCALE_MAX = 3.0;
 
 function createDefaultSettings() {

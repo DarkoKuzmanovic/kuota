@@ -17,8 +17,9 @@ ordering, and per-provider window selection), and Thresholds (caution /
 critical percentages and refresh interval) — whose settings persist and update
 the views live. Milestone 10 (packaging, local lifecycle, release candidate)
 is in progress: install/update/uninstall scripts and this documentation are
-landed; the G10 live smoke test and the release-candidate gate have not yet
-run. KDE Store publication is a separate explicitly approved step, not part
+landed; the live collector and config-dialog smoke tests passed, and the
+release-candidate gate is under final review. KDE Store publication is a
+separate explicitly approved step, not part of V1.
 of V1.
 
 ## Contents
@@ -195,16 +196,18 @@ other production QML imports it, so the compatibility mechanism stays
 replaceable. Only normalized, secret-free JSON crosses into QML, and the
 compact model derives display values from that validated snapshot alone.
 
-The collector is the future owner of credential access and provider I/O. Only
-normalized, secret-free JSON may cross into QML. Current diagnostics and status
-values are value-free constants or constructed from fixed safe values. The
-central `redact()` helper and secret scanner provide defense and tooling for
-broader output paths, but the current CLI does not pass raw errors through
-`redact()`. Validation, serialization, and other catastrophic failures before
-the stdout write produce no stdout. The CLI performs one pre-serialized write;
-an arbitrary writer that partially emits and then throws cannot be rolled back.
-Direct-process crash hardening emits only the constant `Kuota collector failed`
-to stderr and exits nonzero, with no raw errors, values, or stack traces reported.
+The collector owns credential access and provider I/O. It reads
+`~/.pi/agent/auth.json` for credential discovery (Claude, Codex, Umans); only
+the Codex token refresh writes back, via a latest-read atomic,
+permission-preserving merge that keeps unrelated entries and the existing file
+mode. Only normalized, secret-free JSON crosses into QML. Diagnostics and
+status values are value-free constants or constructed from fixed safe values,
+routed through the central `redact()` helper. Validation, serialization, and
+other catastrophic failures before the stdout write produce no stdout. The CLI
+performs one pre-serialized write; an arbitrary writer that partially emits
+and then throws cannot be rolled back. Direct-process crash hardening emits
+only the constant `Kuota collector failed` to stderr and exits nonzero, with no
+raw errors, values, or stack traces reported.
 
 Fixtures are synthetic and recognizable as non-secrets. Tests reject seeded
 credential-shaped values and ensure scanner findings do not echo rejected
@@ -213,8 +216,9 @@ same-directory exclusive temporary files, durability synchronization, cleanup
 on failure, latest-read identity checks, permission preservation, and
 post-rename durability-failure handling: the operation throws or returns
 failure after the destination may already be new, so callers must re-read before
-deciding or retrying. They are ready for future cache/auth integration, which is
-outside this foundation slice.
+deciding or retrying. These primitives back the whole-collector
+last-known-good cache (`~/.cache/kuota/collector.json`), the Claude cache
+(`~/.cache/kuota/claude.json`), and the Codex auth refresh.
 
 ## Documentation
 

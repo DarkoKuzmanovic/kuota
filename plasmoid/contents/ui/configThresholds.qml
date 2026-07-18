@@ -21,10 +21,20 @@ Kirigami.FormLayout {
         textFromValue: function (value) { return value + "%"; }
         valueFromText: function (text) { return parseInt(text, 10); }
         onValueModified: {
+            // Keep caution < critical. Default: nudge critical up to preserve the
+            // user's edited caution value. Only when nudging critical would
+            // overflow past 100 (caution pushed to 100, critical would need 101)
+            // does the pair stay equal — fall back to clamping caution down to
+            // critical-1 so the invariant holds at the boundary.
             if (value >= criticalSpin.value) {
-                criticalSpin.value = Math.min(100, value + 1);
+                if (value < 100) {
+                    criticalSpin.value = value + 1;
+                } else {
+                    value = criticalSpin.value - 1;
+                    cautionSpin.value = value;
+                }
             }
-        }
+    }
     }
 
     Controls.SpinBox {
@@ -38,8 +48,18 @@ Kirigami.FormLayout {
         textFromValue: function (value) { return value + "%"; }
         valueFromText: function (text) { return parseInt(text, 10); }
         onValueModified: {
+            // Keep critical > caution. Default: nudge caution down to preserve
+            // the user's edited critical value. Only when nudging caution would
+            // underflow below 0 (critical pushed to 0, caution would need -1)
+            // does the pair stay equal — fall back to clamping critical up to
+            // caution+1 so the invariant holds at the boundary.
             if (value <= cautionSpin.value) {
-                cautionSpin.value = Math.max(0, value - 1);
+                if (value > 0) {
+                    cautionSpin.value = value - 1;
+                } else {
+                    value = cautionSpin.value + 1;
+                    criticalSpin.value = value;
+                }
             }
         }
     }
