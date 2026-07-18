@@ -3,25 +3,32 @@
 Kuota is a standalone KDE Plasma 6 widget for showing authoritative Claude,
 Umans, and Codex usage without a running Pi session.
 
-Implemented through Milestone 9: the normalized collector contract and safe
-filesystem primitives; live Claude, Umans, and Codex adapters with credential
-discovery, bounded fetches, backoff, and per-provider last-known-good caching;
-an integrated, cross-process-locked collector CLI; the isolated QML collector
-bridge with whole-document validation and snapshot retention; the compact
-panel representation; and the full popup/desktop representation with a provider
-switcher, per-window rows, live reset countdowns, provider-specific facts, and a
-refresh action; and a native configuration dialog — Appearance (display mode,
-entry separator, font scaling, reset-countdown visibility), Providers
-(per-provider visibility, ordering, and per-provider window selection), and
-Thresholds (caution / critical percentages and refresh interval) — whose
-settings persist and update the views live. Not yet implemented:
-packaging/release and remaining UX hardening (M10).
+Milestones M1–M9 are complete (gates G0–G9 PASS): the normalized collector
+contract and safe filesystem primitives; live Claude, Umans, and Codex adapters
+with credential discovery, bounded fetches, backoff, and per-provider
+last-known-good caching; an integrated, cross-process-locked collector CLI;
+the isolated QML collector bridge with whole-document validation and snapshot
+retention; the compact panel representation; the full popup/desktop
+representation with a provider switcher, per-window rows, live reset
+countdowns, provider-specific facts, and a refresh action; and a native
+configuration dialog — Appearance (display mode, entry separator, font
+scaling, reset-countdown visibility), Providers (per-provider visibility,
+ordering, and per-provider window selection), and Thresholds (caution /
+critical percentages and refresh interval) — whose settings persist and update
+the views live. Milestone 10 (packaging, local lifecycle, release candidate)
+is in progress: install/update/uninstall scripts and this documentation are
+landed; the live collector and config-dialog smoke tests passed, and the
+release-candidate gate is under final review. KDE Store publication is a
+separate explicitly approved step, not part of V1.
+of V1.
 
 ## Contents
 
 - [Requirements](#requirements)
 - [Repository layout](#repository-layout)
 - [Development commands](#development-commands)
+- [Installation](#installation)
+- [Troubleshooting](#troubleshooting)
 - [Current behavior](#current-behavior)
 - [Security boundaries](#security-boundaries)
 - [Documentation](#documentation)
@@ -42,8 +49,9 @@ packaging/release and remaining UX hardening (M10).
 - `collector/src/` — strict TypeScript collector, contract, orchestration,
   provider interfaces/registry, filesystem primitives, and redaction.
 - `collector/test/` — collector unit tests.
-- `tests/` — fixture policy, normalized schema fixtures, and security tests.
-- `scripts/` — output cleanup, artifact creation, and packaged-CLI checking.
+- `tests/` — fixture policy, normalized schema fixtures, security tests, and Qt 6 QML tests.
+- `scripts/` — output cleanup, artifact creation, packaged-CLI checking, QML test
+  runner, and `install.sh` / `update.sh` / `uninstall.sh` lifecycle scripts.
 - `docs/specs/` — approved product and architecture specification.
 - `docs/architecture/` — implementation contracts and architecture overview.
 - `dist/` — ignored generated collector, test, unpacked artifact, and
@@ -80,6 +88,69 @@ runtime rendering harness. The Qt 6 QML test suite runs via `npm run test:qml`.
 required for build success. The check executes the packaged CLI, validates its
 schema-v1 JSON, and verifies a credential-shaped argument fails with the safe
 constant diagnostic.
+
+## Installation
+
+Kuota installs locally via `kpackagetool6`. From the repository root:
+
+```bash
+scripts/install.sh
+```
+
+This builds the `.plasmoid` artifact (`npm run build:artifact`) if it is
+missing, then installs (or upgrades) the widget package. After install, add
+"Kuota" to a panel or the desktop via the standard Plasma "Add Widgets"
+dialog.
+
+Update to a new version after pulling changes:
+
+```bash
+scripts/update.sh
+```
+
+`update.sh` replaces only the Plasma package files. It does not stop Pi or
+the collector — the new code loads the next time Plasma restarts or you
+re-add the widget. The script prints a one-line reminder of this.
+
+Uninstall:
+
+```bash
+scripts/uninstall.sh
+```
+
+`uninstall.sh` removes the widget package by ID and removes Kuota's own
+cache at `~/.cache/kuota/`. It does not touch `~/.pi/agent/auth.json`,
+Plasma global config, or any shared state. It is idempotent: a missing
+package or cache directory produces a warning, not a failure.
+
+The scripts touch only the Plasma package install path and `~/.cache/kuota/`.
+They never read or write credentials, `~/.pi/`, `~/.config/` Plasma state, or
+auth files — damage to `auth.json` is impossible by construction because no
+script references it.
+
+## Troubleshooting
+
+- **The widget does not appear after install.** Restart Plasma
+  (`plasmashell --replace &` or log out/in), or remove and re-add the widget
+  via "Add Widgets". `update.sh` loads the new version the same way.
+- **A provider shows `auth-needed`.** The collector could not find a usable
+  credential in `~/.pi/agent/auth.json` for that provider. Check that the
+  matching entry exists (Claude `auth.anthropic`, Codex `auth["openai-codex"]`
+  with `accountId`, Umans `auth.umans` or the `UMANS_API_KEY` environment
+  variable). Kuota never writes credentials itself except the Codex token
+  refresh.
+- **A provider shows `error` or stale data.** This is usually a transient
+  network failure or provider rate limit. The widget retains the last
+  known-good data (marked stale) and recovers on the next refresh. Claude is
+  aggressively rate-limited; a valid `Retry-After` overrides the 5-minute
+  timer.
+- **Configuration changes do not apply.** Restart Plasma or re-add the widget.
+  Settings persist in the Plasma config; the views read them through a single
+  sanitized read boundary, so invalid values fall back to safe defaults.
+- **The collector shows an unexpected `error` after an API change.** Provider
+  APIs drift; the Umans `resets_at` field, for example, moved from epoch
+  seconds to an ISO 8601 string and required a parser fix. If a provider
+  regresses, check the adapter in `collector/src/providers/` and report it.
 
 ## Current behavior
 
@@ -125,16 +196,18 @@ other production QML imports it, so the compatibility mechanism stays
 replaceable. Only normalized, secret-free JSON crosses into QML, and the
 compact model derives display values from that validated snapshot alone.
 
-The collector is the future owner of credential access and provider I/O. Only
-normalized, secret-free JSON may cross into QML. Current diagnostics and status
-values are value-free constants or constructed from fixed safe values. The
-central `redact()` helper and secret scanner provide defense and tooling for
-broader output paths, but the current CLI does not pass raw errors through
-`redact()`. Validation, serialization, and other catastrophic failures before
-the stdout write produce no stdout. The CLI performs one pre-serialized write;
-an arbitrary writer that partially emits and then throws cannot be rolled back.
-Direct-process crash hardening emits only the constant `Kuota collector failed`
-to stderr and exits nonzero, with no raw errors, values, or stack traces reported.
+The collector owns credential access and provider I/O. It reads
+`~/.pi/agent/auth.json` for credential discovery (Claude, Codex, Umans); only
+the Codex token refresh writes back, via a latest-read atomic,
+permission-preserving merge that keeps unrelated entries and the existing file
+mode. Only normalized, secret-free JSON crosses into QML. Diagnostics and
+status values are value-free constants or constructed from fixed safe values,
+routed through the central `redact()` helper. Validation, serialization, and
+other catastrophic failures before the stdout write produce no stdout. The CLI
+performs one pre-serialized write; an arbitrary writer that partially emits
+and then throws cannot be rolled back. Direct-process crash hardening emits
+only the constant `Kuota collector failed` to stderr and exits nonzero, with no
+raw errors, values, or stack traces reported.
 
 Fixtures are synthetic and recognizable as non-secrets. Tests reject seeded
 credential-shaped values and ensure scanner findings do not echo rejected
@@ -143,8 +216,9 @@ same-directory exclusive temporary files, durability synchronization, cleanup
 on failure, latest-read identity checks, permission preservation, and
 post-rename durability-failure handling: the operation throws or returns
 failure after the destination may already be new, so callers must re-read before
-deciding or retrying. They are ready for future cache/auth integration, which is
-outside this foundation slice.
+deciding or retrying. These primitives back the whole-collector
+last-known-good cache (`~/.cache/kuota/collector.json`), the Claude cache
+(`~/.cache/kuota/claude.json`), and the Codex auth refresh.
 
 ## Documentation
 
