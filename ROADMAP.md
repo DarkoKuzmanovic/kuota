@@ -10,22 +10,19 @@ still requires the normal spec → grill → scope checkpoint → confirmation f
 
 ## Released
 
-(none yet)
+- **1.0.0** (product label "V1") — shipped locally 2026-07-18 (merged to main;
+  not yet published). Approved 3-provider V1 (Claude, Umans, Codex): Plasma 6
+  widget, bundled short-lived Node collector, compact + full representations,
+  configuration layer, local install/update/uninstall scripts. KDE Store
+  publication is a separate explicitly approved step, not part of this version.
 
 ## Current
 
-- **v0.1.0** (product label "V1") — Approved 3-provider V1 (Claude, Umans,
-  Codex): Plasma 6 widget, bundled short-lived Node collector, compact + full
-  representations, configuration layer. Package version `0.1.0` per resolved Q2;
-  the "V1" / "v1.x" label denotes the product release, not the package semver.
-  Milestones M1–M10 PASS (G0–G10). M10 (packaging, local lifecycle, release
-  candidate) shipped locally 2026-07-18 (merged to main; not yet published).
-  KDE Store publication is a separate explicitly approved
-  step, not part of this version.
+(none — 1.0.0 shipped; see Released)
 
 ## Planned
 
-- **v1.1** — Add Grok + Kimi providers. Amends owner-approved Decision #2 (which
+- **1.1.0** — Add Grok + Kimi providers. Amends owner-approved Decision #2 (which
   froze V1 at Claude/Umans/Codex); re-opens the design spec provider table, the
   collector contract `ProviderId` union and `details.{grok,kimi}` namespaces,
   registry canonical order, QML compact/full model allowlists, config UI, and
