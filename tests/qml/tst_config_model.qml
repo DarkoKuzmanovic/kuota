@@ -32,6 +32,36 @@ TestCase {
         compare(boundary.criticalThreshold, 100);
     }
 
+    function test_fontScaleClampAndGarbage() {
+        var tooBig = ConfigModel.sanitize({ fontScale: 5.0 });
+        compare(tooBig.fontScale, 3.0);
+
+        var tooSmall = ConfigModel.sanitize({ fontScale: 0.25 });
+        compare(tooSmall.fontScale, 0.5);
+
+        var valid = ConfigModel.sanitize({ fontScale: 2.5 });
+        compare(valid.fontScale, 2.5);
+
+        var atMax = ConfigModel.sanitize({ fontScale: 3.0 });
+        compare(atMax.fontScale, 3.0);
+
+        var atMin = ConfigModel.sanitize({ fontScale: 0.5 });
+        compare(atMin.fontScale, 0.5);
+
+        // 1.0 is no longer the floor (0.5 is); it passes through unchanged.
+        var oneZero = ConfigModel.sanitize({ fontScale: 1.0 });
+        compare(oneZero.fontScale, 1.0);
+
+        var garbage = ConfigModel.sanitize({ fontScale: "big" });
+        compare(garbage.fontScale, 1.0);
+
+        var nanValue = ConfigModel.sanitize({ fontScale: NaN });
+        compare(nanValue.fontScale, 1.0);
+
+        var negative = ConfigModel.sanitize({ fontScale: -2.0 });
+        compare(negative.fontScale, 1.0);
+    }
+
     function test_invertedThresholdsFallBackToDefaults() {
         var inverted = ConfigModel.sanitize({ cautionThreshold: 90, criticalThreshold: 75 });
         compare(inverted.cautionThreshold, 75);
@@ -40,6 +70,13 @@ TestCase {
         var equal = ConfigModel.sanitize({ cautionThreshold: 80, criticalThreshold: 80 });
         compare(equal.cautionThreshold, 75);
         compare(equal.criticalThreshold, 90);
+    }
+
+    function test_thresholdReadBoundaryStillDefaultsInvalidPair() {
+        // Read-boundary sanitize remains the authoritative guard (D6).
+        var inverted = ConfigModel.sanitize({ cautionThreshold: 95, criticalThreshold: 90 });
+        compare(inverted.cautionThreshold, 75);
+        compare(inverted.criticalThreshold, 90);
     }
 
     function test_garbageAndMissingFallBackToDefaults() {
