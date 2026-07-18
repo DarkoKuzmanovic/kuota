@@ -118,7 +118,7 @@ describe('lifecycle script blast radius', () => {
   test('uninstall.sh targets only the package id and the Kuota cache', () => {
     const content = readScript('uninstall.sh');
     assert.ok(
-      content.includes('kpackagetool6 -r "$package_id"'),
+      content.includes('kpackagetool6 -t Plasma/Applet -r "$package_id"'),
       'uninstall.sh must remove by package id',
     );
     assert.ok(
