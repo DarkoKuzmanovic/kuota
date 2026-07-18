@@ -18,8 +18,9 @@ still requires the normal spec → grill → scope checkpoint → confirmation f
   Codex): Plasma 6 widget, bundled short-lived Node collector, compact + full
   representations, configuration layer. Package version `0.1.0` per resolved Q2;
   the "V1" / "v1.x" label denotes the product release, not the package semver.
-  Milestones M1–M9 PASS (G0–G9). M10 (packaging, local lifecycle, release
-  candidate) pending. KDE Store publication is a separate explicitly approved
+  Milestones M1–M10 PASS (G0–G10). M10 (packaging, local lifecycle, release
+  candidate) shipped locally 2026-07-18 (merged to main; not yet published).
+  KDE Store publication is a separate explicitly approved
   step, not part of this version.
 
 ## Planned
