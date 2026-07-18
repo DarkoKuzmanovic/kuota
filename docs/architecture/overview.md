@@ -29,8 +29,9 @@ Kuota is a Linux KDE Plasma 6 package with ID
 `io.github.darkokuzmanovic.kuota`. Its metadata declares Plasma API minimum
 version 6.0; the development target is Plasma 6.7.2. The collector targets
 Node.js >=20 and is compiled from strict TypeScript to runnable JavaScript.
-The package is MIT licensed and version `0.1.0` (the product release is
-labelled "V1"; the package semver stays pre-1.0).
+The package is MIT licensed and version `1.0.0` (the product release "V1").
+Config keys are additive-only from this version (D7 stability contract), so the
+semver now matches the committed stability surface.
 
 The product has three isolated layers:
 
