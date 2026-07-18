@@ -40,6 +40,8 @@ var DEFAULTS = Object.freeze({
 });
 
 var REFRESH_INTERVAL_FLOOR_MINUTES = 5;
+var FONT_SCALE_MIN = 1.0;
+var FONT_SCALE_MAX = 3.0;
 
 function createDefaultSettings() {
     return {
@@ -238,6 +240,12 @@ function sanitizeDisplayMode(value) {
 function sanitizeFontScale(value) {
     if (typeof value !== "number" || !isFinite(value) || value <= 0) {
         return DEFAULTS.fontScale;
+    }
+    if (value < FONT_SCALE_MIN) {
+        return FONT_SCALE_MIN;
+    }
+    if (value > FONT_SCALE_MAX) {
+        return FONT_SCALE_MAX;
     }
     return value;
 }
