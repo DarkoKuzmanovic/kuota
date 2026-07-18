@@ -4,7 +4,11 @@
 
 set -e
 
-root_dir=$(cd "$(dirname "$0")/.." && pwd)
+# Resolve the repo root without capturing cd side effects. POSIX `cd`
+# prints the resolved directory to stdout when CDPATH is set and a relative
+# path is resolved through it; redirecting cd's stdout keeps that print out
+# of the command substitution so only `pwd`'s output is captured.
+root_dir=$(cd "$(dirname "$0")/.." >/dev/null && pwd)
 cd "$root_dir"
 
 package_id="io.github.darkokuzmanovic.kuota"
