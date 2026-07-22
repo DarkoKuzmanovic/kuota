@@ -512,8 +512,8 @@
 
 ## Handoff Block
 
-- **Current gate:** G11 — PASS (1.1.0 Grok + Kimi providers complete 2026-07-22; commit pending).
-- **Next action:** Merge 1.1.0 to `main` (no remote configured — local merge only). Next version candidate is 1.2.0 (theming/customization — spec approved, M12 structured). Two carried decisions remain candidate-deferred (l10n system choice; Q15 KDE-Store naming). No remote is configured, so there is no PR/release step pending.
+- **Current gate:** G11 — PASS (1.1.0 Grok + Kimi providers complete and merged to `main` 2026-07-22, `c97c755`; owner-approved post-merge).
+- **Next action:** None for 1.1.0 (shipped on `main`; `crew/m11-grok-kimi` retained, not deleted). Next version candidate is 1.2.0 (theming/customization — spec approved, M12 structured). Two carried decisions remain candidate-deferred (l10n system choice; Q15 KDE-Store naming). No remote is configured, so there is no PR/release step pending.
 - **Resolved blocker (2026-07-12):** The failures were model/provider stream failures that the watchdog correctly contained, but the fallback classifier did not treat watchdog aborts or MiniMax's missing-usage `input_tokens` TypeError as retryable. `pi-subagents` now classifies those two narrow failures for configured model fallback; recon falls back to Luna and worker falls back to Terra. Typecheck, 380 extension tests, Biome, and a fresh-process foreground no-op delegation pass.
 - **Completed M6 entry prerequisite (2026-07-13):** Durable real-process lock tests now cover crash, startup cleanup, symlink/untrusted helper, exact argv/environment, descriptor/artifact cleanup, and stubborn-holder forced-timeout cleanup. The discovered orphan defect was fixed at the flock boundary with `-F`; independent full gate is 440/440 green.
 - **Required inputs before execution:** Use only synthetic auth/cache/fetch seams; never log or echo tokens, headers, bodies, account identifiers, native errors, or credential-file contents.
