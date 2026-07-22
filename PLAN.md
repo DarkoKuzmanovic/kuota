@@ -598,6 +598,19 @@
 - One provider failure never prevents the other from updating.
 - Commit per gated slice on the `crew/m11-grok-kimi` branch; merge to main at close-out only with explicit owner approval.
 
+### Grill outcome (2026-07-22, front-gate, fresh-context critique + recon verification)
+
+Adversarial grill of the 1.1.0 spec amendment surfaced 6 candidate cracks. All 6 resolved to non-issues when checked against pi-hud source (the recon ground truth, live-verified 2026-07-17):
+
+1. **Grok proxy needs CLI-shaped requests?** — Non-issue. pi-hud `grok.ts` sends exactly `Authorization: Bearer`, `x-xai-token-auth: xai-grok-cli`, `Accept: application/json` — no CLI User-Agent. The proxy accepts a plain Bearer+header fetch; Kuota's hardened fetch matches.
+2. **Grok OAuth token is short-lived → no-refresh = dead-on-arrival?** — Non-issue. The token is pi-managed `xai` OAuth (SuperGrok sign-in); **pi refreshes it**, not Kuota. pi-hud treats it read-only with no refresh logic. Kuota following the same read-only pattern is correct parity: token expiry → auth-needed until pi's next run, same as pi-hud today. Grok is genuinely Umans-tier (read-only credential), NOT Codex-tier. Tier justification holds.
+3. **Enum widening breaks old-widget QML (fail-closed unknown ID)?** — Non-issue. `collector-validator.js:315` does fail-closed on unknown provider IDs (`PROVIDER_IDS.indexOf(input) === -1 → invalid`), but `PROVIDER_IDS` is a static allowlist extended alongside the collector's `ProviderId` union in the SAME package release. No version skew possible (atomic single-package ship). Fail-closed is the security feature, not a bug. No schema v2 bump needed.
+4. **Kimi string→number coercion (`Number("")→0` silent lie)?** — Non-issue. pi-hud `kimi.ts:15-19` `toNum()` uses `Number.isFinite` fail-closed, returning null (→ omit) for `""`/`null`/non-finite. Kuota's Codex normalizer already does the same. Kimi will follow it.
+5. **New detail branches (concurrency, short windows) exceed schema capacity?** — Non-issue, verified against `schema-v1.ts`. `UmansDetails` already carries `concurrency` + `concurrencyLimit` (lines 32-33); Kimi's `parallel: { limit, details }` maps to the same shape. `UsageWindow` (lines 9-16) already has `usedPercent`/`used`/`limit`/`resetAt` + `label`/`id`; Kimi's short + weekly windows are two `UsageWindow` entries, exactly how Claude/Codex render multiple windows. Grok's monthly credits + weekly window are likewise two `UsageWindow` entries, with `details.grok` a new `GrokDetails` interface mirroring the existing `ClaudeDetails`/`CodexDetails` pattern. The schema is a discriminated union of per-provider detail interfaces — adding `GrokDetails` + `KimiDetails` + two union members is the exact established pattern, no schema-shape innovation. Distinct from #3 (which was ID-rejection): this confirms the detail payload shapes fit; the union extension in M11.1 carries them atomically in the same package.
+6. **Deferred l10n ships 2 untranslatable strings?** — Accepted. l10n is deferred project-wide (M10 carried decision); 2 provider display names ship as `qsTr()`-wrapped English, consistent with existing V1 provider names. Folding l10n into 1.1.0 is NOT required.
+
+**Resolution:** The spec amendment holds unchanged. Tier (Standard / contained protected / local / ceiling 5) is confirmed. Proceed to worker dispatch. No scope-boundary change; no re-grill.
+
 ## Milestone 12 (v1.2.0) — Appearance Customization (Theming)
 
 **Source spec:** `docs/specs/2026-07-22-theming-customization-design.md` (approved for planning by the project owner on 2026-07-22). Amends V1; V1 keys and native-Plasma default behavior are unchanged.
