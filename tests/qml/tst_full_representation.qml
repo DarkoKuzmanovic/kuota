@@ -350,4 +350,30 @@ TestCase {
         full.fontFamily = "Noto Mono";
         compare(full.effectiveFontFamily, "Noto Mono");
     }
+
+    // Review G-T Major 2: full-rep metric values consume the custom text
+    // color when no threshold is active; threshold colors always win.
+    function test_windowValueTextColorPrecedence() {
+        full.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10, limit: 100, used: 10 })] })
+        ]);
+        full.appearance = { customTextColorEnabled: true, customTextColor: "#123456" };
+        verify(full.activeModel !== null);
+        compare(full.activeModel.textColor, "#123456");
+
+        // No threshold → custom text color.
+        compare(full.windowValueTextColor("none"), "#123456");
+        // Threshold active → threshold color wins over custom.
+        compare(full.windowValueTextColor("caution"), Kirigami.Theme.neutralTextColor);
+        compare(full.windowValueTextColor("critical"), Kirigami.Theme.negativeTextColor);
+    }
+
+    function test_windowValueTextColorFallsBackToThemeWithoutCustom() {
+        full.appearance = null;
+        full.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10, limit: 100, used: 10 })] })
+        ]);
+        compare(full.windowValueTextColor("none"), Kirigami.Theme.textColor);
+        compare(full.windowValueTextColor("caution"), Kirigami.Theme.neutralTextColor);
+    }
 }

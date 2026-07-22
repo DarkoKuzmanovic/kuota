@@ -119,6 +119,7 @@ FocusScope {
         Kirigami.Heading {
             visible: !compactRoot.hasEntries
             level: 5
+            font.family: compactRoot.effectiveFontFamily
             opacity: 0.7
             text: qsTr("Kuota")
         }
@@ -208,6 +209,7 @@ FocusScope {
                     visible: stateInfo.show && compactRoot.showText
                     level: 5
                     font.pointSize: compactRoot.fontPointSize - 1
+                    font.family: compactRoot.effectiveFontFamily
                     opacity: 0.85
                     text: stateInfo.label
                 }
