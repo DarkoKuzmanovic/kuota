@@ -36,7 +36,8 @@ TestCase {
         "../../plasmoid/contents/ui/CollectorBridge.qml",
         "../../plasmoid/contents/ui/configAppearance.qml",
         "../../plasmoid/contents/ui/configProviders.qml",
-        "../../plasmoid/contents/ui/configThresholds.qml"
+        "../../plasmoid/contents/ui/configThresholds.qml",
+        "../../plasmoid/contents/ui/configTheming.qml"
     ]
     property string executableBridgeImport: "org.kde.plasma.plasma5support"
 

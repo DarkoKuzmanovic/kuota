@@ -1,5 +1,6 @@
 import QtQuick
 import QtTest
+import org.kde.kirigami 2.20 as Kirigami
 
 import "../../plasmoid/contents/ui/compact-model.js" as CompactModel
 import "helpers/collector-fixtures.js" as Fixtures
@@ -285,5 +286,45 @@ TestCase {
 
     function test_defaultFontScaleIsUnitMultiplier() {
         compare(compact.fontScale, 1.0);
+    }
+
+    // M-T4 wiring: appearance object set on the representation reaches the
+    // compact model and shapes the emitted entries (field computation itself
+    // is unit-tested in tst_compact_model).
+    function test_appearanceFlowsIntoEntries() {
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
+        ]);
+        compact.appearance = {
+            claudeAccentColor: "#d97757",
+            claudeCustomIcon: "face-cool",
+            labelOpacity: 0.5,
+            separatorOpacity: 0.25
+        };
+        verify(compact.entries.length === 1);
+        compare(compact.entries[0].valueColor, "#d97757");
+        compare(compact.entries[0].iconName, "face-cool");
+        compare(compact.entries[0].labelOpacity, 0.5);
+        compare(compact.entries[0].separatorOpacity, 0.25);
+    }
+
+    function test_nullAppearanceReproducesV1Defaults() {
+        compact.appearance = null;
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
+        ]);
+        verify(compact.entries.length === 1);
+        compare(compact.entries[0].valueColor, "");
+        compare(compact.entries[0].textColor, "");
+        compare(compact.entries[0].iconName, "");
+        compare(compact.entries[0].labelOpacity, 1.0);
+        compare(compact.entries[0].separatorOpacity, 1.0);
+    }
+
+    function test_fontFamilyOverrideAndDefault() {
+        compact.fontFamily = "";
+        compare(compact.effectiveFontFamily, Kirigami.Theme.defaultFont.family);
+        compact.fontFamily = "Noto Mono";
+        compare(compact.effectiveFontFamily, "Noto Mono");
     }
 }

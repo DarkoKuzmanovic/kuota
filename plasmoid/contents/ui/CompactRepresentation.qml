@@ -14,6 +14,11 @@ FocusScope {
     property string compactDisplayMode: "icons+text"
     property string separator: " · "
     property real fontScale: 1.0
+    // Appearance overrides (M12 theming). `null` reproduces V1 exactly;
+    // main.qml passes the sanitized settings. `fontFamily` "" means the
+    // theme default font.
+    property var appearance: null
+    property string fontFamily: ""
 
     readonly property real contentMargin: Kirigami.Units.smallSpacing
     // Size to the Row positioner's own implicit content size (reliable) rather
@@ -26,6 +31,7 @@ FocusScope {
     Layout.minimumWidth: implicitWidth
     Layout.preferredWidth: implicitWidth
     property real fontPointSize: Kirigami.Theme.defaultFont.pointSize * fontScale
+    readonly property string effectiveFontFamily: fontFamily !== "" ? fontFamily : Kirigami.Theme.defaultFont.family
 
     readonly property alias clickTarget: clickCapture
     readonly property alias entryRepeaterItem: entryRepeater
@@ -34,7 +40,8 @@ FocusScope {
 
     readonly property var entries: CompactModel.buildCompactEntries(
         snapshot,
-        displayConfig !== undefined && displayConfig !== null ? displayConfig : defaultDisplayConfig
+        displayConfig !== undefined && displayConfig !== null ? displayConfig : defaultDisplayConfig,
+        appearance !== undefined && appearance !== null ? appearance : {}
     )
 
     readonly property bool hasEntries: entries.length > 0
@@ -143,8 +150,9 @@ FocusScope {
                     objectName: "separatorLabel"
                     level: 5
                     visible: showSeparator
-                    opacity: 0.6
+                    opacity: 0.6 * modelData.separatorOpacity
                     font.pointSize: compactRoot.fontPointSize
+                    font.family: compactRoot.effectiveFontFamily
                     text: compactRoot.separator
                 }
 
@@ -152,15 +160,20 @@ FocusScope {
                     visible: compactRoot.showIcons
                     width: Kirigami.Units.iconSizes.smallMedium
                     height: width
-                    source: compactRoot.providerIconName(modelData.providerId)
+                    source: modelData.iconName !== "" ? modelData.iconName : compactRoot.providerIconName(modelData.providerId)
+                    // Monochrome mask only when theming is active (custom icon or
+                    // text color): preserves V1's full-color theme icons by default.
+                    isMask: modelData.textColor !== "" || modelData.iconName !== ""
+                    color: modelData.textColor !== "" ? modelData.textColor : Kirigami.Theme.textColor
                 }
 
                 Kirigami.Heading {
                     visible: compactRoot.showText
                     level: 5
                     font.pointSize: compactRoot.fontPointSize
-                    color: Kirigami.Theme.textColor
-                    opacity: 0.7
+                    font.family: compactRoot.effectiveFontFamily
+                    color: modelData.textColor !== "" ? modelData.textColor : Kirigami.Theme.textColor
+                    opacity: 0.7 * modelData.labelOpacity
                     text: modelData.label
                 }
 
@@ -168,8 +181,9 @@ FocusScope {
                     visible: compactRoot.showText && modelData.displayValue.length > 0
                     level: 5
                     font.pointSize: compactRoot.fontPointSize
+                    font.family: compactRoot.effectiveFontFamily
                     font.weight: Font.DemiBold
-                    color: compactRoot.valueTextColor(modelData.thresholdLevel)
+                    color: modelData.valueColor !== "" ? modelData.valueColor : compactRoot.valueTextColor(modelData.thresholdLevel)
                     text: modelData.displayValue
                 }
 
@@ -179,7 +193,7 @@ FocusScope {
                     radius: width / 2
                     antialiasing: true
                     anchors.verticalCenter: parent.verticalCenter
-                    color: compactRoot.valueTextColor(modelData.thresholdLevel)
+                    color: modelData.valueColor !== "" ? modelData.valueColor : compactRoot.valueTextColor(modelData.thresholdLevel)
                     visible: compactRoot.showText && modelData.displayValue.length > 0
                 }
 

@@ -1,5 +1,6 @@
 import QtQuick
 import QtTest
+import org.kde.kirigami 2.20 as Kirigami
 
 import "helpers/collector-fixtures.js" as Fixtures
 
@@ -311,5 +312,42 @@ TestCase {
     function test_showCountdownFalseWithNoResetAtYieldsEmpty() {
         full.showCountdown = false;
         compare(full.resetLineText(undefined), "");
+    }
+
+    // M-T4 wiring: appearance object set on the representation reaches the
+    // full model and shapes the emitted view-model (field computation itself
+    // is unit-tested in tst_full_model).
+    function test_appearanceFlowsIntoActiveModel() {
+        full.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10, limit: 100, used: 10 })] })
+        ]);
+        full.appearance = {
+            claudeAccentColor: "#d97757",
+            customTextColorEnabled: true,
+            customTextColor: "#123456",
+            labelOpacity: 0.5
+        };
+        verify(full.activeModel !== null);
+        compare(full.activeModel.textColor, "#123456");
+        compare(full.activeModel.labelOpacity, 0.5);
+        compare(full.activeModel.windows[0].barColor, "#d97757");
+    }
+
+    function test_nullAppearanceReproducesV1Defaults() {
+        full.appearance = null;
+        full.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10, limit: 100, used: 10 })] })
+        ]);
+        verify(full.activeModel !== null);
+        compare(full.activeModel.textColor, "");
+        compare(full.activeModel.labelOpacity, 1.0);
+        compare(full.activeModel.windows[0].barColor, "");
+    }
+
+    function test_fontFamilyOverrideAndDefault() {
+        full.fontFamily = "";
+        compare(full.effectiveFontFamily, Kirigami.Theme.defaultFont.family);
+        full.fontFamily = "Noto Mono";
+        compare(full.effectiveFontFamily, "Noto Mono");
     }
 }

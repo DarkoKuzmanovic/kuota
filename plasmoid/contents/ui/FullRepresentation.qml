@@ -20,6 +20,12 @@ FocusScope {
     // Gates the live reset countdown text (M9, D8). The reset timestamp
     // itself may still show; only the ticking "Resets in …" phrase is hidden.
     property bool showCountdown: true
+    // Appearance overrides (M12 theming). `null` reproduces V1 exactly;
+    // main.qml passes the sanitized settings. `fontFamily` "" means the
+    // theme default font.
+    property var appearance: null
+    property string fontFamily: ""
+    readonly property string effectiveFontFamily: fontFamily !== "" ? fontFamily : Kirigami.Theme.defaultFont.family
 
     signal requestRefresh()
 
@@ -66,7 +72,13 @@ FocusScope {
     }
 
     readonly property var activeRecord: effectiveProviderId.length > 0 ? findRecord(effectiveProviderId) : null
-    readonly property var activeModel: activeRecord !== null ? FullModel.buildFullViewModel(activeRecord, fullRoot.thresholds) : null
+    readonly property var activeModel: activeRecord !== null
+        ? FullModel.buildFullViewModel(
+            activeRecord,
+            fullRoot.thresholds,
+            fullRoot.appearance !== undefined && fullRoot.appearance !== null ? fullRoot.appearance : {}
+        )
+        : null
 
     Accessible.role: Accessible.Pane
     Accessible.name: hasProviders
@@ -300,6 +312,11 @@ FocusScope {
                                 Kirigami.Heading {
                                     level: 5
                                     text: windowRow.modelData.label
+                                    font.family: fullRoot.effectiveFontFamily
+                                    color: fullRoot.activeModel !== null && fullRoot.activeModel.textColor !== ""
+                                        ? fullRoot.activeModel.textColor
+                                        : Kirigami.Theme.textColor
+                                    opacity: fullRoot.activeModel !== null ? fullRoot.activeModel.labelOpacity : 1.0
                                 }
 
                                 Item { Layout.fillWidth: true }
@@ -319,6 +336,12 @@ FocusScope {
                                 value: windowRow.modelData.progressFraction !== undefined ? windowRow.modelData.progressFraction : 0
                                 Accessible.name: qsTr("%1 progress").arg(windowRow.modelData.label)
                                 palette.highlight: {
+                                    // barColor is "" when a threshold is active (model
+                                    // guarantee), so the threshold switch always wins —
+                                    // precedence: Threshold > Accent > Custom > Theme.
+                                    if (windowRow.modelData.barColor !== undefined && windowRow.modelData.barColor !== "") {
+                                        return windowRow.modelData.barColor;
+                                    }
                                     switch (windowRow.modelData.thresholdLevel) {
                                     case "critical":
                                         return Kirigami.Theme.negativeTextColor;
@@ -399,7 +422,11 @@ FocusScope {
                             Layout.column: 0
                             Layout.row: index
                             text: modelData.label + ":"
-                            opacity: 0.8
+                            font.family: fullRoot.effectiveFontFamily
+                            color: fullRoot.activeModel !== null && fullRoot.activeModel.textColor !== ""
+                                ? fullRoot.activeModel.textColor
+                                : Kirigami.Theme.textColor
+                            opacity: 0.8 * (fullRoot.activeModel !== null ? fullRoot.activeModel.labelOpacity : 1.0)
                         }
                     }
 
@@ -412,6 +439,10 @@ FocusScope {
                             Layout.column: 1
                             Layout.row: index
                             text: modelData.value
+                            font.family: fullRoot.effectiveFontFamily
+                            color: fullRoot.activeModel !== null && fullRoot.activeModel.textColor !== ""
+                                ? fullRoot.activeModel.textColor
+                                : Kirigami.Theme.textColor
                         }
                     }
                 }

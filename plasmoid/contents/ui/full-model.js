@@ -57,6 +57,10 @@ function buildFullViewModel(record, thresholds, appearance) {
         facts: buildFacts(record),
         stateMessage: stateMessageFor(state),
         textColor: resolvedAppearance.customTextColor,
+        // iconName is exposed for API symmetry with the compact model; the
+        // compact representation is the only current visual consumer — the
+        // full representation has no per-provider icon slot (by design, icon
+        // customization is compact-rep-only). Not a bug.
         iconName: resolvedAppearance.iconFor(providerId),
         labelOpacity: resolvedAppearance.labelOpacity
     };
