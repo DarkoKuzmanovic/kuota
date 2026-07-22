@@ -91,9 +91,11 @@ TestCase {
         compare(empty.claudeVisible, true);
         compare(empty.umansVisible, true);
         compare(empty.codexVisible, true);
+        compare(empty.grokVisible, true);
+        compare(empty.kimiVisible, true);
         compare(empty.claudeWindow, "");
         compare(empty.codexWindow, "");
-        compare(JSON.stringify(empty.providerOrder), JSON.stringify(["claude", "umans", "codex"]));
+        compare(JSON.stringify(empty.providerOrder), JSON.stringify(["claude", "umans", "codex", "grok", "kimi"]));
 
         var garbage = ConfigModel.sanitize({
             refreshIntervalMinutes: "soon",
@@ -108,7 +110,9 @@ TestCase {
             umansVisible: null,
             codexVisible: undefined,
             claudeWindow: 12,
-            codexWindow: false
+            codexWindow: false,
+            grokVisible: "yes",
+            kimiVisible: 7
         });
         compare(garbage.refreshIntervalMinutes, 5);
         compare(garbage.cautionThreshold, 75);
@@ -117,16 +121,18 @@ TestCase {
         compare(garbage.separator, " · ");
         compare(garbage.fontScale, 1.0);
         compare(garbage.showCountdown, true);
-        compare(JSON.stringify(garbage.providerOrder), JSON.stringify(["claude", "umans", "codex"]));
+        compare(JSON.stringify(garbage.providerOrder), JSON.stringify(["claude", "umans", "codex", "grok", "kimi"]));
         compare(garbage.claudeVisible, true);
         compare(garbage.umansVisible, true);
         compare(garbage.codexVisible, true);
+        compare(garbage.grokVisible, true);
+        compare(garbage.kimiVisible, true);
         compare(garbage.claudeWindow, "");
         compare(garbage.codexWindow, "");
 
         var nullInput = ConfigModel.sanitize(null);
         compare(nullInput.refreshIntervalMinutes, 5);
-        compare(JSON.stringify(nullInput.providerOrder), JSON.stringify(["claude", "umans", "codex"]));
+        compare(JSON.stringify(nullInput.providerOrder), JSON.stringify(["claude", "umans", "codex", "grok", "kimi"]));
     }
 
     function test_displayConfigAssemblyCustomOrderAndVisibility() {
@@ -138,10 +144,12 @@ TestCase {
         });
         var displayConfig = ConfigModel.assembleDisplayConfig(sanitized);
 
-        compare(JSON.stringify(displayConfig.order), JSON.stringify(["codex", "claude"]));
+        compare(JSON.stringify(displayConfig.order), JSON.stringify(["codex", "claude", "grok", "kimi"]));
         compare(displayConfig.visibility.claude, true);
         compare(displayConfig.visibility.umans, false);
         compare(displayConfig.visibility.codex, true);
+        compare(displayConfig.visibility.grok, true);
+        compare(displayConfig.visibility.kimi, true);
         verify(isRecord(displayConfig.metric));
         verify(isRecord(displayConfig.window));
     }
@@ -154,23 +162,29 @@ TestCase {
             codexVisible: true
         });
         var displayConfig = ConfigModel.assembleDisplayConfig(sanitized);
-        compare(JSON.stringify(displayConfig.order), JSON.stringify(["umans", "codex", "claude"]));
+        compare(JSON.stringify(displayConfig.order), JSON.stringify(["umans", "codex", "claude", "grok", "kimi"]));
         compare(displayConfig.visibility.claude, true);
         compare(displayConfig.visibility.umans, true);
         compare(displayConfig.visibility.codex, true);
+        compare(displayConfig.visibility.grok, true);
+        compare(displayConfig.visibility.kimi, true);
     }
 
     function test_displayConfigAllHiddenYieldsEmptyOrder() {
         var sanitized = ConfigModel.sanitize({
             claudeVisible: false,
             umansVisible: false,
-            codexVisible: false
+            codexVisible: false,
+            grokVisible: false,
+            kimiVisible: false
         });
         var displayConfig = ConfigModel.assembleDisplayConfig(sanitized);
         compare(displayConfig.order.length, 0);
         compare(displayConfig.visibility.claude, false);
         compare(displayConfig.visibility.umans, false);
         compare(displayConfig.visibility.codex, false);
+        compare(displayConfig.visibility.grok, false);
+        compare(displayConfig.visibility.kimi, false);
     }
 
     function test_displayConfigIncludesSelectedWindows() {
@@ -222,7 +236,7 @@ TestCase {
             providerOrder: ["claude", "bogus", "umans", "claude", "codex"]
         });
         // sanitize keeps a clean unique order of known providers only.
-        compare(JSON.stringify(sanitized.providerOrder), JSON.stringify(["claude", "umans", "codex"]));
+        compare(JSON.stringify(sanitized.providerOrder), JSON.stringify(["claude", "umans", "codex", "grok", "kimi"]));
     }
 
     function isRecord(input) {

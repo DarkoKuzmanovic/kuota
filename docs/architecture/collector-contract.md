@@ -46,7 +46,7 @@ The collector emits one normalized JSON document. Schema version 1 is deliberate
 }
 ```
 
-`collectionStartedAt` and `collectionFinishedAt` are UTC ISO 8601 timestamps, and the start cannot be after the finish. `providers` contains one record for each configured provider; it may be empty and may contain a partial result when another provider fails. Provider IDs are `claude`, `umans`, and `codex`. States are `ok`, `stale`, `auth-needed`, and `error`.
+`collectionStartedAt` and `collectionFinishedAt` are UTC ISO 8601 timestamps, and the start cannot be after the finish. `providers` contains one record for each configured provider; it may be empty and may contain a partial result when another provider fails. Provider IDs are `claude`, `umans`, `codex`, `grok`, and `kimi` (canonical order). States are `ok`, `stale`, `auth-needed`, and `error`.
 
 A `stale` provider is a last-known-good record, not an empty failure marker. It must include `lastSuccessAt` and retained real data: either at least one usage window or a non-empty details object in the namespace matching its provider ID. It does not need both kinds of data, nor every optional field. Other states may omit `lastSuccessAt`, windows, and details when those values are unavailable.
 
@@ -54,7 +54,11 @@ Optional values are omitted when the provider does not supply them. A usage wind
 
 Provider details are namespaced and typed under the provider record. Claude details may contain `model`, integer `tokens`, and the following optional extra-usage fields: boolean `extraUsageEnabled`; non-negative integer `extraUsageUsedCredits` and `extraUsageMonthlyLimit`, expressed as integer credit amounts in the currency's minor units (each independent, so overage where used exceeds the limit is retained rather than clamped); a bounded (≤16 character) `extraUsageCurrency` code; non-negative integer `extraUsageDecimalPlaces`, the number of decimal places used to render those minor-unit amounts in `extraUsageCurrency`; and a bounded (≤100 character) `extraUsageDisabledReason`. Each extra-usage field is omitted when unavailable, and malformed extra-usage is dropped in isolation so valid base and model windows still surface. Umans details may contain `plan`, non-negative integer rolling-window `requests`, current non-negative integer `concurrency`, and optional non-negative integer `concurrencyLimit`; `concurrencyLimit` is omitted when the provider does not return it. Codex details may contain `plan`, non-negative `credits` and `cost`, and integer `tokens`. A details object must use only the namespace matching its provider ID. No provider detail is inferred from a missing native field, and no credential, account identifier, authorization field, raw response, or token-shaped value belongs in this document.
 
-The TypeScript `ProviderRecord` is a discriminated union: a `claude` record can only contain `details.claude`, a `umans` record only `details.umans`, and a `codex` record only `details.codex`. Runtime validation enforces the same correlation and the stale retention rule before narrowing unknown input.
+The TypeScript `ProviderRecord` is a discriminated union: a `claude` record can only contain `details.claude`, a `umans` record only `details.umans`, a `codex` record only `details.codex`, a `grok` record only `details.grok`, and a `kimi` record only `details.kimi`. Runtime validation enforces the same correlation and the stale retention rule before narrowing unknown input.
+
+Grok details (`details.grok`) may contain non-negative `monthlyUsed` and `monthlyLimit` counts and a UTC `monthlyResetAt` timestamp. The optional weekly credit window is represented as a second `UsageWindow` entry on the provider record, not as a detail field.
+
+Kimi details (`details.kimi`) may contain non-negative integer `concurrency` and `concurrencyLimit` counts, mirroring the Umans concurrency shape. Weekly and short usage windows are represented as `UsageWindow` entries on the provider record; numeric fields are normalized to numbers by the adapter before entering the contract.
 
 ## Runtime validation
 

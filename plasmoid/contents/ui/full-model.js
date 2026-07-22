@@ -186,6 +186,12 @@ function buildFacts(record) {
     if (id === "codex" && isRecord(details.codex)) {
         return codexFacts(details.codex);
     }
+    if (id === "grok" && isRecord(details.grok)) {
+        return grokFacts(details.grok);
+    }
+    if (id === "kimi" && isRecord(details.kimi)) {
+        return kimiFacts(details.kimi);
+    }
     return [];
 }
 
@@ -217,6 +223,20 @@ function codexFacts(d) {
     pushNumberFact(facts, "Credits", d.credits);
     pushNumberFact(facts, "Cost", d.cost);
     pushNumberFact(facts, "Tokens", d.tokens);
+    return facts;
+}
+
+function grokFacts(d) {
+    var facts = [];
+    pushNumberFact(facts, "Monthly used", d.monthlyUsed);
+    pushNumberFact(facts, "Monthly limit", d.monthlyLimit);
+    return facts;
+}
+
+function kimiFacts(d) {
+    var facts = [];
+    pushNumberFact(facts, "Concurrency", d.concurrency);
+    pushNumberFact(facts, "Concurrency limit", d.concurrencyLimit);
     return facts;
 }
 
