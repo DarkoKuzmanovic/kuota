@@ -534,6 +534,70 @@
 
 **Not pending:** No remote configured (no PR/release step). KDE Store publication remains a separate explicitly approved step.
 
+## Milestone 11 (v1.1.0) — Grok + Kimi Providers
+
+**Source spec:** `docs/specs/2026-07-10-kuota-design.md` §Grok, §Kimi, §1.1.0 provider amendment (amended 2026-07-22). Amends owner-approved Decision #2 (which froze V1 at Claude/Umans/Codex). Recon complete (pi-hud, live-verified 2026-07-17).
+
+**Scope decision (2026-07-22):** Tier: Standard. Risk: contained protected (auth discovery + credential reading at the boundary; no credential persistence in 1.1.0). Delivery: local (no GitHub remote configured). Outcome dispatch ceiling: 5 (contained protected). Promotion triggers: recon reveals a required shell-fallback or token-refresh path (→ critical protected, ceiling 6); or a schema/namespace change with broad blast radius (→ Full). Allowed ceremony: one recon, workers per vertical slice, one fresh combined `reviewer` `lane:deep` at the protected boundary (replaces ordinary gate), one G11 final review.
+
+**Outcome:** Add Grok and Kimi provider adapters following the existing adapter patterns (auth discovery → one bounded fetch → normalization → registry). Re-open the collector contract `ProviderId` union, `details.{grok,kimi}` namespaces, registry canonical order, QML compact/full model allowlists, config UI, and docs. One provider failure never prevents the other from updating.
+
+**Key deliverables:** Grok adapter (auth + fetch + normalize + register); Kimi adapter (auth + fetch + normalize + register); `ProviderId` union + `details` namespaces extended; registry canonical order updated (Claude/Umans/Codex/Grok/Kimi); QML compact/full model allowlists extended; config UI provider list extended; fixtures + tests for both; contract docs updated.
+
+**Exit gate (G11):** Typecheck, full Node + Qt 6 QML test suites, `validate:plasma`, `build:artifact`, secret-scan over `plasmoid/` and `collector/` (no credential surface added), `git diff --check` all pass under synthetic `HOME`. One fresh `reviewer` `lane:deep` review traces auth discovery, fetch bounds, redaction, normalization, registry wiring, allowlist enforcement, and schema/runtime correlation for both providers.
+
+**Depends on:** Milestones 1–10 (V1 shipped). Reuses the proven M4 Umans adapter pattern (auth → one bounded fetch → normalize → register, no persistence).
+
+**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 0
+
+**Run metrics:** started-at: 2026-07-22 · first-worker-at: (pending) · dispatches: 0 · review-bundles: 0 · review-dispatches: 0 · worker-retries: 0 · oracle: 0 · completed-outcomes: 0 · child-runtime-minutes: 0
+
+### Recon facts (live-verified 2026-07-17, from pi-hud)
+
+- **Kimi:** `auth["kimi-coding"]` / `KIMI_API_KEY` → `api.kimi.com/coding/v1/usages` (Bearer token; weekly + short windows + concurrency; numeric fields arrive as strings → normalize to numbers).
+- **Grok:** `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` / `GROK_CLI_OAUTH_TOKEN` → `cli-chat-proxy.grok.com/v1/billing` (Bearer + `x-xai-token-auth: xai-grok-cli` header; monthly credits required, optional weekly window).
+- Reuse endpoint/credential-discovery facts only — route through Kuota's own hardened `collector/src/io/` + `security/redact.ts`; do not copy pi-hud's looser `Record<string, any>` / direct-readwrite access patterns.
+
+### Outcomes (vertical slices, each = one worker dispatch)
+
+- [ ] **M11.1 — Extend collector contract: `ProviderId` union + `details.{grok,kimi}` namespaces**
+  - **Files:** `collector/src/contract/schema-v1.ts`, `collector/src/contract/validate.ts`, `docs/architecture/collector-contract.md`, `collector/test/contract/schema-v1.test.ts`
+  - **Work:** Add `grok` and `kimi` to the `ProviderId` discriminated union and define `details.grok` (monthly credits, optional weekly window) and `details.kimi` (weekly + short windows, concurrency; numeric fields normalized from strings) namespaces. Runtime validation enforces provider/detail correlation. Update contract docs.
+  - **Acceptance criteria:** Observed RED precedes production code; valid/missing/optional/malformed Grok + Kimi detail documents pass/fail correctly; provider/detail correlation enforced; canonical order documented.
+  - **Suggested lane:** medium.
+
+- [ ] **M11.2 — Grok adapter (auth discovery + one bounded fetch + normalize + register)**
+  - **Files:** `collector/src/providers/grok/auth.ts`, `collector/src/providers/grok/usage.ts`, `collector/src/providers/grok/fetch.ts`, `collector/src/providers/grok/adapter.ts`, `collector/test/providers/grok/*.test.ts`
+  - **Work:** Auth discovery reads `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` / `GROK_CLI_OAUTH_TOKEN` fallback (file credential wins; env only when no supported file entry). One bounded GET to `cli-chat-proxy.grok.com/v1/billing` with Bearer token + `x-xai-token-auth: xai-grok-cli` header, manual redirects, native abort, streamed byte cap, strict JSON/status handling. Normalize monthly credits + optional weekly window; omit unavailable optionals. No shell fallback, no token refresh, no persistence in 1.1.0. Register the adapter.
+  - **Acceptance criteria:** Observed RED precedes production code; auth precedence (file-over-env), endpoint/header/call-count, 2xx/401-403/redirect/timeout/abort/network/malformed/oversize, redaction, normalization (credits, weekly window), schema-valid correlated success, and canonical order all pass under synthetic `HOME`.
+  - **Suggested lane:** medium.
+
+- [ ] **M11.3 — Kimi adapter (auth discovery + one bounded fetch + normalize + register)**
+  - **Files:** `collector/src/providers/kimi/auth.ts`, `collector/src/providers/kimi/usage.ts`, `collector/src/providers/kimi/fetch.ts`, `collector/src/providers/kimi/adapter.ts`, `collector/test/providers/kimi/*.test.ts`
+  - **Work:** Auth discovery reads `auth["kimi-coding"]` / `KIMI_API_KEY` fallback (file credential wins). One bounded GET to `api.kimi.com/coding/v1/usages` with Bearer token, manual redirects, native abort, streamed byte cap, strict JSON/status handling. Normalize weekly + short windows + concurrency; numeric fields arrive as strings → normalize to numbers. No shell fallback, no token refresh, no persistence. Register the adapter.
+  - **Acceptance criteria:** Observed RED precedes production code; auth precedence, endpoint/call-count, 2xx/401-403/redirect/timeout/abort/network/malformed/oversize, string-to-number normalization, redaction, schema-valid correlated success, and canonical order all pass under synthetic `HOME`.
+  - **Suggested lane:** medium.
+
+- [ ] **M11.4 — QML allowlists + config UI + registry order**
+  - **Files:** `plasmoid/contents/ui/compact-model.js`, `plasmoid/contents/ui/full-model.js`, `plasmoid/contents/ui/config/*.qml`, `collector/src/providers/registry.ts`, `tests/qml/tst_module_isolation.qml`, `package.json`
+  - **Work:** Extend the per-provider allowlists in compact/full models (closed allowlist reading only `details.{grok,kimi}` — never a dynamic key walk, never `status`). Add Grok + Kimi to the config UI provider list. Update registry canonical order (Claude/Umans/Codex/Grok/Kimi). Register any new QML in `tst_module_isolation.qml`; update qmllint list if new `.pragma library` modules are added (none expected — models are extended, not replaced).
+  - **Acceptance criteria:** No provider secret leaks into a rendered/Accessible surface; allowlist is closed (no dynamic key walk); config UI lists all 5 providers; isolation test passes; qmllint clean.
+  - **Suggested lane:** medium.
+
+- [ ] **G11 — Grok + Kimi adapter gate**
+  - **Work:** Run focused Grok/Kimi tests, full synthetic-`HOME` typecheck + Node test suite + Qt 6 QML test suite, `validate:plasma`, `build:artifact`, secret-scan over `plasmoid/` + `collector/`, and `git diff --check`. One fresh `reviewer` `lane:deep` review traces auth discovery, fetch bounds, redaction, normalization, registry wiring, allowlist enforcement, and schema/runtime correlation for both providers. Reconcile README + AGENTS docs.
+  - **Acceptance criteria:** All checks exit 0; review returns SHIP or APPROVED with no Blocker. Record evidence in the Gate Log.
+  - **Dependencies:** M11.1–M11.4.
+
+### Notes for 1.1.0 execution
+
+- This is a **contained protected** boundary: auth discovery + credential reading, but NO credential persistence, NO shell fallback, NO token refresh in 1.1.0. If recon reveals a provider requires any of those, STOP — that promotes to critical protected (ceiling 6) and re-opens the grill.
+- Route everything through Kuota's hardened `collector/src/io/` + `security/redact.ts`. Do NOT copy pi-hud's looser patterns.
+- Follow the M4 Umans adapter pattern (auth → one bounded fetch → normalize → register) — it is the proven contained-protected template.
+- Run all gates under a temporary synthetic `HOME`; no test or gate may read or write real `~/.pi/agent/auth.json` or require a live account/network.
+- One provider failure never prevents the other from updating.
+- Commit per gated slice on the `crew/m11-grok-kimi` branch; merge to main at close-out only with explicit owner approval.
+
 ## Milestone 12 (v1.2.0) — Appearance Customization (Theming)
 
 **Source spec:** `docs/specs/2026-07-22-theming-customization-design.md` (approved for planning by the project owner on 2026-07-22). Amends V1; V1 keys and native-Plasma default behavior are unchanged.
