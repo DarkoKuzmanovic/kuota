@@ -176,6 +176,8 @@ The first release exposes:
 
 Defaults should be useful without configuration and conservative about provider rate limits.
 
+> **1.2.0 amendment** — appearance customization (per-provider icons, font family, colors, opacity) is specified in [`docs/specs/2026-07-22-theming-customization-design.md`](2026-07-22-theming-customization-design.md). It adds an opt-in appearance layer on top of the V1 configuration set; V1 keys and the native-Plasma default behavior are unchanged.
+
 ## Failure behavior
 
 - **No credentials:** show a login-needed state without prompting for or exposing a token.
