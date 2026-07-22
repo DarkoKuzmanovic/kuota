@@ -679,3 +679,30 @@ Adversarial grill of the 1.1.0 spec amendment surfaced 6 candidate cracks. All 6
 - Threshold color precedence always wins over custom text color and accent — verify the combination explicitly.
 - Every new production QML file registered in `tst_module_isolation.qml` and the qmllint list (same M7/M9 discipline).
 - No `i18n()`/`i18nc()` introduction — use `qsTr()` (same M9 i18n convention).
+## Milestone 13 (v1.2.1) — Compact layout UX batch
+
+**Outcome:** Post-1.2.0 bug batch rolled into 1.2.1: icon scaling for custom PNG/SVG, icons-mode semantic change (hide label, keep value), per-gap spacing tunables (`iconLabelSpacing` / `labelValueSpacing`), Grok/Kimi tab label capitalization, `scripts/install.sh` hardening. Pure Plasma-UI + scripts concern — no collector, bridge, credential, or provider-data changes.
+
+**Process deviation noted up front:** implementation (commits `d62cc47`, `fa60844`, `656c953`) shipped before this PLAN entry was written — direct-edit path outside the Crew flow at the user's request for a fast batch after 1.2.0. Counter and Gate Log recorded here at the moment the post-1.2.0 review (M13 review) closed.
+
+**Key deliverables:**
+- `CompactRepresentation.qml` — `iconSize` derived from `fontPointSize`, `iconLabelValueGroup` nested `Row { spacing: 0 }` around icon/spacers/label/value, `iconLabelSpacer` visibility extended for icons-only mode.
+- `FullRepresentation.qml` — `providerDisplayName()` switch covers all five V1 providers (was missing `grok` and `kimi`).
+- `config-model.js` — `sanitizeIconName` rejects `/[%#?]/` in the post-`file://`-strip path.
+- `configTheming.qml` — `IconDialog.onIconNameChanged` strips `file://` at write time (UX-only duplicate of the sanitizer; canonical strip is in `sanitize()`).
+- `plasmoid/contents/config/main.xml` — adds `iconLabelSpacing` / `labelValueSpacing` (M13); 5 V1 provider keys and Theming-page keys were already present from earlier milestones.
+- `scripts/install.sh` — version extracted via `node -p "require('./package.json').version"` (was a fragile `grep '^  "version":'`); `2>/dev/null` removed from `kpackagetool6` invocations so future failures surface their real diagnostic.
+- `CHANGELOG.md` — `1.2.1` entry consolidates the batch and is moved above `1.2.0` per Keep-a-Changelog newest-first.
+
+**Exit gate evidence (2026-07-22, post-review):**
+- `npm run typecheck` — 0 errors.
+- `npm test` — Node tests 506/506, 0 fail.
+- `npm run test:qml` — 314/314 (added: icons-mode rendered value assertions, per-gap rendered-position regression with `tryCompare` on the Row's animated `x`, sanitizer URL-significant-char rejection, main wiring for the M13 keys).
+- `npm run validate:plasma` — 0.
+- `npm run build:artifact` — 0 (`kuota-v1.2.1.plasmoid`).
+- `scripts/install.sh` rc=0 end-to-end on a freshly-deleted artifact (proves the new `node -p` extraction actually matches the just-built filename).
+- Plasmashell restarted; installed package at `~/.local/share/plasma/plasmoids/io.github.darkokuzmanovic.kuota/` reports `Version: 1.2.1` and contains the new code.
+
+**Counters:** reviews: 1 (`openai-codex/gpt-5.6-sol:high`, M13 round 1: 2 Major / 4 Minor) · oracle: 1 (`anthropic/claude-fable-5`, M13 scrutinize: per-finding verdict + actionable fix list) · fix-cycles: 1 (1 spacing-collapse try/test iteration, 1 icon-path hardening iteration) · direct-edits: 6 (3 commits × 2 sources-of-truth files per commit). User-visible change on upgrade (flagged in commit message and CHANGELOG): the panel's default icon→label / label→value gaps tighten from the prior ~6/5px to the documented 2/1px defaults; configured `0` now collapses as expected.
+
+**G-13 outcome: PASS.**

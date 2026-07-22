@@ -9,6 +9,83 @@ Config keys are a stable, additive-only contract (D7): later versions add keys
 but never rename or remove them within the compatibility window, so settings
 survive updates.
 
+## [1.2.1] - 2026-07-22
+
+### Fixed
+
+- **Full view: Grok and Kimi tab labels were lowercase.** The full-view
+  tab bar read `providerDisplayName()` to set each tab's text, but the
+  switch only had cases for Claude, Umans, and Codex — Grok and Kimi
+  fell through to the raw `providerId` and rendered as `grok` / `kimi`
+  next to their capitalized peers. Added the missing cases so all five
+  V1 providers display capitalized tab labels. `compact-model.js` already
+  had the correct labels for the compact view, so this regression was
+  full-view-only.
+- **Compact representation: icons-only mode rendered the icon butted
+  against the percentage.** The `iconLabelSpacer` visibility was bound
+  to `showIcons && showLabel`, which collapsed the spacer whenever the
+  label was hidden — but in icons-only mode the value (percentage) is
+  still rendered after the icon and needs to be spaced from it. The
+  visibility rule now also covers the icon → value transition
+  (`showIcons && (showLabel || (showValue && displayValue.length > 0))`),
+  so the user-controlled `Icon → label spacing` value applies in every
+  mode where an icon is followed by something visible.
+- **Compact representation: custom PNG/SVG icons dwarfed the surrounding
+  text.** Provider and state icons now size from the computed
+  `iconSize` (`max(Kirigami.Units.iconSizes.small, round(fontPointSize * 1.3))`)
+  instead of the hardcoded `smallMedium` / `small`, and scale with
+  `fontScale`.
+- **Compact representation: per-gap spacing did not honor the configured
+  value.** The `iconLabelSpacing` / `labelValueSpacing` tunables were
+  direct children of the entryRow (Row spacing `smallSpacing/2`), so the
+  rendered icon→label and label→value gaps were
+  `smallSpacing/2 + spacerWidth + smallSpacing/2`. A configured `0`
+  floored at `smallSpacing` instead of collapsing; a configured `7`
+  rendered as roughly 11px. Wrapped the icon, both spacers, label, and
+  value in a nested `Row { spacing: 0 }` so the configured spacers are
+  the only gaps in that group. **User-visible on upgrade: the panel's
+  default gaps tighten from the prior ~6/5px to the documented 2/1px
+  defaults; configured `0` now collapses as expected.** The outer
+  `entryRow.spacing` is retained for the separator / valueDot / state
+  siblings that still need the V1 `small/2` look.
+- **Compact representation: no way to tune icon→label and label→value
+  spacing.** Two new sanitized config keys (`iconLabelSpacing`,
+  `labelValueSpacing`, defaults 2px / 1px, clamp 0..64) implemented as
+  explicit Item spacers with `objectName` so the QML test harness can
+  find them. Visible-tracking keeps a hidden icon or label from leaving
+  a phantom gap. SpinBox controls (`0..32`) added to the Appearance
+  config page next to the font scale.
+- **Compact representation: local-image-path custom icons failed to load
+  when set via the icon picker.** Absolute image paths must use
+  `icon.source` (not `icon.name` — the latter only loads freedesktop
+  names); the `Change…` preview button in the Theming config page now
+  mirrors the split (`providerIconName()` for theme names,
+  `providerIconSource()` for absolute paths). Sanitizer accepts absolute
+  `.png` / `.svg` / `.svgz` / `.jpg` / `.jpeg` / `.webp` / `.xpm` /
+  `.ico` / `.gif` paths and rejects traversal / relative / non-image
+  extensions.
+- **Custom icon path sanitization accepted percent-encoded URL-significant
+  characters.** `pathHasDotDot()` matched only literal `..` segments, so
+  `/tmp/icons/%2e%2e/private/logo.png` (which Qt percent-decodes to
+  `/private/logo.png` at `file://` load time) slipped past the traversal
+  check. Similarly `%`, `#`, `?` break URL parsing even for literal
+  filenames. The sanitizer now rejects `/[%#?]/` in the post-`file://`-strip
+  path before the regex pattern test. **Not a security boundary** (the cfg
+  value is the user's own KConfig and any absolute path is already
+  accepted by design); this is hygiene against percent-decoded traversal
+  and broken filenames.
+- **Theming preview assigned a `file://` URL to `icon.name`.** `IconDialog`
+  returns a freedesktop icon name for theme picks and a `file://` URL for
+  "Other icons" Browse picks; the page wrote the raw dialog value to
+  `cfg_<provider>CustomIcon`, and the preview's `isLocalIconPath()` only
+  recognized `/`-prefixed strings — so a raw URL went to `icon.name` and
+  left `icon.source` empty until the widget-side sanitizer stripped it
+  at render time. The `IconDialog.onIconNameChanged` handler now mirrors
+  the sanitizer's `file://` strip at write time, so the preview swatch
+  is consistent with what the widget renders. Marked explicitly as a
+  UX-only duplicate (per M9 D6 discipline, the canonical `sanitize()`
+  is the single read boundary at the widget side and wins on conflict).
+
 ## [1.2.0] - 2026-07-22
 
 ### Added
@@ -31,49 +108,6 @@ survive updates.
 - Text/colour resolution follows an explicit precedence: threshold state >
   per-provider accent > custom text colour > Plasma theme. Threshold colours
   always win so at-risk usage stays legible under any custom theme.
-
-## [1.2.1] - 2026-07-22
-
-### Fixed
-
-- **Compact representation: full-view tab labels for Grok and Kimi were
-  lowercase.** The full-view tab bar read `providerDisplayName()` to set
-  each tab's text, but the switch only had cases for Claude, Umans, and
-  Codex — Grok and Kimi fell through to the raw `providerId` and rendered
-  as `grok` / `kimi` next to their capitalized peers. Added the missing
-  cases so all five V1 providers display capitalized tab labels.
-  `compact-model.js` already had the correct labels for the compact
-  view, so this regression was full-view-only.
-- **Compact representation: icons-only mode rendered the icon butted
-  against the percentage.** The `iconLabelSpacer` visibility was bound
-  to `showIcons && showLabel`, which collapsed the spacer whenever the
-  label was hidden — but in icons-only mode the value (percentage) is
-  still rendered after the icon and needs to be spaced from it. The
-  visibility rule now also covers the icon → value transition
-  (`showIcons && (showLabel || (showValue && displayValue.length > 0))`),
-  so the user-controlled `Icon → label spacing` value applies in every
-  mode where an icon is followed by something visible.
-- **Compact representation: custom PNG/SVG icons dwarfed the surrounding
-  text.** Provider and state icons now size from the computed
-  `iconSize` (`max(Kirigami.Units.iconSizes.small, round(fontPointSize * 1.3))`)
-  instead of the hardcoded `smallMedium` / `small`, and scale with
-  `fontScale`.
-- **Compact representation: no way to tune icon→label and label→value
-  spacing.** Two new sanitized config keys (`iconLabelSpacing`,
-  `labelValueSpacing`, defaults 2px / 1px, clamp 0..64) implemented as
-  explicit Item spacers with `objectName` so the QML test harness can
-  find them. Visible-tracking keeps a hidden icon or label from leaving
-  a phantom gap. SpinBox controls (`0..32`) added to the Appearance
-  config page next to the font scale.
-- **Compact representation: local-image-path custom icons failed to load
-  when set via the icon picker.** Absolute image paths must use
-  `icon.source` (not `icon.name` — the latter only loads freedesktop
-  names); the `Change…` preview button in the Theming config page now
-  mirrors the split (`providerIconName()` for theme names,
-  `providerIconSource()` for absolute paths). Sanitizer accepts absolute
-  `.png` / `.svg` / `.svgz` / `.jpg` / `.jpeg` / `.webp` / `.xpm` /
-  `.ico` / `.gif` paths and rejects traversal / relative / non-image
-  extensions.
 
 ## [1.1.0] - 2026-07-22
 
