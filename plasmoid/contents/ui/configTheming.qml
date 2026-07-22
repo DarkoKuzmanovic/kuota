@@ -58,6 +58,26 @@ Kirigami.FormLayout {
         }
     }
 
+    function isLocalIconPath(value) {
+        return typeof value === "string" && value.length > 0 && value.charAt(0) === "/";
+    }
+
+    function providerIconName(providerId) {
+        var custom = page["cfg_" + providerId + "CustomIcon"];
+        if (custom !== "" && !isLocalIconPath(custom)) {
+            return custom;
+        }
+        return providerDefaultIcon(providerId);
+    }
+
+    function providerIconSource(providerId) {
+        var custom = page["cfg_" + providerId + "CustomIcon"];
+        if (isLocalIconPath(custom)) {
+            return "file://" + custom;
+        }
+        return "";
+    }
+
     // Mirrors the sanitize boundary's accepted shapes so the preview swatch
     // never assigns an unparseable color (QML warns on invalid color strings).
     function isValidColorString(value) {
@@ -200,9 +220,10 @@ Kirigami.FormLayout {
             }
 
             Controls.Button {
-                icon.name: page["cfg_" + providerRow.providerId + "CustomIcon"] !== ""
-                    ? page["cfg_" + providerRow.providerId + "CustomIcon"]
-                    : page.providerDefaultIcon(providerRow.providerId)
+                // Theme names go through icon.name; absolute image paths need
+                // icon.source (icon.name cannot load /path/to/file.png).
+                icon.name: page.providerIconName(providerRow.providerId)
+                icon.source: page.providerIconSource(providerRow.providerId)
                 text: qsTr("Change…")
                 Accessible.name: qsTr("Change %1 icon").arg(page.providerLabel(providerRow.providerId))
                 onClicked: {

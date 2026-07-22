@@ -82,6 +82,8 @@ PlasmoidItem {
         fontScale: root.sanitizedSettings.fontScale
         appearance: root.sanitizedSettings
         fontFamily: root.sanitizedSettings.fontFamily
+        iconLabelSpacing: root.sanitizedSettings.iconLabelSpacing
+        labelValueSpacing: root.sanitizedSettings.labelValueSpacing
         onRequestExpand: root.expanded = true
     }
 

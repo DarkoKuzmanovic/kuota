@@ -20,6 +20,13 @@ FocusScope {
     property var appearance: null
     property string fontFamily: ""
 
+    // Per-gap spacing tunables (issue 3). Pixels, integer, clamped 0..64 at the
+    // sanitize boundary. Defaults roughly reproduce the V1 smallSpacing/2 look
+    // for icon→label (2px) with a tighter label→value (1px); users widen or
+    // collapse them independently.
+    property int iconLabelSpacing: 2
+    property int labelValueSpacing: 1
+
     readonly property real contentMargin: Kirigami.Units.smallSpacing
     // Size to the Row positioner's own implicit content size (reliable) rather
     // than childrenRect, which under-reports width to the panel and let the
@@ -32,6 +39,9 @@ FocusScope {
     Layout.preferredWidth: implicitWidth
     property real fontPointSize: Kirigami.Theme.defaultFont.pointSize * fontScale
     readonly property string effectiveFontFamily: fontFamily !== "" ? fontFamily : Kirigami.Theme.defaultFont.family
+
+    // Icon size tuned to current font so custom PNG/SVG don't dwarf the text (issue 1).
+    readonly property int iconSize: Math.max(Kirigami.Units.iconSizes.small, Math.round(fontPointSize * 1.3))
 
     readonly property alias clickTarget: clickCapture
     readonly property alias entryRepeaterItem: entryRepeater
@@ -53,7 +63,11 @@ FocusScope {
     readonly property string effectiveDisplayMode: compactDisplayMode
 
     readonly property bool showIcons: effectiveDisplayMode === "icons" || effectiveDisplayMode === "icons+text"
-    readonly property bool showText: effectiveDisplayMode === "text" || effectiveDisplayMode === "icons+text"
+    // Issue 2 (2026-07-22): "icons" mode hides the provider LABEL (caption) but
+    // keeps the VALUE (percentage/count) visible — previously the mode hid both.
+    // See AGENTS.md Lessons (2026-07-22, icons-mode semantic change).
+    readonly property bool showLabel: effectiveDisplayMode === "text" || effectiveDisplayMode === "icons+text"
+    readonly property bool showValue: true
 
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
@@ -75,6 +89,29 @@ FocusScope {
         default:
             return "network-server";
         }
+    }
+
+    // Absolute path custom icons (PNG/SVG from IconDialog "Other icons") must
+    // render as full-color images — isMask monochrome is only for theme names.
+    function isLocalIconPath(value) {
+        return typeof value === "string" && value.length > 0 && value.charAt(0) === "/";
+    }
+
+    function iconSourceFor(entry) {
+        if (entry.iconName === "") {
+            return providerIconName(entry.providerId);
+        }
+        if (isLocalIconPath(entry.iconName)) {
+            return "file://" + entry.iconName;
+        }
+        return entry.iconName;
+    }
+
+    function iconIsMask(entry) {
+        if (isLocalIconPath(entry.iconName)) {
+            return false;
+        }
+        return entry.textColor !== "" || entry.iconName !== "";
     }
 
     function valueTextColor(thresholdLevel) {
@@ -155,63 +192,97 @@ FocusScope {
                     font.pointSize: compactRoot.fontPointSize
                     font.family: compactRoot.effectiveFontFamily
                     text: compactRoot.separator
+                    anchors.verticalCenter: parent.verticalCenter
                 }
 
                 Kirigami.Icon {
+                    objectName: "providerIcon"
                     visible: compactRoot.showIcons
-                    width: Kirigami.Units.iconSizes.smallMedium
+                    width: compactRoot.iconSize
                     height: width
-                    source: modelData.iconName !== "" ? modelData.iconName : compactRoot.providerIconName(modelData.providerId)
-                    // Monochrome mask only when theming is active (custom icon or
-                    // text color): preserves V1's full-color theme icons by default.
-                    isMask: modelData.textColor !== "" || modelData.iconName !== ""
+                    source: compactRoot.iconSourceFor(modelData)
+                    // Monochrome mask for theme icon names when theming is active;
+                    // local image paths keep full color so custom PNG/SVG logos show.
+                    isMask: compactRoot.iconIsMask(modelData)
                     color: modelData.textColor !== "" ? modelData.textColor : Kirigami.Theme.textColor
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                // Per-gap spacing for issue 3 (icon → label). Explicit Item
+                // spacer instead of Row.spacing lets two unrelated per-gap
+                // values coexist with the entryRow's default small/2 spacing;
+                // visibility tracks the icon and label so a hidden icon does
+                // not leave a phantom gap before the label.
+                Item {
+                    objectName: "iconLabelSpacer"
+                    width: compactRoot.iconLabelSpacing
+                    height: 1
+                    visible: compactRoot.showIcons && compactRoot.showLabel
                 }
 
                 Kirigami.Heading {
-                    visible: compactRoot.showText
+                    objectName: "labelHeading"
+                    visible: compactRoot.showLabel
                     level: 5
                     font.pointSize: compactRoot.fontPointSize
                     font.family: compactRoot.effectiveFontFamily
                     color: modelData.textColor !== "" ? modelData.textColor : Kirigami.Theme.textColor
                     opacity: 0.7 * modelData.labelOpacity
                     text: modelData.label
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                // Per-gap spacing for issue 3 (label → value). Visibility
+                // tracks the label and value so a hidden label does not waste
+                // a gap before the value (icons mode keeps value, drops label).
+                Item {
+                    objectName: "labelValueSpacer"
+                    width: compactRoot.labelValueSpacing
+                    height: 1
+                    visible: compactRoot.showLabel && compactRoot.showValue && modelData.displayValue.length > 0
                 }
 
                 Kirigami.Heading {
-                    visible: compactRoot.showText && modelData.displayValue.length > 0
+                    objectName: "valueHeading"
+                    visible: compactRoot.showValue && modelData.displayValue.length > 0
                     level: 5
                     font.pointSize: compactRoot.fontPointSize
                     font.family: compactRoot.effectiveFontFamily
                     font.weight: Font.DemiBold
                     color: modelData.valueColor !== "" ? modelData.valueColor : compactRoot.valueTextColor(modelData.thresholdLevel)
                     text: modelData.displayValue
+                    anchors.verticalCenter: parent.verticalCenter
                 }
 
                 Rectangle {
+                    objectName: "valueDot"
                     width: Kirigami.Units.smallSpacing
                     height: width
                     radius: width / 2
                     antialiasing: true
                     anchors.verticalCenter: parent.verticalCenter
                     color: modelData.valueColor !== "" ? modelData.valueColor : compactRoot.valueTextColor(modelData.thresholdLevel)
-                    visible: compactRoot.showText && modelData.displayValue.length > 0
+                    visible: compactRoot.showValue && modelData.displayValue.length > 0
                 }
 
                 Kirigami.Icon {
+                    objectName: "stateIcon"
                     visible: stateInfo.show && compactRoot.showIcons
-                    width: Kirigami.Units.iconSizes.small
+                    width: compactRoot.iconSize
                     height: width
                     source: stateInfo.icon
+                    anchors.verticalCenter: parent.verticalCenter
                 }
 
                 Kirigami.Heading {
-                    visible: stateInfo.show && compactRoot.showText
+                    objectName: "stateLabel"
+                    visible: stateInfo.show && compactRoot.showLabel
                     level: 5
                     font.pointSize: compactRoot.fontPointSize - 1
                     font.family: compactRoot.effectiveFontFamily
                     opacity: 0.85
                     text: stateInfo.label
+                    anchors.verticalCenter: parent.verticalCenter
                 }
             }
         }
