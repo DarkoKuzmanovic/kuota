@@ -17,7 +17,7 @@
   <group name="General">
     <entry name="providerOrder" type="StringList">
       <label>Ordered list of provider IDs for compact and full views.</label>
-      <default>claude,umans,codex</default>
+      <default>claude,umans,codex,grok,kimi</default>
     </entry>
     <entry name="claudeVisible" type="Bool">
       <label>Whether Claude is shown in the widget.</label>
@@ -29,6 +29,14 @@
     </entry>
     <entry name="codexVisible" type="Bool">
       <label>Whether Codex is shown in the widget.</label>
+      <default>true</default>
+    </entry>
+    <entry name="grokVisible" type="Bool">
+      <label>Whether Grok is shown in the widget.</label>
+      <default>true</default>
+    </entry>
+    <entry name="kimiVisible" type="Bool">
+      <label>Whether Kimi is shown in the widget.</label>
       <default>true</default>
     </entry>
     <entry name="claudeWindow" type="String">

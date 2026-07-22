@@ -230,6 +230,42 @@ TestCase {
         compare(factValue(model, "Tokens"), "500");
     }
 
+    function test_grokFactsExtraction() {
+        var record = {
+            id: "grok",
+            state: "ok",
+            windows: [Fixtures.validWindow()],
+            details: { grok: { monthlyUsed: 250, monthlyLimit: 1000, monthlyResetAt: "2026-08-01T00:00:00.000Z" } }
+        };
+        var model = FullModel.buildFullViewModel(record);
+        compare(factValue(model, "Monthly used"), "250");
+        compare(factValue(model, "Monthly limit"), "1000");
+        // monthlyResetAt is surfaced via the window countdown, never as a raw fact.
+        compare(model.facts.length, 2);
+    }
+
+    function test_kimiFactsFullAndPartial() {
+        var full = {
+            id: "kimi",
+            state: "ok",
+            windows: [Fixtures.validWindow()],
+            details: { kimi: { concurrency: 2, concurrencyLimit: 5 } }
+        };
+        var modelFull = FullModel.buildFullViewModel(full);
+        compare(factValue(modelFull, "Concurrency"), "2");
+        compare(factValue(modelFull, "Concurrency limit"), "5");
+
+        var partial = {
+            id: "kimi",
+            state: "ok",
+            windows: [],
+            details: { kimi: { concurrency: 3 } }
+        };
+        var modelPartial = FullModel.buildFullViewModel(partial);
+        compare(modelPartial.facts.length, 1);
+        compare(factValue(modelPartial, "Concurrency"), "3");
+    }
+
     function test_unlimitedUmansWindowNoInventedPercent() {
         var record = {
             id: "umans",

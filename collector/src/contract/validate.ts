@@ -5,6 +5,8 @@ import {
   type ClaudeDetails,
   type CodexDetails,
   type CollectorDocument,
+  type GrokDetails,
+  type KimiDetails,
   type ProviderDetails,
   type ProviderId,
   type ProviderRecord,
@@ -60,6 +62,8 @@ const CLAUDE_DETAIL_KEYS = new Set([
 ]);
 const UMANS_DETAIL_KEYS = new Set(["plan", "requests", "concurrency", "concurrencyLimit"]);
 const CODEX_DETAIL_KEYS = new Set(["plan", "credits", "cost", "tokens"]);
+const GROK_DETAIL_KEYS = new Set(["monthlyUsed", "monthlyLimit", "monthlyResetAt"]);
+const KIMI_DETAIL_KEYS = new Set(["concurrency", "concurrencyLimit"]);
 const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
@@ -359,11 +363,25 @@ function parseProviderDetails(
     }
     return details === undefined ? undefined : { umans: details };
   }
-  const details = parseCodexDetails(input.codex, `${path}.codex`, errors);
+  if (id === "codex") {
+    const details = parseCodexDetails(input.codex, `${path}.codex`, errors);
+    if (errors.length !== initialErrorCount && details === undefined) {
+      return undefined;
+    }
+    return details === undefined ? undefined : { codex: details };
+  }
+  if (id === "grok") {
+    const details = parseGrokDetails(input.grok, `${path}.grok`, errors);
+    if (errors.length !== initialErrorCount && details === undefined) {
+      return undefined;
+    }
+    return details === undefined ? undefined : { grok: details };
+  }
+  const details = parseKimiDetails(input.kimi, `${path}.kimi`, errors);
   if (errors.length !== initialErrorCount && details === undefined) {
     return undefined;
   }
-  return details === undefined ? undefined : { codex: details };
+  return details === undefined ? undefined : { kimi: details };
 }
 
 function parseClaudeDetails(
@@ -533,6 +551,59 @@ function parseCodexDetails(
   if (tokens !== undefined) {
     details.tokens = tokens;
   }
+  return details;
+}
+
+function parseGrokDetails(
+  input: unknown,
+  path: string,
+  errors: ValidationIssue[],
+): GrokDetails | undefined {
+  if (!isRecord(input)) {
+    addIssue(errors, path, "expected an object");
+    return undefined;
+  }
+  const initialErrorCount = errors.length;
+  validateObjectKeys(input, path, GROK_DETAIL_KEYS, errors);
+  const monthlyUsed = parseOptionalNonNegativeNumber(input, "monthlyUsed", `${path}.monthlyUsed`, errors);
+  const monthlyLimit = parseOptionalNonNegativeNumber(input, "monthlyLimit", `${path}.monthlyLimit`, errors);
+  const monthlyResetAt = parseOptionalTimestamp(input, "monthlyResetAt", `${path}.monthlyResetAt`, errors);
+  if (errors.length !== initialErrorCount) {
+    return undefined;
+  }
+  const details: {
+    monthlyUsed?: number;
+    monthlyLimit?: number;
+    monthlyResetAt?: string;
+  } = {};
+  if (monthlyUsed !== undefined) details.monthlyUsed = monthlyUsed;
+  if (monthlyLimit !== undefined) details.monthlyLimit = monthlyLimit;
+  if (monthlyResetAt !== undefined) details.monthlyResetAt = monthlyResetAt;
+  return details;
+}
+
+function parseKimiDetails(
+  input: unknown,
+  path: string,
+  errors: ValidationIssue[],
+): KimiDetails | undefined {
+  if (!isRecord(input)) {
+    addIssue(errors, path, "expected an object");
+    return undefined;
+  }
+  const initialErrorCount = errors.length;
+  validateObjectKeys(input, path, KIMI_DETAIL_KEYS, errors);
+  const concurrency = parseOptionalCount(input, "concurrency", `${path}.concurrency`, errors);
+  const concurrencyLimit = parseOptionalCount(input, "concurrencyLimit", `${path}.concurrencyLimit`, errors);
+  if (errors.length !== initialErrorCount) {
+    return undefined;
+  }
+  const details: {
+    concurrency?: number;
+    concurrencyLimit?: number;
+  } = {};
+  if (concurrency !== undefined) details.concurrency = concurrency;
+  if (concurrencyLimit !== undefined) details.concurrencyLimit = concurrencyLimit;
   return details;
 }
 
@@ -811,7 +882,13 @@ function hasRetainedData(
   if ("umans" in details) {
     return Object.keys(details.umans).length > 0;
   }
-  return Object.keys(details.codex).length > 0;
+  if ("codex" in details) {
+    return Object.keys(details.codex).length > 0;
+  }
+  if ("grok" in details) {
+    return Object.keys(details.grok).length > 0;
+  }
+  return Object.keys(details.kimi).length > 0;
 }
 
 function isMember<const T extends readonly string[]>(

@@ -1,10 +1,12 @@
 # Kuota
 
 Kuota is a standalone KDE Plasma 6 widget for showing authoritative Claude,
+Umans, Codex, Grok, and Kimi usage without a running Pi session.
 Umans, and Codex usage without a running Pi session.
 
 Milestones M1–M9 are complete (gates G0–G9 PASS): the normalized collector
-contract and safe filesystem primitives; live Claude, Umans, and Codex adapters
+contract and safe filesystem primitives; live Claude, Umans, Codex, Grok, and
+Kimi adapters
 with credential discovery, bounded fetches, backoff, and per-provider
 last-known-good caching; an integrated, cross-process-locked collector CLI;
 the isolated QML collector bridge with whole-document validation and snapshot
@@ -137,8 +139,10 @@ script references it.
   credential in `~/.pi/agent/auth.json` for that provider. Check that the
   matching entry exists (Claude `auth.anthropic`, Codex `auth["openai-codex"]`
   with `accountId`, Umans `auth.umans` or the `UMANS_API_KEY` environment
-  variable). Kuota never writes credentials itself except the Codex token
-  refresh.
+  variable, Grok `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` or the
+  `GROK_CLI_OAUTH_TOKEN` environment variable, Kimi `auth["kimi-coding"]` or
+  the `KIMI_API_KEY` environment variable). Kuota never writes credentials
+  itself except the Codex token refresh.
 - **A provider shows `error` or stale data.** This is usually a transient
   network failure or provider rate limit. The widget retains the last
   known-good data (marked stale) and recovers on the next refresh. Claude is

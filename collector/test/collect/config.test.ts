@@ -28,6 +28,8 @@ test("normalizes enabled provider IDs to canonical order", () => {
       { id: "claude", enabled: true },
       { id: "umans", enabled: false },
       { id: "codex", enabled: true },
+      { id: "grok", enabled: false },
+      { id: "kimi", enabled: false },
     ],
     timeoutMs: 10_000,
   });

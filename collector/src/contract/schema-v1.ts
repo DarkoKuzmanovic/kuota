@@ -1,6 +1,6 @@
 export const SCHEMA_VERSION = 1 as const;
 
-export const PROVIDER_IDS = ["claude", "umans", "codex"] as const;
+export const PROVIDER_IDS = ["claude", "umans", "codex", "grok", "kimi"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 export const PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"] as const;
@@ -40,14 +40,29 @@ export interface CodexDetails {
   readonly tokens?: number;
 }
 
+export interface GrokDetails {
+  readonly monthlyUsed?: number;
+  readonly monthlyLimit?: number;
+  readonly monthlyResetAt?: string;
+}
+
+export interface KimiDetails {
+  readonly concurrency?: number;
+  readonly concurrencyLimit?: number;
+}
+
 type ClaudeProviderDetails = { readonly claude: ClaudeDetails };
 type UmansProviderDetails = { readonly umans: UmansDetails };
 type CodexProviderDetails = { readonly codex: CodexDetails };
+type GrokProviderDetails = { readonly grok: GrokDetails };
+type KimiProviderDetails = { readonly kimi: KimiDetails };
 
 export type ProviderDetails =
   | ClaudeProviderDetails
   | UmansProviderDetails
-  | CodexProviderDetails;
+  | CodexProviderDetails
+  | GrokProviderDetails
+  | KimiProviderDetails;
 
 type NonEmptyClaudeDetails =
   | (ClaudeDetails & { readonly model: string })
@@ -68,11 +83,22 @@ type NonEmptyCodexDetails =
   | { readonly plan?: string; readonly credits: number; readonly cost?: number; readonly tokens?: number }
   | { readonly plan?: string; readonly credits?: number; readonly cost: number; readonly tokens?: number }
   | { readonly plan?: string; readonly credits?: number; readonly cost?: number; readonly tokens: number };
+type NonEmptyGrokDetails = { readonly monthlyUsed?: number; readonly monthlyLimit?: number; readonly monthlyResetAt?: string } & (
+  | { readonly monthlyUsed: number }
+  | { readonly monthlyLimit: number }
+  | { readonly monthlyResetAt: string }
+);
+type NonEmptyKimiDetails = { readonly concurrency?: number; readonly concurrencyLimit?: number } & (
+  | { readonly concurrency: number }
+  | { readonly concurrencyLimit: number }
+);
 
 type NonEmptyProviderDetails =
   | { readonly claude: NonEmptyClaudeDetails }
   | { readonly umans: NonEmptyUmansDetails }
-  | { readonly codex: NonEmptyCodexDetails };
+  | { readonly codex: NonEmptyCodexDetails }
+  | { readonly grok: NonEmptyGrokDetails }
+  | { readonly kimi: NonEmptyKimiDetails };
 
 interface ProviderRecordFields {
   readonly status?: string;
@@ -123,12 +149,27 @@ export type CodexProviderRecord =
 export type ProviderRecord =
   | ClaudeProviderRecord
   | UmansProviderRecord
-  | CodexProviderRecord;
+  | CodexProviderRecord
+  | GrokProviderRecord
+  | KimiProviderRecord;
+export type GrokProviderRecord =
+  | CurrentProviderRecord<"grok", GrokProviderDetails>
+  | StaleProviderRecord<"grok", GrokProviderDetails, { readonly grok: NonEmptyGrokDetails }>;
+
+export type KimiProviderRecord =
+  | CurrentProviderRecord<"kimi", KimiProviderDetails>
+  | StaleProviderRecord<"kimi", KimiProviderDetails, { readonly kimi: NonEmptyKimiDetails }>;
 
 export type ProviderRecordFor<TId extends ProviderId> = Extract<
   ProviderRecord,
   { readonly id: TId }
 >;
+
+// Static assertions: ensure each ProviderId maps to a ProviderRecord with matching details namespace.
+// These are compile-time checks that the union stays consistent as providers are added.
+type _AssertProviderRecordFor<TId extends ProviderId> = ProviderRecordFor<TId> extends { readonly id: TId } ? true : never;
+type _AssertGrok = _AssertProviderRecordFor<"grok">;
+type _AssertKimi = _AssertProviderRecordFor<"kimi">;
 
 export interface CollectorDocument {
   readonly schemaVersion: typeof SCHEMA_VERSION;

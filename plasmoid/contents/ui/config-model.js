@@ -4,9 +4,9 @@
 // Owns the read-boundary invariant for plasmoid settings before they reach
 // compact/full models. Never imports Plasma executable APIs or touches I/O.
 
-var KNOWN_PROVIDERS = Object.freeze(["claude", "umans", "codex"]);
+var KNOWN_PROVIDERS = Object.freeze(["claude", "umans", "codex", "grok", "kimi"]);
 
-var DEFAULT_PROVIDER_ORDER = Object.freeze(["claude", "umans", "codex"]);
+var DEFAULT_PROVIDER_ORDER = Object.freeze(["claude", "umans", "codex", "grok", "kimi"]);
 
 var DISPLAY_MODES = Object.freeze({
     icons: true,
@@ -28,6 +28,8 @@ var DEFAULTS = Object.freeze({
     claudeVisible: true,
     umansVisible: true,
     codexVisible: true,
+    grokVisible: true,
+    kimiVisible: true,
     claudeWindow: "",
     codexWindow: "",
     displayMode: "icons+text",
@@ -49,6 +51,8 @@ function createDefaultSettings() {
         claudeVisible: DEFAULTS.claudeVisible,
         umansVisible: DEFAULTS.umansVisible,
         codexVisible: DEFAULTS.codexVisible,
+        grokVisible: DEFAULTS.grokVisible,
+        kimiVisible: DEFAULTS.kimiVisible,
         claudeWindow: DEFAULTS.claudeWindow,
         codexWindow: DEFAULTS.codexWindow,
         displayMode: DEFAULTS.displayMode,
@@ -79,6 +83,8 @@ function sanitize(rawConfig) {
     out.claudeVisible = sanitizeBool(rawConfig.claudeVisible, DEFAULTS.claudeVisible);
     out.umansVisible = sanitizeBool(rawConfig.umansVisible, DEFAULTS.umansVisible);
     out.codexVisible = sanitizeBool(rawConfig.codexVisible, DEFAULTS.codexVisible);
+    out.grokVisible = sanitizeBool(rawConfig.grokVisible, DEFAULTS.grokVisible);
+    out.kimiVisible = sanitizeBool(rawConfig.kimiVisible, DEFAULTS.kimiVisible);
     out.claudeWindow = sanitizeWindowSelection("claude", rawConfig.claudeWindow);
     out.codexWindow = sanitizeWindowSelection("codex", rawConfig.codexWindow);
     out.displayMode = sanitizeDisplayMode(rawConfig.displayMode);
@@ -105,7 +111,9 @@ function assembleDisplayConfig(sanitized) {
     var visibility = {
         claude: settings.claudeVisible === true,
         umans: settings.umansVisible === true,
-        codex: settings.codexVisible === true
+        codex: settings.codexVisible === true,
+        grok: settings.grokVisible === true,
+        kimi: settings.kimiVisible === true
     };
 
     var orderSource = Array.isArray(settings.providerOrder)

@@ -291,6 +291,12 @@ async function collectAny(
   if (provider.id === "umans") {
     return collectOne(provider, options);
   }
+  if (provider.id === "codex") {
+    return collectOne(provider, options);
+  }
+  if (provider.id === "grok") {
+    return collectOne(provider, options);
+  }
   return collectOne(provider, options);
 }
 
