@@ -23,6 +23,7 @@ import {
   createProviderRegistration,
   createProviderRegistry,
   type ConfiguredProvider,
+  type ProviderRegistration,
 } from "../src/providers/registry.js";
 import type { ProviderId } from "../src/contract/schema-v1.js";
 
@@ -73,7 +74,7 @@ function registryFor(
     createProviderRegistration(adapters[0]),
     createProviderRegistration(adapters[1]),
     createProviderRegistration(adapters[2]),
-  ]);
+  ] as ProviderRegistration[]);
 }
 
 function okResult<TId extends ProviderId>(id: TId): ProviderNormalizedResult<TId> {
@@ -82,9 +83,9 @@ function okResult<TId extends ProviderId>(id: TId): ProviderNormalizedResult<TId
 
 function enabledProviders(): readonly ConfiguredProvider[] {
   return [
-    { id: "codex", enabled: true },
     { id: "claude", enabled: true },
     { id: "umans", enabled: true },
+    { id: "codex", enabled: true },
   ];
 }
 
@@ -685,7 +686,7 @@ test("CLI transport composes with parseCollectorConfig for canonical order and r
   const allDisabled = parseCollectorConfig(parseCliArgv(["--enabled-providers="]));
   assert.deepEqual(
     allDisabled.providers.map((provider) => provider.enabled),
-    [false, false, false],
+    [false, false, false, false, false],
   );
 
   for (const argv of [

@@ -156,7 +156,12 @@ export class ProviderRegistry {
       if (configuredById.has(configuredProvider.id)) {
         throw new ProviderRegistryError("duplicate-configuration");
       }
-      if (!this.adaptersById.has(configuredProvider.id)) {
+      // A configured-but-unregistered provider is allowed when disabled — this is the
+      // mid-migration state where the contract recognizes a provider ID (e.g. a newly
+      // added provider) before its adapter ships. Only an enabled-and-unregistered
+      // provider is a hard error.
+      const registered = this.adaptersById.has(configuredProvider.id);
+      if (!registered && configuredProvider.enabled) {
         throw new ProviderRegistryError("unregistered-provider");
       }
       configuredById.set(configuredProvider.id, configuredProvider.enabled);

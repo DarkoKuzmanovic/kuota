@@ -548,9 +548,9 @@
 
 **Depends on:** Milestones 1–10 (V1 shipped). Reuses the proven M4 Umans adapter pattern (auth → one bounded fetch → normalize → register, no persistence).
 
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 0
+**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 3
 
-**Run metrics:** started-at: 2026-07-22 · first-worker-at: (pending) · dispatches: 0 · review-bundles: 0 · review-dispatches: 0 · worker-retries: 0 · oracle: 0 · completed-outcomes: 0 · child-runtime-minutes: 0
+**Run metrics:** started-at: 2026-07-22 · first-worker-at: 2026-07-22 · dispatches: 1 · review-bundles: 0 · review-dispatches: 0 · worker-retries: 0 · oracle: 0 · completed-outcomes: 0 · child-runtime-minutes: 0
 
 ### Recon facts (live-verified 2026-07-17, from pi-hud)
 
@@ -560,11 +560,12 @@
 
 ### Outcomes (vertical slices, each = one worker dispatch)
 
-- [ ] **M11.1 — Extend collector contract: `ProviderId` union + `details.{grok,kimi}` namespaces**
+- [x] **M11.1 — Extend collector contract: `ProviderId` union + `details.{grok,kimi}` namespaces**
   - **Files:** `collector/src/contract/schema-v1.ts`, `collector/src/contract/validate.ts`, `docs/architecture/collector-contract.md`, `collector/test/contract/schema-v1.test.ts`
   - **Work:** Add `grok` and `kimi` to the `ProviderId` discriminated union and define `details.grok` (monthly credits, optional weekly window) and `details.kimi` (weekly + short windows, concurrency; numeric fields normalized from strings) namespaces. Runtime validation enforces provider/detail correlation. Update contract docs.
   - **Acceptance criteria:** Observed RED precedes production code; valid/missing/optional/malformed Grok + Kimi detail documents pass/fail correctly; provider/detail correlation enforced; canonical order documented.
   - **Suggested lane:** medium.
+  - **Evidence (2026-07-22):** Worker dispatched async (dda4ea17), exceeded write set and aborted mid-edit on a stale-anchor `void [` duplication in schema-v1.test.ts, leaving a partial tree. Orchestrator recovery: tree compiled clean (worker's self-diagnosis was mid-edit, not final state), but the worker had introduced a forbidden double `as unknown as` cast in `collect.ts` to paper over a real distributive-type error from widening `ProviderId`. Reverted the cast; extended `collectAny` if/else dispatch for grok/kimi (type-safe, no casts). Root cause of the worker's failure: adding grok/kimi to `PROVIDER_IDS` is NOT contract-layer-only — it ripples to `registry.ts` (`selectEnabled` threw on unregistered providers even when disabled) and `config.ts` (default-config must not enable providers without adapters). Fixed `registry.selectEnabled` to tolerate configured-but-disabled unregistered providers (mid-migration state), throwing only for enabled-and-unregistered. Added 2 focused tests for that tolerance/rejection. Verification: `npm run typecheck` exit 0; `npm test` 468/468 (15 suites); `npm run build:collector` exit 0; `npm run validate:plasma` exit 0. Scope expanded beyond the 4 contract files to include `collect.ts` + `config.ts` + `registry.ts` + 2 test files — all necessary consequences of the union widening, recorded here for G11 review.
 
 - [ ] **M11.2 — Grok adapter (auth discovery + one bounded fetch + normalize + register)**
   - **Files:** `collector/src/providers/grok/auth.ts`, `collector/src/providers/grok/usage.ts`, `collector/src/providers/grok/fetch.ts`, `collector/src/providers/grok/adapter.ts`, `collector/test/providers/grok/*.test.ts`
