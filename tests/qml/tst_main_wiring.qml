@@ -77,11 +77,14 @@ TestCase {
         tryCompare(loader, "status", Loader.Ready);
         var root = loader.item;
 
-        root.configOverride = { separator: " @@ ", fontScale: 2.5, showCountdown: false };
+        root.configOverride = { separator: " @@ ", fontScale: 2.5, showCountdown: false,
+                                 iconLabelSpacing: 11, labelValueSpacing: 9 };
 
         var compactItem = root.compactRepresentation.createObject(root, {});
         compare(compactItem.separator, " @@ ");
         compare(compactItem.fontScale, 2.5);
+        compare(compactItem.iconLabelSpacing, 11);
+        compare(compactItem.labelValueSpacing, 9);
 
         var fullItem = root.fullRepresentation.createObject(root, {});
         compare(fullItem.showCountdown, false);

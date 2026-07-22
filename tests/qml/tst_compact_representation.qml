@@ -85,6 +85,23 @@ TestCase {
         compare(compact.showLabel, false);
         compare(compact.showValue, true);
         compare(compact.entries.length, 1);
+
+        // Rendered state (M13 spacing-fix regression): the icons-mode semantic
+        // change (AGENTS.md 2026-07-22 icons-mode semantic change) hides the
+        // provider LABEL caption but keeps the VALUE percentage visible.
+        // The nested Row { spacing: 0 } put the spacers inside a wrapper, so
+        // findByObjectName must walk recursively to reach them.
+        var entry = compact.entryRepeaterItem.itemAt(0);
+        var providerIcon = findByObjectName(entry, "providerIcon");
+        var labelHeading = findByObjectName(entry, "labelHeading");
+        var valueHeading = findByObjectName(entry, "valueHeading");
+        verify(providerIcon !== null);
+        verify(labelHeading !== null);
+        verify(valueHeading !== null);
+        verify(providerIcon.visible);
+        compare(labelHeading.visible, false);
+        verify(valueHeading.visible);
+        compare(valueHeading.text, "10%");
     }
 
     function test_textOnlyModeHidesIconsButKeepsValue() {
@@ -248,6 +265,10 @@ TestCase {
         for (var i = 0; i < item.children.length; i++) {
             if (item.children[i].objectName === objectName) {
                 return item.children[i];
+            }
+            var found = findByObjectName(item.children[i], objectName);
+            if (found !== null) {
+                return found;
             }
         }
         return null;
@@ -421,6 +442,46 @@ TestCase {
         verify(labelValueSpacer !== null);
         compare(iconLabelSpacer.width, 7);
         compare(labelValueSpacer.width, 4);
+
+        // Regression: the configured gap must equal the actual rendered gap
+        // between icon and label (and between label and value). Pre-fix the
+        // spacers were direct children of entryRow (spacing smallSpacing/2),
+        // so the rendered gap was smallSpacing/2 + spacer + smallSpacing/2 and
+        // a configured 0 floored at smallSpacing. After the fix the icon,
+        // spacers, label, and value live inside a nested Row { spacing: 0 },
+        // so the gap equals the configured value exactly. The inner Row's
+        // children's `x` is relative to the inner Row, so the difference
+        // (labelHeading.x - (providerIcon.x + providerIcon.width)) isolates
+        // the configured gap from any outer entryRow positioning.
+        wait(0);
+        var providerIcon = findByObjectName(entry, "providerIcon");
+        var labelHeading = findByObjectName(entry, "labelHeading");
+        var valueHeading = findByObjectName(entry, "valueHeading");
+        verify(providerIcon !== null);
+        verify(labelHeading !== null);
+        verify(valueHeading !== null);
+        compare(labelHeading.x - (providerIcon.x + providerIcon.width), compact.iconLabelSpacing);
+        compare(valueHeading.x - (labelHeading.x + labelHeading.width), compact.labelValueSpacing);
+
+        // Collapse: a configured 0 must yield a 0-pixel rendered gap, not the
+        // smallSpacing/2 floor that the pre-fix Row-spacing leak produced.
+        compact.iconLabelSpacing = 0;
+        compact.labelValueSpacing = 0;
+        // Synchronize on the rendered x: Kirigami themes attach an implicit
+        // move/positioner Transition to positioner children, so labelHeading.x
+        // animates from its old position to the new one over ~250ms. Waiting
+        // on `width` or `wait(0)` is insufficient — the spacer width binding
+        // updates synchronously but the Row children's x is animated, so a
+        // direct read reports the pre-animation value (Actual=7). tryCompare
+        // on the post-animation x target waits for the layout to settle.
+        tryCompare(labelHeading, "x", providerIcon.width);
+        // RHS evaluated once at call time — depends on the prior tryCompare
+        // having settled labelHeading.x. Reordering these two lines would
+        // capture a stale labelHeading.x here and produce a misleading
+        // compare failure downstream.
+        tryCompare(valueHeading, "x", labelHeading.x + labelHeading.width);
+        compare(labelHeading.x - (providerIcon.x + providerIcon.width), 0);
+        compare(valueHeading.x - (labelHeading.x + labelHeading.width), 0);
     }
 
     // Per-gap spacer visibility tracks the icon AND the next visible heading, so
