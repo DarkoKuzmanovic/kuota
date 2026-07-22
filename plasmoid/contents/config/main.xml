@@ -75,5 +75,67 @@
       <label>Utilization percent at which the critical threshold applies.</label>
       <default>90</default>
     </entry>
+    <entry name="fontFamily" type="String">
+      <label>Font family override for widget text. Empty uses the Plasma system font.</label>
+      <default></default>
+    </entry>
+    <entry name="customTextColorEnabled" type="Bool">
+      <label>Whether the global custom text color override is active.</label>
+      <default>false</default>
+    </entry>
+    <!-- Colors are stored as validated strings (hex or Qt named color); the
+         sanitize boundary rejects anything else to the theme/provider default. -->
+    <entry name="customTextColor" type="String">
+      <label>Global custom text color. Used only when customTextColorEnabled is true.</label>
+      <default></default>
+    </entry>
+    <entry name="labelOpacity" type="Double">
+      <label>Provider label opacity (0.0-1.0). 1.0 reproduces V1.</label>
+      <default>1.0</default>
+    </entry>
+    <entry name="separatorOpacity" type="Double">
+      <label>Separator glyph opacity (0.0-1.0). 1.0 reproduces V1.</label>
+      <default>1.0</default>
+    </entry>
+    <entry name="claudeAccentColor" type="String">
+      <label>Claude accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="umansAccentColor" type="String">
+      <label>Umans accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="codexAccentColor" type="String">
+      <label>Codex accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="grokAccentColor" type="String">
+      <label>Grok accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="kimiAccentColor" type="String">
+      <label>Kimi accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="claudeCustomIcon" type="String">
+      <label>Claude custom freedesktop icon name. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="umansCustomIcon" type="String">
+      <label>Umans custom freedesktop icon name. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="codexCustomIcon" type="String">
+      <label>Codex custom freedesktop icon name. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="grokCustomIcon" type="String">
+      <label>Grok custom freedesktop icon name. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="kimiCustomIcon" type="String">
+      <label>Kimi custom freedesktop icon name. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
   </group>
 </kcfg>
