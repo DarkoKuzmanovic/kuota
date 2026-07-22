@@ -628,7 +628,7 @@ Adversarial grill of the 1.1.0 spec amendment surfaced 6 candidate cracks. All 6
 
 **Depends on:** Milestone 11 (1.1.0) landing first, so per-provider accent/icon covers all providers present at ship time. Provider-list-agnostic if sequencing changes.
 
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 1
+**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 2
 
 - [x] **M-T1 — Theming config schema + `config-model.sanitize` (test-first)**
   - **Files:** `plasmoid/contents/config/main.xml`, `plasmoid/contents/ui/config/config-theming.qml` (new), `plasmoid/contents/ui/config-model.js`, `tests/qml/tst_config_model.qml`
@@ -638,12 +638,13 @@ Adversarial grill of the 1.1.0 spec amendment surfaced 6 candidate cracks. All 6
   - **Suggested lane:** medium.
   - **Evidence (2026-07-22):** Implemented directly (orchestrator; direct-edits counter incremented). Observed RED: 6 new tests failed before production code (defaults-reproduce-V1, opacity clamping boundaries/garbage, color validation, customTextColorEnabled bool, icon-name validation, fontFamily free-string). GREEN after: QML 274/274, `main.xml` XML-valid, `validate:plasma` exit 0. Decisions: colors stored as `String` type (not KConfigXT `Color`) so the D6 boundary sees predictable strings; per-provider keys flat (`claudeAccentColor`, …) matching V1's `claudeVisible` pattern; Theming QML page deferred to M-T3 to avoid dead controls. One mid-edit file-corruption incident in `config-model.js` (overlapping anchored edits) — detected by diff review, rebuilt the region, full-suite re-verified before proceeding. Commit `6bde16d` on `crew/m12-theming`.
 
-- [ ] **M-T2 — Compact + full model appearance consumption + precedence (test-first)**
+- [x] **M-T2 — Compact + full model appearance consumption + precedence (test-first)**
   - **Files:** `plasmoid/contents/ui/compact-model.js`, `plasmoid/contents/ui/full-model.js`, `tests/qml/tst_compact_model.qml`, `tests/qml/tst_full_model.qml`
   - **Work:** Both Plasma-independent `.pragma library` models consume the sanitized appearance config to produce view models implementing the color precedence: (1) threshold color (caution/critical) always wins; (2) per-provider accent tints the full-representation progress-bar fill and the compact value text only when no threshold is active; (3) global custom text color (if enabled) overrides Plasma theme text for labels, values, and monochrome (`isMask`) icons; (4) Plasma theme default. Accent does not tint icons (monochrome, follow text-color rule) or `|` dividers (follow `separatorOpacity`). Opacity applies to alpha independently of color.
   - **Acceptance criteria:** Observed RED precedes production code; precedence (threshold > accent > custom > theme) with all combinations active, opacity application, per-provider accent on full-rep progress bar and compact value text, accent yielding to threshold, icon-color following text-color rule (monochrome, never accent-tinted), and icon-name `""` fallback to default all pass.
   - **Dependencies:** M-T1.
   - **Suggested lane:** medium.
+  - **Evidence (2026-07-22):** Implemented directly (direct-edits → 2). Observed RED: 12 new tests failed (8 compact + 4 full) before production code. GREEN after: QML 286/286. Design: new optional 3rd `appearance` arg on both builders (`undefined` reproduces V1 exactly — all 268 prior tests untouched); models resolve precedence and emit `""` = rep-keeps-V1-default so representations stay thin; per-row `barColor` in full model (threshold is per-window there), entry-level `valueColor`/`textColor` in compact. One self-caught bug during implementation (`accentFor` referenced before being defined in full-model's `normalizeAppearance`) fixed before the green run. Commit `fe9f245`.
 
 - [ ] **M-T3 — Theming config page UI**
   - **Files:** `plasmoid/contents/ui/config/config-theming.qml`, `plasmoid/contents/config/config.qml` (register the new page)
