@@ -9,12 +9,14 @@ Kirigami.FormLayout {
     property alias cfg_claudeVisible: claudeVisibleCheck.checked
     property alias cfg_umansVisible: umansVisibleCheck.checked
     property alias cfg_codexVisible: codexVisibleCheck.checked
+    property alias cfg_grokVisible: grokVisibleCheck.checked
+    property alias cfg_kimiVisible: kimiVisibleCheck.checked
     property alias cfg_claudeWindow: claudeWindowCombo.currentValue
     property alias cfg_codexWindow: codexWindowCombo.currentValue
 
     // StringList has no 1:1 widget; the reorder Repeater below reads/writes
     // this plain array directly (matches the compact-model.js entries pattern).
-    property var cfg_providerOrder: ["claude", "umans", "codex"]
+    property var cfg_providerOrder: ["claude", "umans", "codex", "grok", "kimi"]
 
     function providerLabel(providerId) {
         switch (providerId) {
@@ -24,6 +26,10 @@ Kirigami.FormLayout {
             return qsTr("Umans");
         case "codex":
             return qsTr("Codex");
+        case "grok":
+            return qsTr("Grok");
+        case "kimi":
+            return qsTr("Kimi");
         default:
             return providerId;
         }
@@ -68,6 +74,20 @@ Kirigami.FormLayout {
         Accessible.name: qsTr("Codex visible")
     }
 
+    Controls.CheckBox {
+        id: grokVisibleCheck
+        Kirigami.FormData.label: qsTr("Grok:")
+        text: qsTr("Show in widget")
+        Accessible.name: qsTr("Grok visible")
+    }
+
+    Controls.CheckBox {
+        id: kimiVisibleCheck
+        Kirigami.FormData.label: qsTr("Kimi:")
+        text: qsTr("Show in widget")
+        Accessible.name: qsTr("Kimi visible")
+    }
+
     Kirigami.Heading {
         Kirigami.FormData.isSection: true
         level: 4
@@ -83,7 +103,7 @@ Kirigami.FormLayout {
         // null" etc. during reorder). Each row instead looks up its own
         // provider id reactively via `index`, so reordering only re-evaluates
         // bindings in place — no delegate teardown.
-        model: 3
+        model: 5
 
         delegate: RowLayout {
             id: providerOrderRow

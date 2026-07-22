@@ -1,6 +1,7 @@
 # Agent Instructions — Kuota
 
-Kuota is a standalone KDE Plasma 6 widget that keeps Claude, Umans, and Codex
+Kuota is a standalone KDE Plasma 6 widget that keeps Claude, Umans, Codex,
+Grok, and Kimi
 account usage visible on the desktop without requiring a running Pi session. It
 reports authoritative provider data — it does **not** estimate quota from local
 activity.
@@ -70,7 +71,7 @@ These are hard rules. Violating any of them is a stop condition, not a fix.
 Schema v1 is small and versioned. The UI renders common provider state without
 knowing provider-native formats. Full shape: `docs/architecture/collector-contract.md`.
 
-- Provider IDs: `claude`, `umans`, `codex`.
+- Provider IDs: `claude`, `umans`, `codex`, `grok`, `kimi`.
 - States: `ok`, `stale`, `auth-needed`, `error`. `stale` is last-known-good with
   retained real data (≥1 window or a non-empty details object) — not an empty
   failure marker.
@@ -92,7 +93,8 @@ knowing provider-native formats. Full shape: `docs/architecture/collector-contra
 - Timestamps are UTC ISO 8601 strings in the collector contract. Countdowns are
   computed in QML from reset timestamps.
 - Provider-specific payloads are namespaced under their provider record
-  (`details.claude` / `details.umans` / `details.codex`). The TS `ProviderRecord`
+  (`details.claude` / `details.umans` / `details.codex` / `details.grok` /
+  `details.kimi`). The TS `ProviderRecord`
   is a discriminated union enforcing that correlation; runtime validation
   enforces the same.
 - Test-first slices for every provider adapter and all security-sensitive auth
@@ -137,6 +139,8 @@ PLAN.md                Milestone/gate plan — normative for scope and sequencin
 | Claude | `api.anthropic.com/api/oauth/usage` | `auth.anthropic` (oauth) |
 | Codex | `chatgpt.com/backend-api/codex/usage` | `auth["openai-codex"]` (oauth, +accountId, refresh, expires) |
 | Umans | `api.code.umans.ai/v1/usage` | `auth.umans` (oauth or api_key); `UMANS_API_KEY` fallback |
+| Grok | `cli-chat-proxy.grok.com/v1/billing` | `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` (oauth); `GROK_CLI_OAUTH_TOKEN` fallback |
+| Kimi | `api.kimi.com/coding/v1/usages` | `auth["kimi-coding"]` (oauth or api_key); `KIMI_API_KEY` fallback |
 
 Claude is aggressively rate-limited: prefer a fresh shared pi-hud cache, keep a
 last-known-good cache, honor `Retry-After` and a minimum 429 backoff, retain
