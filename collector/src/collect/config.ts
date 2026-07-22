@@ -6,7 +6,7 @@ import type { CollectorConfig } from "./collect.js";
 
 // Providers that have registered adapters in this release. The contract recognizes more IDs
 // (PROVIDER_IDS), but the default collector configuration only enables providers with real adapters.
-const DEFAULT_ENABLED_PROVIDER_IDS: readonly ProviderId[] = ["claude", "umans", "codex"];
+const DEFAULT_ENABLED_PROVIDER_IDS: readonly ProviderId[] = ["claude", "umans", "codex", "grok", "kimi"];
 
 export const DEFAULT_COLLECTOR_CONFIG: Readonly<CollectorConfig> = Object.freeze({
   providers: Object.freeze(

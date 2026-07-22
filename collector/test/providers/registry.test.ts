@@ -32,7 +32,7 @@ import {
 } from "../../src/contract/validate.js";
 import type { ProviderCollectionSuccess } from "../../src/collect/types.js";
 
-const canonicalIds: readonly ProviderId[] = ["claude", "umans", "codex"];
+const canonicalIds: readonly ProviderId[] = ["claude", "umans", "codex", "grok", "kimi"];
 
 function adapterFor<TId extends ProviderId>(id: TId): ProviderAdapter<TId> {
   return {
@@ -304,10 +304,15 @@ test("selection rejects duplicate configuration IDs without echoing values", () 
 });
 
 test("selection tolerates a disabled unregistered provider without throwing", () => {
-  // Mid-migration state: the contract recognizes a provider ID (e.g. grok/kimi)
-  // before its adapter ships. A configured-but-disabled provider with no registered
-  // adapter must be tolerated and simply omitted from the selection — not a hard error.
-  const registry = createProviderRegistry();
+  // Mid-migration state: the contract recognizes a provider ID before its adapter
+  // ships. A configured-but-disabled provider with no registered adapter must be
+  // tolerated and simply omitted from the selection — not a hard error. Simulated
+  // with a registry that predates the Kimi registration.
+  const registry = createProviderRegistry([
+    createProviderRegistration(adapterFor("claude")),
+    createProviderRegistration(adapterFor("umans")),
+    createProviderRegistration(adapterFor("codex")),
+  ]);
 
   const selected = registry.selectEnabled([{ id: "kimi", enabled: false }]);
 
@@ -315,7 +320,11 @@ test("selection tolerates a disabled unregistered provider without throwing", ()
 });
 
 test("selection rejects an enabled unregistered provider without echoing the id", () => {
-  const registry = createProviderRegistry();
+  const registry = createProviderRegistry([
+    createProviderRegistration(adapterFor("claude")),
+    createProviderRegistration(adapterFor("umans")),
+    createProviderRegistration(adapterFor("codex")),
+  ]);
 
   assert.throws(
     () => registry.selectEnabled([{ id: "kimi", enabled: true }]),
