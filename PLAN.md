@@ -628,14 +628,15 @@ Adversarial grill of the 1.1.0 spec amendment surfaced 6 candidate cracks. All 6
 
 **Depends on:** Milestone 11 (1.1.0) landing first, so per-provider accent/icon covers all providers present at ship time. Provider-list-agnostic if sequencing changes.
 
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 0
+**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 1
 
-- [ ] **M-T1 — Theming config schema + `config-model.sanitize` (test-first)**
+- [x] **M-T1 — Theming config schema + `config-model.sanitize` (test-first)**
   - **Files:** `plasmoid/contents/config/main.xml`, `plasmoid/contents/ui/config/config-theming.qml` (new), `plasmoid/contents/ui/config-model.js`, `tests/qml/tst_config_model.qml`
   - **Work:** Add the new KConfigXT keys (`fontFamily`, `customTextColorEnabled`, `customTextColor`, `labelOpacity`, `separatorOpacity`, per-provider `accentColor`, per-provider `customIcon`) to a new **Theming** config page (distinct from the existing V1 Appearance page; per-provider keys grouped under a repeater mirroring the Providers page). Extend `config-model.js` `sanitize()` as the single D6 read boundary: clamp opacities `[0.0, 1.0]` (garbage → `1.0`), validate color strings (garbage → theme/provider-identity default), validate icon names (empty-string or non-empty freedesktop name, else `""`), leave `fontFamily` a free string (system font resolver handles fallback). Config-page controls are UX-only, not guards.
   - **Acceptance criteria:** Observed RED precedes production code; opacity clamping at boundaries (0.0, 1.0, out-of-range, garbage), color validation, icon-name validation, defaults-reproduce-1.0.0, and `separatorOpacity` no-op when `separator` off all pass.
   - **Dependencies:** None within this milestone (schema-first).
   - **Suggested lane:** medium.
+  - **Evidence (2026-07-22):** Implemented directly (orchestrator; direct-edits counter incremented). Observed RED: 6 new tests failed before production code (defaults-reproduce-V1, opacity clamping boundaries/garbage, color validation, customTextColorEnabled bool, icon-name validation, fontFamily free-string). GREEN after: QML 274/274, `main.xml` XML-valid, `validate:plasma` exit 0. Decisions: colors stored as `String` type (not KConfigXT `Color`) so the D6 boundary sees predictable strings; per-provider keys flat (`claudeAccentColor`, …) matching V1's `claudeVisible` pattern; Theming QML page deferred to M-T3 to avoid dead controls. One mid-edit file-corruption incident in `config-model.js` (overlapping anchored edits) — detected by diff review, rebuilt the region, full-suite re-verified before proceeding. Commit `6bde16d` on `crew/m12-theming`.
 
 - [ ] **M-T2 — Compact + full model appearance consumption + precedence (test-first)**
   - **Files:** `plasmoid/contents/ui/compact-model.js`, `plasmoid/contents/ui/full-model.js`, `tests/qml/tst_compact_model.qml`, `tests/qml/tst_full_model.qml`
