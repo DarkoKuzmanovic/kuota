@@ -17,6 +17,15 @@ Kirigami.FormLayout {
     // flows edits back out.
     property real cfg_fontScale: 1.0
 
+    // Per-gap spacing (issue 3) follows the same pattern: plain (non-alias)
+    // cfg_ properties so the SpinBox `value:` binding does not loop back
+    // through a `cfg_` alias. `value:` reads from cfg_*; `onValueModified`
+    // (user-only) writes back. The config-model sanitize() boundary is the
+    // authoritative guard (0..64 + garbage fallback) and re-clamps anything
+    // that slips past the SpinBox UX envelope (0..32).
+    property int cfg_iconLabelSpacing: 2
+    property int cfg_labelValueSpacing: 1
+
     Controls.ComboBox {
         id: displayModeCombo
         Kirigami.FormData.label: qsTr("Display mode:")
@@ -48,6 +57,28 @@ Kirigami.FormLayout {
         textFromValue: function (value) { return value + "%"; }
         valueFromText: function (text) { return parseInt(text, 10); }
         onValueModified: page.cfg_fontScale = value / 100
+    }
+
+    Controls.SpinBox {
+        id: iconLabelSpacingSpin
+        Kirigami.FormData.label: qsTr("Icon \u2192 label spacing:")
+        Accessible.name: qsTr("Pixel spacing between provider icon and label")
+        from: 0
+        to: 32
+        stepSize: 1
+        value: page.cfg_iconLabelSpacing
+        onValueModified: page.cfg_iconLabelSpacing = value
+    }
+
+    Controls.SpinBox {
+        id: labelValueSpacingSpin
+        Kirigami.FormData.label: qsTr("Label \u2192 value spacing:")
+        Accessible.name: qsTr("Pixel spacing between provider label and value")
+        from: 0
+        to: 32
+        stepSize: 1
+        value: page.cfg_labelValueSpacing
+        onValueModified: page.cfg_labelValueSpacing = value
     }
 
     Controls.CheckBox {

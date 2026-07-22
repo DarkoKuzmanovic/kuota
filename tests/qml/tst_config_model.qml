@@ -330,6 +330,21 @@ TestCase {
         compare(valid.grokCustomIcon, "x.icon_2");
         compare(valid.kimiCustomIcon, "");
 
+        // Absolute local image paths from IconDialog "Other icons" must survive
+        // sanitize — otherwise custom PNG/SVG selections fall back to defaults.
+        var paths = ConfigModel.sanitize({
+            claudeCustomIcon: "/home/user/Pictures/Icons/kuota/claude.png",
+            umansCustomIcon: "/home/user/Pictures/Icons/kuota/umans.svg",
+            codexCustomIcon: "file:///home/user/icons/codex.webp",
+            grokCustomIcon: "/tmp/logo.JPEG",
+            kimiCustomIcon: "/opt/icons/kimi.ico"
+        });
+        compare(paths.claudeCustomIcon, "/home/user/Pictures/Icons/kuota/claude.png");
+        compare(paths.umansCustomIcon, "/home/user/Pictures/Icons/kuota/umans.svg");
+        compare(paths.codexCustomIcon, "/home/user/icons/codex.webp");
+        compare(paths.grokCustomIcon, "/tmp/logo.JPEG");
+        compare(paths.kimiCustomIcon, "/opt/icons/kimi.ico");
+
         var garbage = ConfigModel.sanitize({
             claudeCustomIcon: "../escape",
             umansCustomIcon: "with space",
@@ -342,6 +357,20 @@ TestCase {
         compare(garbage.codexCustomIcon, "");
         compare(garbage.grokCustomIcon, "");
         compare(garbage.kimiCustomIcon, "");
+
+        // Path-shaped garbage: relative, traversal, non-image extension.
+        var badPaths = ConfigModel.sanitize({
+            claudeCustomIcon: "relative/path.png",
+            umansCustomIcon: "/home/user/../etc/passwd.png",
+            codexCustomIcon: "/tmp/not-an-image.txt",
+            grokCustomIcon: "/tmp/noext",
+            kimiCustomIcon: "file://localhost/tmp/evil.exe"
+        });
+        compare(badPaths.claudeCustomIcon, "");
+        compare(badPaths.umansCustomIcon, "");
+        compare(badPaths.codexCustomIcon, "");
+        compare(badPaths.grokCustomIcon, "");
+        compare(badPaths.kimiCustomIcon, "");
     }
 
     function test_fontFamilyFreeStringWithGarbageFallback() {
@@ -350,6 +379,64 @@ TestCase {
         compare(ConfigModel.sanitize({ fontFamily: "" }).fontFamily, "");
         compare(ConfigModel.sanitize({ fontFamily: 12 }).fontFamily, "");
         compare(ConfigModel.sanitize({ fontFamily: null }).fontFamily, "");
+    }
+
+    // ---- M13 compact layout spacing (issue 3) ----
+
+    function test_spacingDefaultsReproduceV1Look() {
+        // Empty input must yield the V1 smallSpacing/2 look (iconLabelSpacing=2,
+        // labelValueSpacing=1). Sanitize is the authoritative guard; createDefaultSettings
+        // is its fallback for missing/garbage keys.
+        var empty = ConfigModel.sanitize({});
+        compare(empty.iconLabelSpacing, 2);
+        compare(empty.labelValueSpacing, 1);
+
+        var defaults = ConfigModel.createDefaultSettings();
+        compare(defaults.iconLabelSpacing, 2);
+        compare(defaults.labelValueSpacing, 1);
+    }
+
+    function test_spacingClampsAndFloatsIntegers() {
+        var low = ConfigModel.sanitize({ iconLabelSpacing: -5, labelValueSpacing: -100 });
+        compare(low.iconLabelSpacing, 0);
+        compare(low.labelValueSpacing, 0);
+
+        var high = ConfigModel.sanitize({ iconLabelSpacing: 999, labelValueSpacing: 1024 });
+        compare(high.iconLabelSpacing, 64);
+        compare(high.labelValueSpacing, 64);
+
+        // Fractional values must floor to integer pixels; 3.9 → 3, 0.5 → 0.
+        var fraction = ConfigModel.sanitize({ iconLabelSpacing: 3.9, labelValueSpacing: 0.5 });
+        compare(fraction.iconLabelSpacing, 3);
+        compare(fraction.labelValueSpacing, 0);
+
+        var boundaries = ConfigModel.sanitize({ iconLabelSpacing: 0, labelValueSpacing: 64 });
+        compare(boundaries.iconLabelSpacing, 0);
+        compare(boundaries.labelValueSpacing, 64);
+    }
+
+    function test_spacingGarbageFallsBackToDefaults() {
+        // Garbage/missing/wrong-type per-key: each falls back independently to
+        // its own DEFAULTS value (not 0). This is the same per-key fallback
+        // contract as opacity / color / icon.
+        var s1 = ConfigModel.sanitize({ iconLabelSpacing: "5px", labelValueSpacing: undefined });
+        compare(s1.iconLabelSpacing, 2);
+        compare(s1.labelValueSpacing, 1);
+
+        var s2 = ConfigModel.sanitize({ iconLabelSpacing: null, labelValueSpacing: NaN });
+        compare(s2.iconLabelSpacing, 2);
+        compare(s2.labelValueSpacing, 1);
+
+        var s3 = ConfigModel.sanitize({ iconLabelSpacing: Infinity, labelValueSpacing: -Infinity });
+        compare(s3.iconLabelSpacing, 2);
+        compare(s3.labelValueSpacing, 1);
+
+        // A valid number in one key does NOT save the other; each is sanitized
+        // independently and a sibling garbage key still falls back to its
+        // default. (Regression guard against accidentally sharing state.)
+        var s4 = ConfigModel.sanitize({ iconLabelSpacing: 7, labelValueSpacing: "oops" });
+        compare(s4.iconLabelSpacing, 7);
+        compare(s4.labelValueSpacing, 1);
     }
 
     function isRecord(input) {

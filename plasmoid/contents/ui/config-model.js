@@ -44,6 +44,8 @@ var DEFAULTS = Object.freeze({
     customTextColor: "",
     labelOpacity: 1.0,
     separatorOpacity: 1.0,
+    iconLabelSpacing: 2,
+    labelValueSpacing: 1
 });
 
 var REFRESH_INTERVAL_FLOOR_MINUTES = 5;
@@ -71,7 +73,9 @@ function createDefaultSettings() {
         customTextColorEnabled: DEFAULTS.customTextColorEnabled,
         customTextColor: DEFAULTS.customTextColor,
         labelOpacity: DEFAULTS.labelOpacity,
-        separatorOpacity: DEFAULTS.separatorOpacity
+        separatorOpacity: DEFAULTS.separatorOpacity,
+        iconLabelSpacing: DEFAULTS.iconLabelSpacing,
+        labelValueSpacing: DEFAULTS.labelValueSpacing
     };
     for (var i = 0; i < KNOWN_PROVIDERS.length; i++) {
         settings[KNOWN_PROVIDERS[i] + "AccentColor"] = "";
@@ -118,6 +122,8 @@ function sanitize(rawConfig) {
     out.customTextColor = sanitizeColorString(rawConfig.customTextColor);
     out.labelOpacity = sanitizeOpacity(rawConfig.labelOpacity);
     out.separatorOpacity = sanitizeOpacity(rawConfig.separatorOpacity);
+    out.iconLabelSpacing = sanitizeSpacing(rawConfig.iconLabelSpacing, DEFAULTS.iconLabelSpacing);
+    out.labelValueSpacing = sanitizeSpacing(rawConfig.labelValueSpacing, DEFAULTS.labelValueSpacing);
     for (var p = 0; p < KNOWN_PROVIDERS.length; p++) {
         var providerId = KNOWN_PROVIDERS[p];
         out[providerId + "AccentColor"] = sanitizeColorString(rawConfig[providerId + "AccentColor"]);
@@ -277,6 +283,16 @@ function sanitizeOpacity(value) {
     }
     return value;
 }
+// Compact layout spacing (pixels). Guard to non-negative small ints.
+function sanitizeSpacing(value, fallback) {
+    if (typeof value !== "number" || !isFinite(value)) {
+        return fallback;
+    }
+    var v = Math.floor(value);
+    if (v < 0) return 0;
+    if (v > 64) return 64;
+    return v;
+}
 
 // Accepts #rgb / #rgba / #rrggbb / #rrggbbaa hex or a Qt named color (letters
 // only, e.g. "red"). Anything else → "" (theme/provider default).
@@ -294,14 +310,43 @@ function sanitizeColorString(value) {
 }
 
 // Freedesktop icon name: starts alphanumeric, then letters/digits/dot/underscore/
-// hyphen. "" stays "" (provider default icon); anything else invalid → "".
+// hyphen. "" stays "" (provider default icon).
+// Absolute local image paths (IconDialog "Other icons" / Browse…) are also accepted
+// so custom PNG/SVG picks survive the D6 boundary. Relative paths, ".." segments,
+// and non-image extensions are rejected → "".
 var ICON_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+var ICON_PATH_PATTERN = /^\/(?:[^/\0]+\/)*[^/\0]+\.(?:png|svg|svgz|jpe?g|webp|xpm|ico|gif)$/i;
+
+function pathHasDotDot(path) {
+    var parts = path.split("/");
+    for (var i = 0; i < parts.length; i++) {
+        if (parts[i] === "..") {
+            return true;
+        }
+    }
+    return false;
+}
 
 function sanitizeIconName(value) {
     if (typeof value !== "string" || value.length === 0) {
         return "";
     }
-    return ICON_NAME_PATTERN.test(value) ? value : "";
+    if (ICON_NAME_PATTERN.test(value)) {
+        return value;
+    }
+    // IconDialog may return a bare absolute path or a file:// URL for custom files.
+    var path = value;
+    if (path.indexOf("file://") === 0) {
+        path = path.slice(7);
+        // file:///home/... → /home/... (three slashes); file://localhost/home → skip host form
+        if (path.indexOf("/") !== 0 && path.indexOf("localhost/") === 0) {
+            path = path.slice("localhost".length);
+        }
+    }
+    if (path.charAt(0) === "/" && !pathHasDotDot(path) && ICON_PATH_PATTERN.test(path)) {
+        return path;
+    }
+    return "";
 }
 
 function sanitizeDisplayMode(value) {

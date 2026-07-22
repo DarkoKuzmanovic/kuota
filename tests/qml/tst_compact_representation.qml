@@ -72,23 +72,29 @@ TestCase {
         compare(compact.hasEntries, false);
     }
 
-    function test_iconsOnlyModeHidesText() {
+    // Issue 2 (2026-07-22): "icons" mode hides the provider LABEL (caption)
+    // but keeps the VALUE (percentage/count) visible — a product reversal of
+    // the prior V1 "icons hides everything" semantics. See AGENTS.md Lessons
+    // (2026-07-22, icons-mode semantic change).
+    function test_iconsOnlyModeHidesLabelButKeepsValue() {
         compact.compactDisplayMode = "icons";
         compact.snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
         ]);
         compare(compact.showIcons, true);
-        compare(compact.showText, false);
+        compare(compact.showLabel, false);
+        compare(compact.showValue, true);
         compare(compact.entries.length, 1);
     }
 
-    function test_textOnlyModeHidesIcons() {
+    function test_textOnlyModeHidesIconsButKeepsValue() {
         compact.compactDisplayMode = "text";
         compact.snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
         ]);
         compare(compact.showIcons, false);
-        compare(compact.showText, true);
+        compare(compact.showLabel, true);
+        compare(compact.showValue, true);
     }
 
     function test_iconsPlusTextModeShowsBoth() {
@@ -97,7 +103,8 @@ TestCase {
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
         ]);
         compare(compact.showIcons, true);
-        compare(compact.showText, true);
+        compare(compact.showLabel, true);
+        compare(compact.showValue, true);
     }
 
     function test_implicitWidthPositiveAndGrowsWithMoreProviders() {
@@ -125,7 +132,9 @@ TestCase {
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 5 })] })
         ]);
         compare(compact.effectiveDisplayMode, "icons+text");
-        compare(compact.showText, true);
+        compare(compact.showIcons, true);
+        compare(compact.showLabel, true);
+        compare(compact.showValue, true);
     }
 
     function test_thresholdColorMappingIsDistinct() {
@@ -177,10 +186,12 @@ TestCase {
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 5 })] })
         ]);
         compare(compact.effectiveDisplayMode, "icons+text");
-        compare(compact.showText, true);
+        compare(compact.showIcons, true);
+        compare(compact.showLabel, true);
+        compare(compact.showValue, true);
     }
 
-    function test_narrowWidthExplicitIconsModeHidesText() {
+    function test_narrowWidthExplicitIconsModeHidesLabelButKeepsValue() {
         compact.width = 96;
         compact.compactDisplayMode = "icons";
         compact.snapshot = sampleSnapshot([
@@ -188,7 +199,8 @@ TestCase {
         ]);
         compare(compact.effectiveDisplayMode, "icons");
         compare(compact.showIcons, true);
-        compare(compact.showText, false);
+        compare(compact.showLabel, false);
+        compare(compact.showValue, true);
     }
 
     function test_pointerActivationEmitsRequestExpand() {
@@ -308,6 +320,26 @@ TestCase {
         compare(compact.entries[0].separatorOpacity, 0.25);
     }
 
+    function test_localIconPathRendersFullColorFileUrl() {
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
+        ]);
+        compact.appearance = {
+            claudeCustomIcon: "/home/user/Pictures/Icons/kuota/claude.png"
+        };
+        verify(compact.entries.length === 1);
+        compare(compact.entries[0].iconName, "/home/user/Pictures/Icons/kuota/claude.png");
+        compare(
+            compact.iconSourceFor(compact.entries[0]),
+            "file:///home/user/Pictures/Icons/kuota/claude.png"
+        );
+        compare(compact.iconIsMask(compact.entries[0]), false);
+
+        compact.appearance = { claudeCustomIcon: "face-cool" };
+        compare(compact.iconSourceFor(compact.entries[0]), "face-cool");
+        compare(compact.iconIsMask(compact.entries[0]), true);
+    }
+
     function test_nullAppearanceReproducesV1Defaults() {
         compact.appearance = null;
         compact.snapshot = sampleSnapshot([
@@ -326,5 +358,105 @@ TestCase {
         compare(compact.effectiveFontFamily, Kirigami.Theme.defaultFont.family);
         compact.fontFamily = "Noto Mono";
         compare(compact.effectiveFontFamily, "Noto Mono");
+    }
+
+    // Issue 1 (2026-07-22): iconSize tracks the live font point size so custom
+    // PNG/SVG icons no longer dwarf the surrounding text. The clamp at
+    // Kirigami.Units.iconSizes.small prevents sub-pixel icons at very small
+    // fontScale, and the 1.3x multiplier roughly matches heading cap-height.
+    function test_iconSizeTracksFontPointSize() {
+        compact.fontScale = 1.0;
+        var baseline = compact.iconSize;
+        verify(baseline >= Kirigami.Units.iconSizes.small);
+        compact.fontScale = 1.5;
+        compare(compact.iconSize, Math.max(Kirigami.Units.iconSizes.small, Math.round(compact.fontPointSize * 1.3)));
+    }
+
+    function test_providerIconWidthMatchesIconSize() {
+        compact.compactDisplayMode = "icons+text";
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
+        ]);
+        var entry = compact.entryRepeaterItem.itemAt(0);
+        var providerIcon = findByObjectName(entry, "providerIcon");
+        verify(providerIcon !== null);
+        compare(providerIcon.width, compact.iconSize);
+        compare(providerIcon.height, compact.iconSize);
+    }
+
+    function test_stateIconWidthMatchesIconSize() {
+        compact.compactDisplayMode = "icons+text";
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({
+                state: "auth-needed",
+                windows: [Fixtures.validWindow({ usedPercent: 10 })]
+            })
+        ]);
+        var entry = compact.entryRepeaterItem.itemAt(0);
+        var stateIcon = findByObjectName(entry, "stateIcon");
+        verify(stateIcon !== null);
+        verify(stateIcon.visible);
+        compare(stateIcon.width, compact.iconSize);
+    }
+
+    // Issue 3 (2026-07-22): per-gap spacing between icon → label and
+    // label → value is independently settable and consumed by explicit Item
+    // spacers in the delegate (Row.spacing alone can't express two values).
+    function test_perGapSpacingDefaultsReproduceV1Look() {
+        compare(compact.iconLabelSpacing, 2);
+        compare(compact.labelValueSpacing, 1);
+    }
+
+    function test_perGapSpacingIsSettableAndConsumed() {
+        compact.compactDisplayMode = "icons+text";
+        compact.iconLabelSpacing = 7;
+        compact.labelValueSpacing = 4;
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
+        ]);
+        var entry = compact.entryRepeaterItem.itemAt(0);
+        var iconLabelSpacer = findByObjectName(entry, "iconLabelSpacer");
+        var labelValueSpacer = findByObjectName(entry, "labelValueSpacer");
+        verify(iconLabelSpacer !== null);
+        verify(labelValueSpacer !== null);
+        compare(iconLabelSpacer.width, 7);
+        compare(labelValueSpacer.width, 4);
+    }
+
+    // Spacers collapse with their adjacent heading so a hidden icon does not
+    // leave a phantom gap before the label, and a hidden label does not waste
+    // a gap before the value (icons mode keeps value, drops label).
+    function test_perGapSpacersHideWithAdjacentHeadings() {
+        compact.compactDisplayMode = "icons";
+        compact.iconLabelSpacing = 9;
+        compact.labelValueSpacing = 5;
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
+        ]);
+        var entry = compact.entryRepeaterItem.itemAt(0);
+        var iconLabelSpacer = findByObjectName(entry, "iconLabelSpacer");
+        var labelValueSpacer = findByObjectName(entry, "labelValueSpacer");
+        verify(iconLabelSpacer !== null);
+        verify(labelValueSpacer !== null);
+        // icons mode: showIcons=true, showLabel=false → iconLabelSpacer hidden
+        compare(iconLabelSpacer.visible, false);
+        // label is hidden so the label→value spacer is hidden too
+        compare(labelValueSpacer.visible, false);
+    }
+
+    function test_perGapSpacersVisibleInIconsPlusTextMode() {
+        compact.compactDisplayMode = "icons+text";
+        compact.iconLabelSpacing = 3;
+        compact.labelValueSpacing = 2;
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
+        ]);
+        var entry = compact.entryRepeaterItem.itemAt(0);
+        var iconLabelSpacer = findByObjectName(entry, "iconLabelSpacer");
+        var labelValueSpacer = findByObjectName(entry, "labelValueSpacer");
+        compare(iconLabelSpacer.visible, true);
+        compare(iconLabelSpacer.width, 3);
+        compare(labelValueSpacer.visible, true);
+        compare(labelValueSpacer.width, 2);
     }
 }

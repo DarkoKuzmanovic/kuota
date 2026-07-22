@@ -59,6 +59,14 @@
       <label>Compact font scale multiplier (1.0 = theme default size).</label>
       <default>1.0</default>
     </entry>
+    <entry name="iconLabelSpacing" type="Int">
+      <label>Pixel spacing between the provider icon and its label (caption).</label>
+      <default>2</default>
+    </entry>
+    <entry name="labelValueSpacing" type="Int">
+      <label>Pixel spacing between the provider label (caption) and its value/percentage.</label>
+      <default>1</default>
+    </entry>
     <entry name="showCountdown" type="Bool">
       <label>Whether reset countdowns are shown in the full representation.</label>
       <default>true</default>
@@ -118,23 +126,23 @@
       <default></default>
     </entry>
     <entry name="claudeCustomIcon" type="String">
-      <label>Claude custom freedesktop icon name. Empty uses the default icon.</label>
+      <label>Claude custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
     <entry name="umansCustomIcon" type="String">
-      <label>Umans custom freedesktop icon name. Empty uses the default icon.</label>
+      <label>Umans custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
     <entry name="codexCustomIcon" type="String">
-      <label>Codex custom freedesktop icon name. Empty uses the default icon.</label>
+      <label>Codex custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
     <entry name="grokCustomIcon" type="String">
-      <label>Grok custom freedesktop icon name. Empty uses the default icon.</label>
+      <label>Grok custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
     <entry name="kimiCustomIcon" type="String">
-      <label>Kimi custom freedesktop icon name. Empty uses the default icon.</label>
+      <label>Kimi custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
   </group>
