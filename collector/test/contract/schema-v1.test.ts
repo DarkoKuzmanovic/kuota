@@ -105,6 +105,41 @@ const typedMismatchedCodexDetails: ProviderRecord = {
   // @ts-expect-error provider IDs and namespaced details must match
   details: { claude: { model: "synthetic-model" } },
 };
+const typedMismatchedGrokDetails: ProviderRecord = {
+  id: "grok",
+  state: "ok",
+  // @ts-expect-error provider IDs and namespaced details must match
+  details: { kimi: { concurrency: 2 } },
+};
+const typedMismatchedKimiDetails: ProviderRecord = {
+  id: "kimi",
+  state: "ok",
+  // @ts-expect-error provider IDs and namespaced details must match
+  details: { grok: { monthlyUsed: 100 } },
+};
+const typedGrokRecord: ProviderRecord = {
+  id: "grok",
+  state: "ok",
+  details: { grok: { monthlyUsed: 100, monthlyLimit: 1000, monthlyResetAt: "2026-07-11T10:00:00.000Z" } },
+};
+const typedKimiRecord: ProviderRecord = {
+  id: "kimi",
+  state: "ok",
+  details: { kimi: { concurrency: 2, concurrencyLimit: 4 } },
+};
+const typedGrokStaleWithDetails: ProviderRecord = {
+  id: "grok",
+  state: "stale",
+  lastSuccessAt: "2026-07-10T10:00:00.000Z",
+  details: { grok: { monthlyUsed: 100 } },
+};
+// @ts-expect-error stale details must retain at least one detail field
+const typedGrokStaleWithEmptyDetails: ProviderRecord = {
+  id: "grok",
+  state: "stale",
+  lastSuccessAt: "2026-07-10T10:00:00.000Z",
+  details: { grok: {} },
+};
 // @ts-expect-error stale records require a last-success timestamp and retained data
 const typedStaleWithoutRetention: ProviderRecord = {
   id: "umans",
@@ -114,13 +149,18 @@ void [
   typedClaudeRecord,
   typedUmansRecord,
   typedCodexRecord,
+  typedGrokRecord,
+  typedKimiRecord,
   typedStaleWithWindow,
   typedStaleWithDetails,
+  typedGrokStaleWithDetails,
   typedMismatchedClaudeDetails,
-  typedStaleWithoutRetention,
   typedMismatchedUmansDetails,
   typedMismatchedCodexDetails,
-  typedStaleWithEmptyDetails,
+  typedMismatchedGrokDetails,
+  typedMismatchedKimiDetails,
+  typedStaleWithoutRetention,
+  typedGrokStaleWithEmptyDetails,
 ];
 
 test("normalized schema v1 accepts every valid JSON fixture", () => {
@@ -235,6 +275,94 @@ test("Claude extra-usage details and integer credit windows remain schema-valid"
     }),
   );
   assert.equal(fractionalWindow.ok, false);
+
+
+test("Grok details are optional, namespaced, and valid as non-negative numbers + timestamp", () => {
+  const valid = validateCollectorDocument(
+    documentWith({
+      id: "grok",
+      state: "ok",
+      details: { grok: { monthlyUsed: 100, monthlyLimit: 1000, monthlyResetAt: "2026-07-11T10:00:00.000Z" } },
+    }),
+  );
+  const minimal = validateCollectorDocument(documentWith({ id: "grok", state: "ok", details: { grok: {} } }));
+  const malformedMonthlyUsed = validateCollectorDocument(
+    documentWith({ id: "grok", state: "ok", details: { grok: { monthlyUsed: -1 } } }),
+  );
+  const malformedTimestamp = validateCollectorDocument(
+    documentWith({ id: "grok", state: "ok", details: { grok: { monthlyResetAt: "tomorrow" } } }),
+  );
+  const unknownField = validateCollectorDocument(
+    documentWith({ id: "grok", state: "ok", details: { grok: { unknownFlag: true } } }),
+  );
+  assert.equal(valid.ok, true);
+  assert.equal(minimal.ok, true);
+  assert.equal(malformedMonthlyUsed.ok, false);
+  assert.equal(malformedTimestamp.ok, false);
+  assert.equal(unknownField.ok, false);
+});
+
+test("Kimi details are optional, namespaced, and valid as non-negative integers", () => {
+  const valid = validateCollectorDocument(
+    documentWith({
+      id: "kimi",
+      state: "ok",
+      details: { kimi: { concurrency: 2, concurrencyLimit: 4 } },
+    }),
+  );
+  const minimal = validateCollectorDocument(documentWith({ id: "kimi", state: "ok", details: { kimi: {} } }));
+  const malformedConcurrency = validateCollectorDocument(
+    documentWith({ id: "kimi", state: "ok", details: { kimi: { concurrency: -1 } } }),
+  );
+  const malformedConcurrencyLimit = validateCollectorDocument(
+    documentWith({ id: "kimi", state: "ok", details: { kimi: { concurrencyLimit: 1.5 } } }),
+  );
+  assert.equal(valid.ok, true);
+  assert.equal(minimal.ok, true);
+  assert.equal(malformedConcurrency.ok, false);
+  assert.equal(malformedConcurrencyLimit.ok, false);
+});
+
+test("Grok and Kimi namespaces correlate with their provider IDs", () => {
+  const grokWithKimi = validateCollectorDocument(
+    documentWith({ id: "grok", state: "ok", details: { kimi: { concurrency: 2 } } }),
+  );
+  const kimiWithGrok = validateCollectorDocument(
+    documentWith({ id: "kimi", state: "ok", details: { grok: { monthlyUsed: 100 } } }),
+  );
+  assert.equal(grokWithKimi.ok, false);
+  assert.equal(kimiWithGrok.ok, false);
+});
+
+test("Grok and Kimi stale records require retained data", () => {
+  const grokStaleWithDetails = validateCollectorDocument(
+    documentWith({
+      id: "grok",
+      state: "stale",
+      lastSuccessAt: "2026-07-10T10:00:00.000Z",
+      details: { grok: { monthlyUsed: 100 } },
+    }),
+  );
+  const grokStaleEmpty = validateCollectorDocument(
+    documentWith({
+      id: "grok",
+      state: "stale",
+      lastSuccessAt: "2026-07-10T10:00:00.000Z",
+      details: { grok: {} },
+    }),
+  );
+  const kimiStaleWithDetails = validateCollectorDocument(
+    documentWith({
+      id: "kimi",
+      state: "stale",
+      lastSuccessAt: "2026-07-10T10:00:00.000Z",
+      details: { kimi: { concurrency: 2 } },
+    }),
+  );
+  assert.equal(grokStaleWithDetails.ok, true);
+  assert.equal(grokStaleEmpty.ok, false);
+  assert.equal(kimiStaleWithDetails.ok, true);
+});
 });
 
 test("provider details namespaces must match provider IDs", () => {
@@ -242,6 +370,8 @@ test("provider details namespaces must match provider IDs", () => {
     { id: "claude", details: { umans: { plan: "synthetic-plan" } } },
     { id: "umans", details: { codex: { credits: 1.5 } } },
     { id: "codex", details: { claude: { model: "synthetic-model" } } },
+    { id: "grok", details: { kimi: { concurrency: 2 } } },
+    { id: "kimi", details: { grok: { monthlyUsed: 100 } } },
   ];
 
   for (const provider of mismatches) {

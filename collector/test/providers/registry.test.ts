@@ -51,6 +51,14 @@ function registrationFor(id: ProviderId): ProviderRegistration {
       return createProviderRegistration(adapterFor("umans"));
     case "codex":
       return createProviderRegistration(adapterFor("codex"));
+    case "grok":
+      return createProviderRegistration(adapterFor("grok"));
+    case "kimi":
+      return createProviderRegistration(adapterFor("kimi"));
+    default: {
+      const _exhaustive: never = id;
+      throw new Error(`unhandled provider id: ${_exhaustive}`);
+    }
   }
 }
 
@@ -295,6 +303,29 @@ test("selection rejects duplicate configuration IDs without echoing values", () 
   );
 });
 
+test("selection tolerates a disabled unregistered provider without throwing", () => {
+  // Mid-migration state: the contract recognizes a provider ID (e.g. grok/kimi)
+  // before its adapter ships. A configured-but-disabled provider with no registered
+  // adapter must be tolerated and simply omitted from the selection — not a hard error.
+  const registry = createProviderRegistry();
+
+  const selected = registry.selectEnabled([{ id: "kimi", enabled: false }]);
+
+  assert.deepEqual(selected, []);
+});
+
+test("selection rejects an enabled unregistered provider without echoing the id", () => {
+  const registry = createProviderRegistry();
+
+  assert.throws(
+    () => registry.selectEnabled([{ id: "kimi", enabled: true }]),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.equal(error.message, "Provider is not registered");
+      return true;
+    },
+  );
+});
 test("registry rejects unknown and duplicate registration IDs", () => {
   assert.throws(
     () =>
