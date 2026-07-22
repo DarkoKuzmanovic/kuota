@@ -9,6 +9,29 @@ Config keys are a stable, additive-only contract (D7): later versions add keys
 but never rename or remove them within the compatibility window, so settings
 survive updates.
 
+## [1.2.0] - 2026-07-22
+
+### Added
+
+- **Theming configuration page** — a new *Theming* tab in the widget settings
+  for appearance customisation, on top of the strict additive-only V1 config
+  contract (existing configurations are untouched).
+- **Font family override** applied to all widget text in both the compact and
+  full representations.
+- **Custom text colour** — a global text-colour override with a live-validated
+  colour swatch (invalid input shows no swatch and is ignored).
+- **Per-provider accent colour** — recolours the compact value text and the
+  full-view progress bar for each provider.
+- **Per-provider custom icon** — pick any system icon via the native KDE icon
+  picker, with reset-to-default.
+- **Opacity sliders** for metric labels and separators.
+
+### Changed
+
+- Text/colour resolution follows an explicit precedence: threshold state >
+  per-provider accent > custom text colour > Plasma theme. Threshold colours
+  always win so at-risk usage stays legible under any custom theme.
+
 ## [1.1.0] - 2026-07-22
 
 ### Added
