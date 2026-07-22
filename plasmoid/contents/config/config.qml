@@ -8,6 +8,11 @@ ConfigModel {
         source: "configAppearance.qml"
     }
     ConfigCategory {
+        name: i18n("Theming")
+        icon: "preferences-desktop-color"
+        source: "configTheming.qml"
+    }
+    ConfigCategory {
         name: i18n("Providers")
         icon: "network-server"
         source: "configProviders.qml"

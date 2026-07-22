@@ -40,7 +40,7 @@ function createDefaultDisplayConfig() {
     };
 }
 
-function buildCompactEntries(snapshot, displayConfig) {
+function buildCompactEntries(snapshot, displayConfig, appearance) {
     if (!isRecord(snapshot) || !Array.isArray(snapshot.providers)) {
         return [];
     }
@@ -58,7 +58,7 @@ function buildCompactEntries(snapshot, displayConfig) {
         if (record === undefined) {
             continue;
         }
-        entries.push(buildEntry(record, config));
+        entries.push(buildEntry(record, config, normalizeAppearance(appearance)));
     }
 
     return entries;
@@ -102,6 +102,32 @@ function normalizeDisplayConfig(displayConfig) {
     return base;
 }
 
+// Defensive reader for the sanitized theming settings (config-model.js owns
+// validation; this only guards absence/type so older callers and tests keep
+// working). "" / 1.0 reproduce the V1 look.
+function normalizeAppearance(appearance) {
+    var source = isRecord(appearance) ? appearance : {};
+    return {
+        customTextColor: source.customTextColorEnabled === true && typeof source.customTextColor === "string"
+            ? source.customTextColor
+            : "",
+        labelOpacity: typeof source.labelOpacity === "number" && isFinite(source.labelOpacity)
+            ? source.labelOpacity
+            : 1.0,
+        separatorOpacity: typeof source.separatorOpacity === "number" && isFinite(source.separatorOpacity)
+            ? source.separatorOpacity
+            : 1.0,
+        accentFor: function (providerId) {
+            var value = source[providerId + "AccentColor"];
+            return typeof value === "string" ? value : "";
+        },
+        iconFor: function (providerId) {
+            var value = source[providerId + "CustomIcon"];
+            return typeof value === "string" ? value : "";
+        }
+    };
+}
+
 function sanitizeThresholdNumber(value, fallback) {
     if (typeof value !== "number" || !isFinite(value)) {
         return fallback;
@@ -120,18 +146,34 @@ function indexProviders(providers) {
     return map;
 }
 
-function buildEntry(record, config) {
+function buildEntry(record, config, appearance) {
     var providerId = record.id;
     var displayWindow = resolveDisplayWindow(record, config);
     var utilization = displayWindow ? utilizationPercent(displayWindow) : undefined;
     var displayValue = resolveDisplayValue(record, displayWindow, config, utilization);
+    var thresholdLevel = thresholdLevelFromUtilization(utilization, config);
+
+    // Color precedence (D-theming): threshold color always wins (rep resolves it
+    // from thresholdLevel — the model emits "" so the V1 path is untouched);
+    // otherwise accent tints the VALUE text only; otherwise the enabled custom
+    // text color; otherwise "" (Plasma theme). Labels/icons follow the custom
+    // text color, never the accent, and yield to an active threshold.
+    var thresholdActive = thresholdLevel !== THRESHOLD_LEVEL.NONE;
+    var accent = appearance.accentFor(providerId);
+    var custom = thresholdActive ? "" : appearance.customTextColor;
+    var valueColor = thresholdActive ? "" : (accent !== "" ? accent : custom);
 
     return {
         providerId: providerId,
         label: PROVIDER_LABELS[providerId] || providerId,
         displayValue: displayValue,
-        thresholdLevel: thresholdLevelFromUtilization(utilization, config),
-        state: record.state
+        thresholdLevel: thresholdLevel,
+        state: record.state,
+        valueColor: valueColor,
+        textColor: custom,
+        iconName: appearance.iconFor(providerId),
+        labelOpacity: appearance.labelOpacity,
+        separatorOpacity: appearance.separatorOpacity
     };
 }
 

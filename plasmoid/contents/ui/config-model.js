@@ -38,7 +38,12 @@ var DEFAULTS = Object.freeze({
     showCountdown: true,
     refreshIntervalMinutes: 5,
     cautionThreshold: 75,
-    criticalThreshold: 90
+    criticalThreshold: 90,
+    fontFamily: "",
+    customTextColorEnabled: false,
+    customTextColor: "",
+    labelOpacity: 1.0,
+    separatorOpacity: 1.0,
 });
 
 var REFRESH_INTERVAL_FLOOR_MINUTES = 5;
@@ -46,7 +51,7 @@ var FONT_SCALE_MIN = 0.5;  // matches configAppearance.qml SpinBox from: 50
 var FONT_SCALE_MAX = 3.0;
 
 function createDefaultSettings() {
-    return {
+    var settings = {
         providerOrder: DEFAULTS.providerOrder.slice(),
         claudeVisible: DEFAULTS.claudeVisible,
         umansVisible: DEFAULTS.umansVisible,
@@ -61,8 +66,18 @@ function createDefaultSettings() {
         showCountdown: DEFAULTS.showCountdown,
         refreshIntervalMinutes: DEFAULTS.refreshIntervalMinutes,
         cautionThreshold: DEFAULTS.cautionThreshold,
-        criticalThreshold: DEFAULTS.criticalThreshold
+        criticalThreshold: DEFAULTS.criticalThreshold,
+        fontFamily: DEFAULTS.fontFamily,
+        customTextColorEnabled: DEFAULTS.customTextColorEnabled,
+        customTextColor: DEFAULTS.customTextColor,
+        labelOpacity: DEFAULTS.labelOpacity,
+        separatorOpacity: DEFAULTS.separatorOpacity
     };
+    for (var i = 0; i < KNOWN_PROVIDERS.length; i++) {
+        settings[KNOWN_PROVIDERS[i] + "AccentColor"] = "";
+        settings[KNOWN_PROVIDERS[i] + "CustomIcon"] = "";
+    }
+    return settings;
 }
 
 /**
@@ -71,6 +86,8 @@ function createDefaultSettings() {
  * settings object with every semantic constraint enforced:
  * - refreshIntervalMinutes ≥ 5 (Claude-safe floor)
  * - thresholds clamped to 0..100 and caution < critical (else 75/90)
+ * - opacities clamped to 0.0..1.0 (garbage → 1.0)
+ * - color/icon strings validated (garbage → "" = theme/provider default)
  * - garbage/missing/wrong-type → schema defaults
  */
 function sanitize(rawConfig) {
@@ -96,7 +113,16 @@ function sanitize(rawConfig) {
     var thresholds = sanitizeThresholds(rawConfig.cautionThreshold, rawConfig.criticalThreshold);
     out.cautionThreshold = thresholds.caution;
     out.criticalThreshold = thresholds.critical;
-
+    out.fontFamily = sanitizeString(rawConfig.fontFamily, DEFAULTS.fontFamily);
+    out.customTextColorEnabled = sanitizeBool(rawConfig.customTextColorEnabled, DEFAULTS.customTextColorEnabled);
+    out.customTextColor = sanitizeColorString(rawConfig.customTextColor);
+    out.labelOpacity = sanitizeOpacity(rawConfig.labelOpacity);
+    out.separatorOpacity = sanitizeOpacity(rawConfig.separatorOpacity);
+    for (var p = 0; p < KNOWN_PROVIDERS.length; p++) {
+        var providerId = KNOWN_PROVIDERS[p];
+        out[providerId + "AccentColor"] = sanitizeColorString(rawConfig[providerId + "AccentColor"]);
+        out[providerId + "CustomIcon"] = sanitizeIconName(rawConfig[providerId + "CustomIcon"]);
+    }
     return out;
 }
 
@@ -236,6 +262,46 @@ function sanitizeString(value, fallback) {
         return value;
     }
     return fallback;
+}
+
+// Opacity slider guard: clamp into [0.0, 1.0]; garbage/missing → 1.0 (V1 look).
+function sanitizeOpacity(value) {
+    if (typeof value !== "number" || !isFinite(value)) {
+        return DEFAULTS.labelOpacity;
+    }
+    if (value < 0) {
+        return 0.0;
+    }
+    if (value > 1) {
+        return 1.0;
+    }
+    return value;
+}
+
+// Accepts #rgb / #rgba / #rrggbb / #rrggbbaa hex or a Qt named color (letters
+// only, e.g. "red"). Anything else → "" (theme/provider default).
+var COLOR_HEX_PATTERN = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+var COLOR_NAME_PATTERN = /^[a-zA-Z]+$/;
+
+function sanitizeColorString(value) {
+    if (typeof value !== "string" || value.length === 0) {
+        return "";
+    }
+    if (COLOR_HEX_PATTERN.test(value) || COLOR_NAME_PATTERN.test(value)) {
+        return value;
+    }
+    return "";
+}
+
+// Freedesktop icon name: starts alphanumeric, then letters/digits/dot/underscore/
+// hyphen. "" stays "" (provider default icon); anything else invalid → "".
+var ICON_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+function sanitizeIconName(value) {
+    if (typeof value !== "string" || value.length === 0) {
+        return "";
+    }
+    return ICON_NAME_PATTERN.test(value) ? value : "";
 }
 
 function sanitizeDisplayMode(value) {

@@ -80,6 +80,8 @@ PlasmoidItem {
         compactDisplayMode: root.compactDisplayMode
         separator: root.sanitizedSettings.separator
         fontScale: root.sanitizedSettings.fontScale
+        appearance: root.sanitizedSettings
+        fontFamily: root.sanitizedSettings.fontFamily
         onRequestExpand: root.expanded = true
     }
 
@@ -89,6 +91,8 @@ PlasmoidItem {
         providerOrder: root.compactDisplayConfig.order
         thresholds: root.fullThresholds
         showCountdown: root.sanitizedSettings.showCountdown
+        appearance: root.sanitizedSettings
+        fontFamily: root.sanitizedSettings.fontFamily
         onRequestRefresh: root.refresh()
     }
 }

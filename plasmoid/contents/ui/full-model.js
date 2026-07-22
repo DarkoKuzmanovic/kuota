@@ -39,8 +39,9 @@ function normalizeThresholds(thresholds) {
     return { caution: caution, critical: critical };
 }
 
-function buildFullViewModel(record, thresholds) {
+function buildFullViewModel(record, thresholds, appearance) {
     var resolvedThresholds = normalizeThresholds(thresholds);
+    var resolvedAppearance = normalizeAppearance(appearance);
     if (!isRecord(record) || typeof record.id !== "string") {
         return emptyModel();
     }
@@ -52,9 +53,16 @@ function buildFullViewModel(record, thresholds) {
         providerId: providerId,
         state: state,
         lastSuccessAt: optionalString(record.lastSuccessAt),
-        windows: buildWindowRows(record, resolvedThresholds),
+        windows: buildWindowRows(record, resolvedThresholds, resolvedAppearance.accentFor(providerId)),
         facts: buildFacts(record),
-        stateMessage: stateMessageFor(state)
+        stateMessage: stateMessageFor(state),
+        textColor: resolvedAppearance.customTextColor,
+        // iconName is exposed for API symmetry with the compact model; the
+        // compact representation is the only current visual consumer — the
+        // full representation has no per-provider icon slot (by design, icon
+        // customization is compact-rep-only). Not a bug.
+        iconName: resolvedAppearance.iconFor(providerId),
+        labelOpacity: resolvedAppearance.labelOpacity
     };
 }
 
@@ -64,11 +72,38 @@ function emptyModel() {
         state: "error",
         windows: [],
         facts: [],
-        stateMessage: STATE_MESSAGES.error
+        stateMessage: STATE_MESSAGES.error,
+        // Theming fields present with V1 defaults so a representation never
+        // reads `undefined` (undefined !== "" would misbehave in color guards).
+        textColor: "",
+        iconName: "",
+        labelOpacity: 1.0
     };
 }
 
-function buildWindowRows(record, thresholds) {
+// Defensive reader for the sanitized theming settings (same contract as
+// compact-model.js): custom text color only when enabled, "" / 1.0 = V1 look.
+function normalizeAppearance(appearance) {
+    var source = isRecord(appearance) ? appearance : {};
+    return {
+        customTextColor: source.customTextColorEnabled === true && typeof source.customTextColor === "string"
+            ? source.customTextColor
+            : "",
+        labelOpacity: typeof source.labelOpacity === "number" && isFinite(source.labelOpacity)
+            ? source.labelOpacity
+            : 1.0,
+        accentFor: function (providerId) {
+            var value = source[providerId + "AccentColor"];
+            return typeof value === "string" ? value : "";
+        },
+        iconFor: function (providerId) {
+            var value = source[providerId + "CustomIcon"];
+            return typeof value === "string" ? value : "";
+        }
+    };
+}
+
+function buildWindowRows(record, thresholds, accentColor) {
     if (!Array.isArray(record.windows)) {
         return [];
     }
@@ -79,12 +114,12 @@ function buildWindowRows(record, thresholds) {
         if (!isRecord(window)) {
             continue;
         }
-        rows.push(buildWindowRow(window, thresholds));
+        rows.push(buildWindowRow(window, thresholds, accentColor));
     }
     return rows;
 }
 
-function buildWindowRow(window, thresholds) {
+function buildWindowRow(window, thresholds, accentColor) {
     var row = {
         label: typeof window.label === "string" ? window.label : "",
         thresholdLevel: THRESHOLD_LEVEL.NONE
@@ -105,6 +140,8 @@ function buildWindowRow(window, thresholds) {
 
     var utilization = utilizationPercent(window);
     row.thresholdLevel = thresholdLevelFromUtilization(utilization, thresholds);
+    // Accent tints the bar only when no threshold is active; "" = rep default.
+    row.barColor = row.thresholdLevel !== THRESHOLD_LEVEL.NONE ? "" : (typeof accentColor === "string" ? accentColor : "");
 
     var fraction = progressFractionFromWindow(window);
     if (fraction !== undefined) {
