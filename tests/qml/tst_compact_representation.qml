@@ -423,10 +423,14 @@ TestCase {
         compare(labelValueSpacer.width, 4);
     }
 
-    // Spacers collapse with their adjacent heading so a hidden icon does not
-    // leave a phantom gap before the label, and a hidden label does not waste
-    // a gap before the value (icons mode keeps value, drops label).
-    function test_perGapSpacersHideWithAdjacentHeadings() {
+    // Per-gap spacer visibility tracks the icon AND the next visible heading, so
+    // a hidden icon does not leave a phantom gap, and in icons-only mode the
+    // icon → percentage gap uses iconLabelSpacing (the label is hidden but the
+    // value is still rendered after the icon). Regression test for the
+    // post-feedback tightening of the visibility rule — the earlier rule
+    // collapsed this spacer when showLabel was false, which left icons-only
+    // mode with no gap between icon and percentage.
+    function test_iconLabelSpacerStaysVisibleInIconsOnlyMode() {
         compact.compactDisplayMode = "icons";
         compact.iconLabelSpacing = 9;
         compact.labelValueSpacing = 5;
@@ -438,10 +442,46 @@ TestCase {
         var labelValueSpacer = findByObjectName(entry, "labelValueSpacer");
         verify(iconLabelSpacer !== null);
         verify(labelValueSpacer !== null);
-        // icons mode: showIcons=true, showLabel=false → iconLabelSpacer hidden
-        compare(iconLabelSpacer.visible, false);
-        // label is hidden so the label→value spacer is hidden too
+        // icons mode: showIcons=true, showLabel=false, showValue=true.
+        // iconLabelSpacer stays visible — it spaces icon → value.
+        compare(iconLabelSpacer.visible, true);
+        compare(iconLabelSpacer.width, 9);
+        // labelValueSpacer stays hidden — label is hidden so nothing to space from.
         compare(labelValueSpacer.visible, false);
+    }
+
+    // Edge case: in icons-only mode with an empty displayValue, the iconLabelSpacer
+    // collapses (no visible icon → value transition to space). Status must also
+    // be cleared so stateOnlyDisplayValue does not produce a fallback string.
+    function test_iconLabelSpacerHidesWhenValueIsEmptyInIconsOnlyMode() {
+        compact.compactDisplayMode = "icons";
+        compact.iconLabelSpacing = 6;
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({
+                status: "",
+                windows: [Fixtures.validWindow({ used: undefined, usedPercent: undefined })]
+            })
+        ]);
+        var entry = compact.entryRepeaterItem.itemAt(0);
+        var iconLabelSpacer = findByObjectName(entry, "iconLabelSpacer");
+        verify(iconLabelSpacer !== null);
+        compare(iconLabelSpacer.visible, false);
+    }
+
+    // text mode: no icon → iconLabelSpacer hidden; label → value still spaced.
+    function test_iconLabelSpacerHiddenInTextOnlyMode() {
+        compact.compactDisplayMode = "text";
+        compact.iconLabelSpacing = 6;
+        compact.labelValueSpacing = 4;
+        compact.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] })
+        ]);
+        var entry = compact.entryRepeaterItem.itemAt(0);
+        var iconLabelSpacer = findByObjectName(entry, "iconLabelSpacer");
+        var labelValueSpacer = findByObjectName(entry, "labelValueSpacer");
+        compare(iconLabelSpacer.visible, false);
+        compare(labelValueSpacer.visible, true);
+        compare(labelValueSpacer.width, 4);
     }
 
     function test_perGapSpacersVisibleInIconsPlusTextMode() {
