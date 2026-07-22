@@ -35,3 +35,14 @@ still requires the normal spec → grill → scope checkpoint → confirmation f
   Reuse endpoint/credential-discovery facts only — route through Kuota's own
   hardened `collector/src/io/` + `security/redact.ts`; do not copy pi-hud's
   looser `Record<string, any>` / direct-readwrite access patterns.
+
+- **1.2.0** — Appearance customization (KVitals-style). Per-provider icons
+  (freedesktop name, KDE picker, `isMask` monochrome), font family override
+  (Plasma default otherwise, orthogonal to existing V1 `fontScale`), colors
+  (opt-in global custom text color + per-provider accent), and opacity (label +
+  separator, independently). All new keys default to reproducing 1.0.0 output
+  so upgrade is a visual no-op unless the user opts in. Pure Plasma-UI concern —
+  no collector, bridge, credential, or provider-data changes. Spec:
+  `docs/specs/2026-07-22-theming-customization-design.md`. Planned after 1.1.0 so
+  per-provider accent/icon covers all providers present at ship time; provider-list-
+  agnostic if sequencing changes.

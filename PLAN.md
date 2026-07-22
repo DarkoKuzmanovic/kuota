@@ -522,12 +522,70 @@
 - **Stop conditions:** Credential exposure, auth-file truncation/mode change, overlapping refresh, malformed snapshot acceptance, unbounded provider call, or any pressure to publish without separate approval.
 - **Completion definition:** G0–G10 pass, all milestone exit gates are satisfied, live smoke tests are recorded, a reproducible artifact is produced, and KDE Store publication remains explicitly unperformed.
 
-## Handoff — 2026-07-14
+## Handoff — 2026-07-22
 
-**Done this session:** Closed G5; applied the approved Sonnet 5 reflector and hard-worker routing; completed and independently verified M6.0 lock-lifecycle durability, M6.1 strict CLI transport, M6.2 whole-document QML validation/snapshot state, M6.3 executable bridge/refresh lifecycle, and G6. The G6 review’s one failing direct-CLI test was corrected at the test-isolation boundary and the final gate passed Node 447/447, focused CLI 1/1, Qt 6 QML 124/124, typecheck, collector build, Plasma validation, artifact/package checks, secret/import scans, and `git diff --check`.
+**Done:** 1.0.0 (V1) shipped locally and merged to main 2026-07-18. Milestones 1–10 complete: all gates G0–G10 PASS, 3-provider collector (Claude/Umans/Codex) verified against real `~/.pi/agent/auth.json` (D-G3), live config-dialog smoke clean (D-G4 #1), reproducible artifact `dist/artifact/kuota-v0.1.0.plasmoid`. Historical M6-era handoff notes (previously here) are superseded by the Gate Log, which is the evidence of record.
 
-**Next up:** Resolve compact-view product decisions in open questions 10 and 11, then decompose and implement only Milestone 7: responsive compact layout, provider ordering/visibility, metric presentation, stale/auth/error treatment, threshold colors, labels/separators, and keyboard/accessibility behavior. Keep M8 out of scope.
+**Planning this session:** 1.2.0 appearance-customization (KVitals-style theming) spec written and approved — `docs/specs/2026-07-22-theming-customization-design.md` — and planned as Milestone 12 below. 1.1.0 (Grok + Kimi) spec amendment is next, then an autonomous crew run implements 1.1.0 (its own grill lands inside crew, per ROADMAP §8).
 
-**Open questions:** Compact metric defaults and user-selectable alternatives (10); caution/critical semantics for remaining percentage, used percentage, and counts (11); whether account identifiers should be further minimized in memory (14); later KDE Store artifact naming/versioning (15). Also clarify whether the approved Claude `Retry-After` override is satisfied by collector-side live-call suppression while the QML timer still invokes the collector every five minutes, or whether the QML schedule itself must defer.
+**Next up:** Amend the V1 spec provider table for Grok + Kimi (1.1.0 prerequisite), then launch the 1.1.0 crew run. 1.2.0 (M12) executes after 1.1.0 ships so per-provider accent/icon covers all providers present at ship time.
 
-**Confidence gaps:** `main.qml` has a fixed five-minute timer and no retry timestamp input, so the owner-approved retry override may be implemented at a narrower layer than intended. The packaged bridge has synthetic and offscreen coverage but no installed-path case proving `Qt.resolvedUrl(...).toString()` plus shell quoting for percent-encoded spaces/apostrophes. G6’s post-review correction was verified thoroughly but was a direct edit with no second independent reviewer. The full M5/M6 change set remains uncommitted in a shared checkout, so the verified tree is not yet a durable Git baseline.
+**Carried decisions (candidate-deferred):** l10n/KI18n catalog system choice (M10); Q15 KDE-Store artifact naming/versioning. Both natural to fold into 1.1.0 or a later release.
+
+**Not pending:** No remote configured (no PR/release step). KDE Store publication remains a separate explicitly approved step.
+
+## Milestone 12 (v1.2.0) — Appearance Customization (Theming)
+
+**Source spec:** `docs/specs/2026-07-22-theming-customization-design.md` (approved for planning by the project owner on 2026-07-22). Amends V1; V1 keys and native-Plasma default behavior are unchanged.
+
+**Outcome:** Add KVitals-style appearance customization — per-provider icons, font family, colors, and opacity — as an opt-in layer on top of the V1 configuration set. Defaults reproduce 1.0.0 output exactly so upgrade is a visual no-op. Pure Plasma-UI concern: no collector, bridge, credential, or provider-data changes.
+
+**Key deliverables:** New Theming config page; per-provider icon picker; font-family override; global custom-text-color override + per-provider accent color; label + separator opacity sliders; precedence logic in the models; test-first slices for `config-model.sanitize` additions and model precedence.
+
+**Exit gate:** Typecheck, full Node + Qt 6 QML test suites, `validate:plasma` (qmllint extended for any new `.pragma library` module), `build:artifact`, secret-scan clean (no credential surface added), `git diff --check` all pass. New QML files registered in `tst_module_isolation.qml`. Light/dark legibility verified with defaults and with overrides applied.
+
+**Depends on:** Milestone 11 (1.1.0) landing first, so per-provider accent/icon covers all providers present at ship time. Provider-list-agnostic if sequencing changes.
+
+**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 0
+
+- [ ] **M-T1 — Theming config schema + `config-model.sanitize` (test-first)**
+  - **Files:** `plasmoid/contents/config/main.xml`, `plasmoid/contents/ui/config/config-theming.qml` (new), `plasmoid/contents/ui/config-model.js`, `tests/qml/tst_config_model.qml`
+  - **Work:** Add the new KConfigXT keys (`fontFamily`, `customTextColorEnabled`, `customTextColor`, `labelOpacity`, `separatorOpacity`, per-provider `accentColor`, per-provider `customIcon`) to a new **Theming** config page (distinct from the existing V1 Appearance page; per-provider keys grouped under a repeater mirroring the Providers page). Extend `config-model.js` `sanitize()` as the single D6 read boundary: clamp opacities `[0.0, 1.0]` (garbage → `1.0`), validate color strings (garbage → theme/provider-identity default), validate icon names (empty-string or non-empty freedesktop name, else `""`), leave `fontFamily` a free string (system font resolver handles fallback). Config-page controls are UX-only, not guards.
+  - **Acceptance criteria:** Observed RED precedes production code; opacity clamping at boundaries (0.0, 1.0, out-of-range, garbage), color validation, icon-name validation, defaults-reproduce-1.0.0, and `separatorOpacity` no-op when `separator` off all pass.
+  - **Dependencies:** None within this milestone (schema-first).
+  - **Suggested lane:** medium.
+
+- [ ] **M-T2 — Compact + full model appearance consumption + precedence (test-first)**
+  - **Files:** `plasmoid/contents/ui/compact-model.js`, `plasmoid/contents/ui/full-model.js`, `tests/qml/tst_compact_model.qml`, `tests/qml/tst_full_model.qml`
+  - **Work:** Both Plasma-independent `.pragma library` models consume the sanitized appearance config to produce view models implementing the color precedence: (1) threshold color (caution/critical) always wins; (2) per-provider accent tints the full-representation progress-bar fill and the compact value text only when no threshold is active; (3) global custom text color (if enabled) overrides Plasma theme text for labels, values, and monochrome (`isMask`) icons; (4) Plasma theme default. Accent does not tint icons (monochrome, follow text-color rule) or `|` dividers (follow `separatorOpacity`). Opacity applies to alpha independently of color.
+  - **Acceptance criteria:** Observed RED precedes production code; precedence (threshold > accent > custom > theme) with all combinations active, opacity application, per-provider accent on full-rep progress bar and compact value text, accent yielding to threshold, icon-color following text-color rule (monochrome, never accent-tinted), and icon-name `""` fallback to default all pass.
+  - **Dependencies:** M-T1.
+  - **Suggested lane:** medium.
+
+- [ ] **M-T3 — Theming config page UI**
+  - **Files:** `plasmoid/contents/ui/config/config-theming.qml`, `plasmoid/contents/config/config.qml` (register the new page)
+  - **Work:** Build the Theming page: font-family control (searchable system-font dropdown or text field), custom-text-color toggle + color picker, label-opacity and separator-opacity sliders, and a per-provider repeater with accent-color picker + "Change…" icon button opening KDE's native icon picker (store freedesktop icon name). Icons render `isMask: true` (monochrome). Follow V1 i18n convention (`qsTr()`).
+  - **Acceptance criteria:** Theming page loads under `plasmoidviewer`/dialog smoke without runtime errors; icon picker opens and persists a name; color pickers write valid color strings; sliders are bounded `[0.0, 1.0]`; all controls map to the sanitized config keys (no dead controls — every control has a real consumer from M-T2).
+  - **Dependencies:** M-T1.
+  - **Suggested lane:** medium.
+
+- [ ] **M-T4 — `main.qml` wiring + isolation/qmllint registration**
+  - **Files:** `plasmoid/contents/ui/main.qml`, `plasmoid/contents/ui/CompactRepresentation.qml`, `plasmoid/contents/ui/FullRepresentation.qml`, `tests/qml/tst_module_isolation.qml`, `package.json` (qmllint list)
+  - **Work:** Apply `fontFamily` to widget text via the existing `configOverride` test seam (plasmoid-null offscreen-harness pattern). Wire appearance config through to the compact/full models. Register every new production QML file in `tst_module_isolation.qml` `productionQmlFiles` so a stray `org.kde.plasma.plasma5support` import fails the test (only `CollectorBridge.qml` may import it). Add any new `.pragma library` module to the `validate:plasma` qmllint list in `package.json`.
+  - **Acceptance criteria:** `main.qml` applies `fontFamily` and exposes appearance config to models; isolation test passes (no new file imports the forbidden API); qmllint clean; widget renders with defaults reproducing 1.0.0 and with overrides applied.
+  - **Dependencies:** M-T2, M-T3.
+  - **Suggested lane:** medium.
+
+- [ ] **G-T — Appearance customization gate**
+  - **Work:** Run focused config-model/compact-model/full-model tests, full synthetic-`HOME` typecheck + Node test suite + Qt 6 QML test suite, `validate:plasma` (qmllint extended), `build:artifact`, secret-scan over `plasmoid/` (no credential surface added), and `git diff --check`. One fresh review (lane: standard) must trace precedence correctness, no-dead-controls, isolation enforcement, and light/dark legibility with defaults and overrides.
+  - **Acceptance criteria:** All checks exit 0; review returns SHIP or APPROVED with no Blocker. Record evidence in the Gate Log.
+  - **Dependencies:** M-T1–M-T4.
+
+### Notes for 1.2.0 execution
+
+- This is a pure Plasma-UI concern. The collector, bridge, credentials, and provider-data paths are **untouched**. If any execution step touches the collector or bridge, stop and surface it.
+- `config-model.sanitize()` remains the single D6 read boundary; config-page controls are UX-only, not guards (same M9 discipline).
+- Defaults reproduce 1.0.0 exactly (opacity `1.0`, custom color disabled, accent = provider identity, custom icon = default) — verify with a defaults-reproduce-V1 test.
+- Threshold color precedence always wins over custom text color and accent — verify the combination explicitly.
+- Every new production QML file registered in `tst_module_isolation.qml` and the qmllint list (same M7/M9 discipline).
+- No `i18n()`/`i18nc()` introduction — use `qsTr()` (same M9 i18n convention).
