@@ -208,16 +208,19 @@ FocusScope {
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
-                // Per-gap spacing for issue 3 (icon → label). Explicit Item
+                // Per-gap spacing for issue 3 (icon → next visible thing). Explicit Item
                 // spacer instead of Row.spacing lets two unrelated per-gap
                 // values coexist with the entryRow's default small/2 spacing;
-                // visibility tracks the icon and label so a hidden icon does
-                // not leave a phantom gap before the label.
+                // visibility tracks the icon and the NEXT visible heading so
+                // a hidden icon does not leave a phantom gap, and in
+                // icons-only mode the icon → percentage gap uses the same
+                // iconLabelSpacing value (the label heading is hidden but the
+                // value heading is still rendered after the icon).
                 Item {
                     objectName: "iconLabelSpacer"
                     width: compactRoot.iconLabelSpacing
                     height: 1
-                    visible: compactRoot.showIcons && compactRoot.showLabel
+                    visible: compactRoot.showIcons && (compactRoot.showLabel || (compactRoot.showValue && modelData.displayValue.length > 0))
                 }
 
                 Kirigami.Heading {
