@@ -244,9 +244,32 @@ Kirigami.FormLayout {
     Iconthemes.IconDialog {
         id: iconDialog
         property string targetProvider: ""
+        // Mirror config-model.sanitizeIconName's file:// strip at write time so
+        // the cfg value the preview reads is always a bare path or theme name.
+        // IconDialog returns a freedesktop icon name for theme picks and a
+        // file:// URL for "Other icons" Browse picks; configTheming.qml
+        // isLocalIconPath only recognizes /-prefixed strings, so a raw file://
+        // URL would assign the URL to icon.name and leave icon.source empty
+        // until sanitize strips it at the widget boundary. Strip here so the
+        // preview is consistent with what the widget will render.
+        //
+        // UX-only duplicate, NOT a guard: per M9 D6 discipline, config-page
+        // controls are UX-only and the canonical sanitize() in config-model.js
+        // is the single read boundary that strips the same prefix at the widget
+        // side. If the two ever drift, sanitize() wins; this just keeps the
+        // preview swatch honest until then.
+        function _stripFileUrl(value) {
+            if (value.indexOf("file://") === 0) {
+                value = value.slice(7);
+                if (value.indexOf("/") !== 0 && value.indexOf("localhost/") === 0) {
+                    value = value.slice("localhost".length);
+                }
+            }
+            return value;
+        }
         onIconNameChanged: {
             if (targetProvider !== "" && iconName !== "") {
-                page["cfg_" + targetProvider + "CustomIcon"] = iconName;
+                page["cfg_" + targetProvider + "CustomIcon"] = _stripFileUrl(iconName);
             }
         }
     }

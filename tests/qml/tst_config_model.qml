@@ -371,6 +371,35 @@ TestCase {
         compare(badPaths.codexCustomIcon, "");
         compare(badPaths.grokCustomIcon, "");
         compare(badPaths.kimiCustomIcon, "");
+
+        // URL-significant characters in the accepted path. The path is later
+        // embedded in a `file://` URL that Qt percent-decodes at load time, so
+        // `%2e%2e` resolves to `..` and bypasses pathHasDotDot. `%`, `#`, `?`
+        // break URL parsing even for literal filenames. Reject at sanitize so
+        // a bare `/tmp/x%23y.png` (which would still pass the literal-path
+        // checks) is normalised to "" before reaching iconSourceFor.
+        var encoded = ConfigModel.sanitize({
+            claudeCustomIcon: "/tmp/icons/%2e%2e/private/logo.png",
+            umansCustomIcon: "/tmp/a%2f..%2fb.png",
+            codexCustomIcon: "/tmp/logo%00.png",
+            grokCustomIcon: "/tmp/has%23hash.png",
+            kimiCustomIcon: "/tmp/has%3Fquestion.png"
+        });
+        compare(encoded.claudeCustomIcon, "");
+        compare(encoded.umansCustomIcon, "");
+        compare(encoded.codexCustomIcon, "");
+        compare(encoded.grokCustomIcon, "");
+        compare(encoded.kimiCustomIcon, "");
+
+        // Bare `#` and `?` in the value (after file:// strip) must also be
+        // rejected — the sanitizer treats them as URL-significant in any
+        // position, not only after decoding.
+        var urlSigns = ConfigModel.sanitize({
+            claudeCustomIcon: "/tmp/icons/hash#fragment.png",
+            umansCustomIcon: "/tmp/icons/query?param.png"
+        });
+        compare(urlSigns.claudeCustomIcon, "");
+        compare(urlSigns.umansCustomIcon, "");
     }
 
     function test_fontFamilyFreeStringWithGarbageFallback() {
