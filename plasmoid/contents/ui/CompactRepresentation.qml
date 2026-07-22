@@ -195,66 +195,79 @@ FocusScope {
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
-                Kirigami.Icon {
-                    objectName: "providerIcon"
-                    visible: compactRoot.showIcons
-                    width: compactRoot.iconSize
-                    height: width
-                    source: compactRoot.iconSourceFor(modelData)
-                    // Monochrome mask for theme icon names when theming is active;
-                    // local image paths keep full color so custom PNG/SVG logos show.
-                    isMask: compactRoot.iconIsMask(modelData)
-                    color: modelData.textColor !== "" ? modelData.textColor : Kirigami.Theme.textColor
+                // Inner group: spacing 0 so the two configured spacers below are
+                // the ONLY gaps between icon / label / value. As direct entryRow
+                // children they picked up entryRow.spacing (smallSpacing/2) on
+                // both sides, so a configured 0 could never collapse a gap (it
+                // floored at smallSpacing). The outer entryRow.spacing is
+                // intentionally retained for the separator / valueDot / state
+                // siblings that still need their V1 small/2 look.
+                Row {
+                    id: iconLabelValueGroup
+                    spacing: 0
                     anchors.verticalCenter: parent.verticalCenter
-                }
 
-                // Per-gap spacing for issue 3 (icon → next visible thing). Explicit Item
-                // spacer instead of Row.spacing lets two unrelated per-gap
-                // values coexist with the entryRow's default small/2 spacing;
-                // visibility tracks the icon and the NEXT visible heading so
-                // a hidden icon does not leave a phantom gap, and in
-                // icons-only mode the icon → percentage gap uses the same
-                // iconLabelSpacing value (the label heading is hidden but the
-                // value heading is still rendered after the icon).
-                Item {
-                    objectName: "iconLabelSpacer"
-                    width: compactRoot.iconLabelSpacing
-                    height: 1
-                    visible: compactRoot.showIcons && (compactRoot.showLabel || (compactRoot.showValue && modelData.displayValue.length > 0))
-                }
+                    Kirigami.Icon {
+                        objectName: "providerIcon"
+                        visible: compactRoot.showIcons
+                        width: compactRoot.iconSize
+                        height: width
+                        source: compactRoot.iconSourceFor(modelData)
+                        // Monochrome mask for theme icon names when theming is active;
+                        // local image paths keep full color so custom PNG/SVG logos show.
+                        isMask: compactRoot.iconIsMask(modelData)
+                        color: modelData.textColor !== "" ? modelData.textColor : Kirigami.Theme.textColor
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
 
-                Kirigami.Heading {
-                    objectName: "labelHeading"
-                    visible: compactRoot.showLabel
-                    level: 5
-                    font.pointSize: compactRoot.fontPointSize
-                    font.family: compactRoot.effectiveFontFamily
-                    color: modelData.textColor !== "" ? modelData.textColor : Kirigami.Theme.textColor
-                    opacity: 0.7 * modelData.labelOpacity
-                    text: modelData.label
-                    anchors.verticalCenter: parent.verticalCenter
-                }
+                    // Per-gap spacing for issue 3 (icon → next visible thing). Explicit Item
+                    // spacer instead of Row.spacing lets two unrelated per-gap
+                    // values coexist with the entryRow's default small/2 spacing;
+                    // visibility tracks the icon and the NEXT visible heading so
+                    // a hidden icon does not leave a phantom gap, and in
+                    // icons-only mode the icon → percentage gap uses the same
+                    // iconLabelSpacing value (the label heading is hidden but the
+                    // value heading is still rendered after the icon).
+                    Item {
+                        objectName: "iconLabelSpacer"
+                        width: compactRoot.iconLabelSpacing
+                        height: 1
+                        visible: compactRoot.showIcons && (compactRoot.showLabel || (compactRoot.showValue && modelData.displayValue.length > 0))
+                    }
 
-                // Per-gap spacing for issue 3 (label → value). Visibility
-                // tracks the label and value so a hidden label does not waste
-                // a gap before the value (icons mode keeps value, drops label).
-                Item {
-                    objectName: "labelValueSpacer"
-                    width: compactRoot.labelValueSpacing
-                    height: 1
-                    visible: compactRoot.showLabel && compactRoot.showValue && modelData.displayValue.length > 0
-                }
+                    Kirigami.Heading {
+                        objectName: "labelHeading"
+                        visible: compactRoot.showLabel
+                        level: 5
+                        font.pointSize: compactRoot.fontPointSize
+                        font.family: compactRoot.effectiveFontFamily
+                        color: modelData.textColor !== "" ? modelData.textColor : Kirigami.Theme.textColor
+                        opacity: 0.7 * modelData.labelOpacity
+                        text: modelData.label
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
 
-                Kirigami.Heading {
-                    objectName: "valueHeading"
-                    visible: compactRoot.showValue && modelData.displayValue.length > 0
-                    level: 5
-                    font.pointSize: compactRoot.fontPointSize
-                    font.family: compactRoot.effectiveFontFamily
-                    font.weight: Font.DemiBold
-                    color: modelData.valueColor !== "" ? modelData.valueColor : compactRoot.valueTextColor(modelData.thresholdLevel)
-                    text: modelData.displayValue
-                    anchors.verticalCenter: parent.verticalCenter
+                    // Per-gap spacing for issue 3 (label → value). Visibility
+                    // tracks the label and value so a hidden label does not waste
+                    // a gap before the value (icons mode keeps value, drops label).
+                    Item {
+                        objectName: "labelValueSpacer"
+                        width: compactRoot.labelValueSpacing
+                        height: 1
+                        visible: compactRoot.showLabel && compactRoot.showValue && modelData.displayValue.length > 0
+                    }
+
+                    Kirigami.Heading {
+                        objectName: "valueHeading"
+                        visible: compactRoot.showValue && modelData.displayValue.length > 0
+                        level: 5
+                        font.pointSize: compactRoot.fontPointSize
+                        font.family: compactRoot.effectiveFontFamily
+                        font.weight: Font.DemiBold
+                        color: modelData.valueColor !== "" ? modelData.valueColor : compactRoot.valueTextColor(modelData.thresholdLevel)
+                        text: modelData.displayValue
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
 
                 Rectangle {
