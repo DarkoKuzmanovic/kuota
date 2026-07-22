@@ -400,4 +400,56 @@ TestCase {
         // Invalid (caution >= critical) → falls back to the 75/90 default rule.
         compare(row.thresholdLevel, "caution");
     }
+
+    // ---- M-T2 theming consumption + precedence ----
+
+    function test_fullNoAppearanceArgReproducesV1() {
+        var record = Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 42 })] });
+        var model = FullModel.buildFullViewModel(record);
+        compare(model.textColor, "");
+        compare(model.iconName, "");
+        compare(model.labelOpacity, 1.0);
+        compare(windowRow(model, 0).barColor, "");
+    }
+
+    function test_fullAccentOnProgressBarYieldsToThresholdPerRow() {
+        var record = Fixtures.validClaudeProvider({
+            windows: [
+                Fixtures.validWindow({ usedPercent: 95 }),
+                Fixtures.validWindow({ usedPercent: 10 })
+            ]
+        });
+        var model = FullModel.buildFullViewModel(record, undefined, { claudeAccentColor: "#123456" });
+        // Critical row: threshold color (rep-resolved) wins → no accent override.
+        compare(windowRow(model, 0).thresholdLevel, "critical");
+        compare(windowRow(model, 0).barColor, "");
+        // Calm row: accent tints the progress-bar fill.
+        compare(windowRow(model, 1).thresholdLevel, "none");
+        compare(windowRow(model, 1).barColor, "#123456");
+    }
+
+    function test_fullCustomTextColorAndIcon() {
+        var record = Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 95 })] });
+        var model = FullModel.buildFullViewModel(record, undefined, {
+            customTextColorEnabled: true,
+            customTextColor: "#00ff00",
+            claudeCustomIcon: "utilities-terminal",
+            labelOpacity: 0.6
+        });
+        // Facts/labels are never threshold-tinted, so the custom text color applies
+        // even with a critical row present; the bar still yields to the threshold.
+        compare(model.textColor, "#00ff00");
+        compare(model.iconName, "utilities-terminal");
+        compare(model.labelOpacity, 0.6);
+        compare(windowRow(model, 0).barColor, "");
+    }
+
+    function test_fullCustomTextColorDisabledIsIgnored() {
+        var record = Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 42 })] });
+        var model = FullModel.buildFullViewModel(record, undefined, {
+            customTextColorEnabled: false,
+            customTextColor: "#00ff00"
+        });
+        compare(model.textColor, "");
+    }
 }
