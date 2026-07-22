@@ -40,7 +40,7 @@ Out of scope for 1.2.0:
 
 ## Configuration
 
-New keys added to the flat KConfigXT schema in `plasmoid/contents/config/main.xml`, under a new **Appearance** config page (distinct from the V1 Appearance page, which keeps display mode / separator / font scale / countdown visibility). Existing V1 keys are unchanged.
+New keys added to the flat KConfigXT schema in `plasmoid/contents/config/main.xml`, under a new **Theming** config page (the existing V1 Appearance page keeps display mode / separator / font scale / countdown visibility; the V1 Thresholds page keeps caution/critical). The per-provider `accentColor` and `customIcon` keys are grouped under a per-provider repeater on the Theming page, mirroring the V1 Providers page's per-provider structure. Existing V1 keys are unchanged.
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
@@ -74,10 +74,10 @@ As in V1, the config-page spinbox/slider min/max are UX-only, not the guard — 
 
 Color precedence, high to low:
 
-1. **Threshold color** (caution / critical) when active — always wins, even over a custom text color. This preserves the at-a-glance alert semantics from V1.
-2. **Per-provider accent color** — tints that provider's progress-bar fill and compact chip, only when no threshold is active for that provider.
-3. **Global custom text color** (if `customTextColorEnabled`) — overrides Plasma theme text for labels, values, and icons otherwise.
-4. **Plasma theme color** — default.
+1. **Threshold color** (caution / critical) when active — always wins, even over a custom text color or accent. This preserves the at-a-glance alert semantics from V1.
+2. **Per-provider accent color** — tints that provider's full-representation progress-bar fill and its compact-representation value text, only when no threshold is active for that provider. It does not tint the provider's icon (icons are `isMask` monochrome and follow the text-color rule below) or the compact `|` dividers (those follow `separatorOpacity`).
+3. **Global custom text color** (if `customTextColorEnabled`) — overrides Plasma theme text for labels, values, and monochrome (`isMask`) icons otherwise.
+4. **Plasma theme color** — default for text, labels, and icons.
 
 Opacity is independent of color and applies to alpha:
 
@@ -90,7 +90,7 @@ Both clamp to `[0.0, 1.0]`. There is no floor beyond 0.0 — a user can fully hi
 
 ### Icons
 
-Each provider gains a "Change…" control on the Appearance page that opens KDE's native icon picker; the selection is stored as a freedesktop icon name in `customIcon`. Rendering uses `isMask: true` (monochrome — the icon adopts the panel text color), identical to KVitals, so icons remain legible on both light and dark panels and under the custom-text-color override. A `""` / unset value falls back to the provider's default icon.
+Each provider gains a "Change…" control on the Theming page that opens KDE's native icon picker; the selection is stored as a freedesktop icon name in `customIcon`. Rendering uses `isMask: true` (monochrome — the icon adopts the panel text color), identical to KVitals, so icons remain legible on both light and dark panels and under the custom-text-color override. A `""` / unset value falls back to the provider's default icon.
 
 The exact picker component (Kirigami `IconDialog` or an equivalent Plasma 6 / Qt 6 mechanism) is confirmed at implementation time. The contract the collector and models rely on is: "store an icon name, render monochrome." No icon bytes or asset files enter the package.
 
@@ -105,12 +105,12 @@ Appearance customization is a **pure Plasma-UI concern**. It touches no collecto
 Testing follows the established V1 split:
 
 - **`config-model.js`** (`sanitize`) — unit-tested via the Qt 6 runner as a Plasma-independent `.pragma library` module. New tests cover opacity clamping, color validation, icon-name validation, and defaults-reproduce-V1.
-- **`compact-model.js` / `full-model.js`** — consume the sanitized appearance config to produce view models; the color/opacity precedence logic is unit-testable here, Plasma-independent. New tests cover precedence (threshold > accent > custom > theme), opacity application, per-provider accent on progress bar and chip, and icon-name fallback to default.
+- **`compact-model.js` / `full-model.js`** — consume the sanitized appearance config to produce view models; the color/opacity precedence logic is unit-testable here, Plasma-independent. New tests cover precedence (threshold > accent > custom > theme), opacity application, per-provider accent on the full-representation progress bar and on the compact value text, accent yielding to threshold, icon-color following the text-color rule (monochrome, never accent-tinted), and icon-name fallback to default.
 - **`main.qml`** — applies `fontFamily` to widget text and exposes appearance config to the models via the existing `configOverride` test seam (the `plasmoid`-null offscreen-harness pattern from V1).
 - **New QML files** are registered in `tests/qml/tst_module_isolation.qml` so a stray `org.kde.plasma.plasma5support` import fails the test (only `CollectorBridge.qml` may import it).
 - **qmllint** list in `package.json` extended for any new `.pragma library` module.
 
-Test paths (not only happy paths): precedence ordering with all combinations active; opacity clamping at boundaries; defaults reproduce 1.0.0 output exactly; per-provider accent applies to progress bar / chip and yields to threshold; custom text color does not override an active threshold; icon name `""` falls back to default; unknown `fontFamily` falls back to Plasma default; light and dark themes with defaults, and with overrides applied.
+Test paths (not only happy paths): precedence ordering with all combinations active; opacity clamping at boundaries; defaults reproduce 1.0.0 output exactly; per-provider accent applies to the full-representation progress bar and the compact value text and yields to threshold; custom text color does not override an active threshold; icon name `""` falls back to default; unknown `fontFamily` falls back to Plasma default; light and dark themes with defaults, and with overrides applied.
 
 ## Failure behavior
 
