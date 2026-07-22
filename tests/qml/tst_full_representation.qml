@@ -376,4 +376,41 @@ TestCase {
         compare(full.windowValueTextColor("none"), Kirigami.Theme.textColor);
         compare(full.windowValueTextColor("caution"), Kirigami.Theme.neutralTextColor);
     }
+
+    // All five V1 providers must render with a capitalized display name in
+    // the full-view tab bar. The earlier switch fell through to the raw
+    // providerId for grok and kimi, producing lowercase "grok"/"kimi" tabs
+    // next to the capitalized Claude/Umans/Codex tabs.
+    function test_providerDisplayNameCapitalizesAllProviders() {
+        compare(full.providerDisplayName("claude"), "Claude");
+        compare(full.providerDisplayName("umans"), "Umans");
+        compare(full.providerDisplayName("codex"), "Codex");
+        compare(full.providerDisplayName("grok"), "Grok");
+        compare(full.providerDisplayName("kimi"), "Kimi");
+    }
+
+    // Regression: the tab button text for grok and kimi providers must reflect
+    // the display name, not the raw lowercase providerId.
+    function test_tabButtonsUseCapitalizedDisplayNames() {
+        full.providerOrder = ["claude", "umans", "codex", "grok", "kimi"];
+        full.snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider(),
+            Fixtures.validUmansProvider(),
+            Fixtures.validCodexProvider(),
+            Fixtures.validGrokProvider(),
+            Fixtures.validKimiProvider()
+        ]);
+        var tabBar = full.providerSwitcherItem;
+        verify(tabBar !== null);
+        var labels = [];
+        for (var i = 0; i < tabBar.count; i++) {
+            labels.push(tabBar.itemAt(i).text);
+        }
+        compare(labels.length, 5);
+        compare(labels[0], "Claude");
+        compare(labels[1], "Umans");
+        compare(labels[2], "Codex");
+        compare(labels[3], "Grok");
+        compare(labels[4], "Kimi");
+    }
 }

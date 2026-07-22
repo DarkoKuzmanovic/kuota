@@ -93,6 +93,10 @@ FocusScope {
             return qsTr("Umans");
         case "codex":
             return qsTr("Codex");
+        case "grok":
+            return qsTr("Grok");
+        case "kimi":
+            return qsTr("Kimi");
         default:
             return providerId;
         }
