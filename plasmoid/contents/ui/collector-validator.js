@@ -13,7 +13,7 @@
 // from process output that must never be echoed back verbatim.
 
 var SCHEMA_VERSION = 1;
-var PROVIDER_IDS = ["claude", "umans", "codex"];
+var PROVIDER_IDS = ["claude", "umans", "codex", "grok", "kimi"];
 var PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"];
 var MAX_INPUT_LENGTH = 262144; // 256 KiB of QML string content.
 
@@ -32,6 +32,8 @@ var CLAUDE_DETAIL_KEYS = [
 ];
 var UMANS_DETAIL_KEYS = ["plan", "requests", "concurrency", "concurrencyLimit"];
 var CODEX_DETAIL_KEYS = ["plan", "credits", "cost", "tokens"];
+var GROK_DETAIL_KEYS = ["monthlyUsed", "monthlyLimit", "monthlyResetAt"];
+var KIMI_DETAIL_KEYS = ["concurrency", "concurrencyLimit"];
 
 var UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 var WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -236,7 +238,11 @@ function parseProviderDetails(input, id, state) {
         return undefined;
     }
 
-    var detailKeys = id === "claude" ? CLAUDE_DETAIL_KEYS : id === "umans" ? UMANS_DETAIL_KEYS : CODEX_DETAIL_KEYS;
+    var detailKeys = id === "claude" ? CLAUDE_DETAIL_KEYS
+        : id === "umans" ? UMANS_DETAIL_KEYS
+        : id === "codex" ? CODEX_DETAIL_KEYS
+        : id === "grok" ? GROK_DETAIL_KEYS
+        : KIMI_DETAIL_KEYS;
     var details = parseDetailFields(input[id], detailKeys, id, state);
     if (state.invalid !== startInvalid && details === undefined) {
         return undefined;
@@ -292,11 +298,18 @@ function parseDetailFields(input, allowedKeys, id, state) {
         assignIfDefined(details, "requests", parseOptionalCount(input, "requests", state));
         assignIfDefined(details, "concurrency", parseOptionalCount(input, "concurrency", state));
         assignIfDefined(details, "concurrencyLimit", parseOptionalCount(input, "concurrencyLimit", state));
-    } else {
+    } else if (id === "codex") {
         assignIfDefined(details, "plan", parseOptionalSafeText(input, "plan", 100, state));
         assignIfDefined(details, "credits", parseOptionalNonNegativeNumber(input, "credits", state));
         assignIfDefined(details, "cost", parseOptionalNonNegativeNumber(input, "cost", state));
         assignIfDefined(details, "tokens", parseOptionalCount(input, "tokens", state));
+    } else if (id === "grok") {
+        assignIfDefined(details, "monthlyUsed", parseOptionalNonNegativeNumber(input, "monthlyUsed", state));
+        assignIfDefined(details, "monthlyLimit", parseOptionalNonNegativeNumber(input, "monthlyLimit", state));
+        assignIfDefined(details, "monthlyResetAt", parseOptionalTimestamp(input, "monthlyResetAt", state));
+    } else {
+        assignIfDefined(details, "concurrency", parseOptionalCount(input, "concurrency", state));
+        assignIfDefined(details, "concurrencyLimit", parseOptionalCount(input, "concurrencyLimit", state));
     }
 
     if (state.invalid !== startInvalid) {

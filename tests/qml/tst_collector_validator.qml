@@ -77,6 +77,33 @@ TestCase {
         compare(result.value.providers[1].state, "auth-needed");
     }
 
+    // Regression: the collector always emits all five providers (grok/kimi
+    // added in the integration milestone). A stale QML PROVIDER_IDS/detail
+    // allowlist rejected the whole document as schema-invalid, blanking the
+    // widget for every user. This asserts the mirror accepts grok/kimi and
+    // parses their namespaced details.
+    function test_acceptsGrokAndKimiProviders() {
+        var document = Fixtures.minimalDocument({
+            providers: [
+                Fixtures.validClaudeProvider(),
+                Fixtures.validUmansProvider(),
+                Fixtures.validCodexProvider(),
+                Fixtures.validGrokProvider(),
+                Fixtures.validKimiProvider()
+            ]
+        });
+        var result = CollectorValidator.validateCollectorResponse(json(document));
+        compare(result.ok, true);
+        compare(result.value.providers.length, 5);
+        compare(result.value.providers[3].id, "grok");
+        compare(result.value.providers[3].details.grok.monthlyUsed, 3669);
+        compare(result.value.providers[3].details.grok.monthlyLimit, 20000);
+        compare(result.value.providers[3].details.grok.monthlyResetAt, "2026-08-01T00:00:00.000Z");
+        compare(result.value.providers[4].id, "kimi");
+        compare(result.value.providers[4].details.kimi.concurrency, 2);
+        compare(result.value.providers[4].details.kimi.concurrencyLimit, 20);
+    }
+
     function test_acceptsValidPartialProviderSuccess() {
         var document = Fixtures.minimalDocument({ providers: [Fixtures.validClaudeProvider()] });
         var result = CollectorValidator.validateCollectorResponse(json(document));

@@ -60,6 +60,28 @@ function validCodexProvider(overrides) {
     }, overrides);
 }
 
+function validGrokProvider(overrides) {
+    return shallowMerge({
+        id: "grok",
+        state: "ok",
+        status: "Usage is current",
+        lastSuccessAt: "2026-07-11T10:00:01.000Z",
+        windows: [validWindow()],
+        details: { grok: { monthlyUsed: 3669, monthlyLimit: 20000, monthlyResetAt: "2026-08-01T00:00:00.000Z" } }
+    }, overrides);
+}
+
+function validKimiProvider(overrides) {
+    return shallowMerge({
+        id: "kimi",
+        state: "ok",
+        status: "Usage is current",
+        lastSuccessAt: "2026-07-11T10:00:01.000Z",
+        windows: [validWindow()],
+        details: { kimi: { concurrency: 2, concurrencyLimit: 20 } }
+    }, overrides);
+}
+
 function validStaleClaudeProvider(overrides) {
     return shallowMerge({
         id: "claude",
