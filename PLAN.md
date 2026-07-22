@@ -628,7 +628,7 @@ Adversarial grill of the 1.1.0 spec amendment surfaced 6 candidate cracks. All 6
 
 **Depends on:** Milestone 11 (1.1.0) landing first, so per-provider accent/icon covers all providers present at ship time. Provider-list-agnostic if sequencing changes.
 
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 2
+**Counters:** reviews: 1 (G-T round 1: CHANGES NEEDED, 2 Major) · fix-cycles: 1 · oracle: 0 · direct-edits: 4
 
 - [x] **M-T1 — Theming config schema + `config-model.sanitize` (test-first)**
   - **Files:** `plasmoid/contents/config/main.xml`, `plasmoid/contents/ui/config/config-theming.qml` (new), `plasmoid/contents/ui/config-model.js`, `tests/qml/tst_config_model.qml`

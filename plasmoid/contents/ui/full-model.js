@@ -72,7 +72,12 @@ function emptyModel() {
         state: "error",
         windows: [],
         facts: [],
-        stateMessage: STATE_MESSAGES.error
+        stateMessage: STATE_MESSAGES.error,
+        // Theming fields present with V1 defaults so a representation never
+        // reads `undefined` (undefined !== "" would misbehave in color guards).
+        textColor: "",
+        iconName: "",
+        labelOpacity: 1.0
     };
 }
 

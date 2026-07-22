@@ -108,6 +108,17 @@ FocusScope {
             return Kirigami.Theme.textColor;
         }
     }
+    // Metric value color with theming precedence (review G-T Major 2):
+    // threshold colors win; when no threshold is active, the custom text
+    // color applies; otherwise the theme default.
+    function windowValueTextColor(thresholdLevel) {
+        if (thresholdLevel === "none"
+                && activeModel !== null
+                && activeModel.textColor !== "") {
+            return activeModel.textColor;
+        }
+        return valueTextColor(thresholdLevel);
+    }
 
     function formatTimestamp(isoString) {
         if (typeof isoString !== "string" || isoString.length === 0) {
@@ -207,6 +218,7 @@ FocusScope {
                     required property string modelData
                     text: fullRoot.providerDisplayName(modelData)
                     Accessible.name: text
+                    font.family: fullRoot.effectiveFontFamily
                 }
             }
         }
@@ -237,6 +249,7 @@ FocusScope {
                             ? qsTr("Updated %1").arg(fullRoot.formatTimestamp(fullRoot.activeModel.lastSuccessAt))
                             : ""
                         opacity: 0.7
+                        font.family: fullRoot.effectiveFontFamily
                     }
 
                     Controls.ToolButton {
@@ -257,6 +270,7 @@ FocusScope {
                         && fullRoot.activeModel.stateMessage !== undefined
                         && fullRoot.activeModel.stateMessage.length > 0
                     text: (fullRoot.activeModel !== null && fullRoot.activeModel.stateMessage !== undefined) ? fullRoot.activeModel.stateMessage : ""
+                    font.family: fullRoot.effectiveFontFamily
                     type: {
                         if (fullRoot.activeRecord === null) {
                             return Kirigami.MessageType.Information;
@@ -281,6 +295,7 @@ FocusScope {
                         && (fullRoot.activeModel.stateMessage === undefined || fullRoot.activeModel.stateMessage.length === 0)
                     text: qsTr("No usage data")
                     opacity: 0.7
+                    font.family: fullRoot.effectiveFontFamily
                 }
 
                 Repeater {
@@ -324,7 +339,8 @@ FocusScope {
                                 Controls.Label {
                                     visible: windowRow.modelData.usedPercent !== undefined
                                     text: Math.floor(windowRow.modelData.usedPercent) + "%"
-                                    color: fullRoot.valueTextColor(windowRow.modelData.thresholdLevel)
+                                    color: fullRoot.windowValueTextColor(windowRow.modelData.thresholdLevel)
+                                    font.family: fullRoot.effectiveFontFamily
                                 }
                             }
 
@@ -361,7 +377,8 @@ FocusScope {
                                     text: windowRow.modelData.limit !== undefined
                                         ? qsTr("%1 of %2 used").arg(windowRow.modelData.used).arg(windowRow.modelData.limit)
                                         : qsTr("%1 used").arg(windowRow.modelData.used)
-                                    color: fullRoot.valueTextColor(windowRow.modelData.thresholdLevel)
+                                    color: fullRoot.windowValueTextColor(windowRow.modelData.thresholdLevel)
+                                    font.family: fullRoot.effectiveFontFamily
                                 }
 
                                 Item { Layout.fillWidth: true }
@@ -369,6 +386,7 @@ FocusScope {
                                 Controls.Label {
                                     visible: windowRow.modelData.remaining !== undefined
                                     text: qsTr("%1 remaining").arg(windowRow.modelData.remaining)
+                                    font.family: fullRoot.effectiveFontFamily
                                 }
                             }
 
@@ -387,6 +405,7 @@ FocusScope {
                                 Controls.Label {
                                     text: fullRoot.resetLineText(windowRow.modelData.resetAt)
                                     opacity: 0.8
+                                    font.family: fullRoot.effectiveFontFamily
                                 }
                             }
                         }
@@ -456,6 +475,9 @@ FocusScope {
             icon.name: "network-server"
             text: qsTr("Kuota")
             explanation: qsTr("No provider data yet")
+            // NOTE: PlaceholderMessage exposes no `font` property (qmllint:
+            // unresolved grouped property) — bootstrap empty-state text keeps
+            // the theme font; documented divergence from "all widget text".
             // Refresh lives in the provider header (F4), which is gated on
             // hasProviders; give the empty state its own retry affordance so
             // the user is never stranded without a way to refresh.
