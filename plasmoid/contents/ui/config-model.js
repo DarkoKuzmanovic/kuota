@@ -343,6 +343,18 @@ function sanitizeIconName(value) {
             path = path.slice("localhost".length);
         }
     }
+    // Reject URL-significant characters. The accepted path is later embedded in
+    // a `file://` URL, where Qt percent-decodes at load time: `%2e%2e` would
+    // resolve to `..` and bypass pathHasDotDot, and `%`, `#`, `?` break URL
+    // parsing even for literal filenames. Rejecting at sanitize is cheaper
+    // than percent-encoding every accepted path at the iconSourceFor site and
+    // matches the V1 contract that custom-icon paths are filesystem-safe
+    // absolutes. Not a security boundary (the cfg value is the user's own
+    // KConfig and any absolute path is already accepted by design); this is
+    // hygiene against percent-decoded traversal and broken filenames.
+    if (/[%#?]/.test(path)) {
+        return "";
+    }
     if (path.charAt(0) === "/" && !pathHasDotDot(path) && ICON_PATH_PATTERN.test(path)) {
         return path;
     }
