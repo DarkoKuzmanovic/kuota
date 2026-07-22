@@ -149,6 +149,26 @@ Known data includes requests in the rolling window, optional request limit, wind
 
 For unlimited request plans, Kuota shows request count and reset timing without inventing a utilization percentage.
 
+### Grok
+
+Source: `https://cli-chat-proxy.grok.com/v1/billing` using the existing xAI OAuth entry in `~/.pi/agent/auth.json` (`auth.xai`, `auth["xai-auth"]`, `auth["grok-cli"]`, or `GROK_CLI_OAUTH_TOKEN` fallback). The request carries a Bearer token and the `x-xai-token-auth: xai-grok-cli` header.
+
+Known data includes monthly credits required for use and an optional weekly window.
+
+Kuota routes Grok through its own hardened `collector/src/io/` fetch and `security/redact.ts` paths. Recon facts are reused from pi-hud (live-verified 2026-07-17); Kuota does not copy pi-hud's looser `Record<string, any>` / direct-readwrite access patterns. No credential persistence is performed for Grok in 1.1.0.
+
+### Kimi
+
+Source: `https://api.kimi.com/coding/v1/usages` using the existing Kimi coding OAuth entry in `~/.pi/agent/auth.json` (`auth["kimi-coding"]`, or `KIMI_API_KEY` fallback). The request carries a Bearer token.
+
+Known data includes weekly and short usage windows plus concurrency; numeric fields arrive as strings and are normalized to numbers.
+
+Kuota routes Kimi through the same hardened collector fetch and redaction paths as Grok. No credential persistence is performed for Kimi in 1.1.0.
+
+### 1.1.0 provider amendment
+
+Grok and Kimi are added in 1.1.0, amending owner-approved Decision #2 (which froze V1 at Claude/Umans/Codex). This re-opens the design spec provider table, the collector contract `ProviderId` union and `details.{grok,kimi}` namespaces, the registry canonical order, the QML compact/full model allowlists, the config UI, and the docs. Recon is complete (pi-hud, live-verified 2026-07-17); implementation follows the normal spec → grill → scope checkpoint → confirmation flow. Both adapters follow the existing adapter patterns (auth discovery → one bounded fetch → normalization → registry), with no curl fallback or token refresh in 1.1.0 unless recon reveals it is required.
+
 ## Credential and file safety
 
 Kuota treats `~/.pi/agent/auth.json` as sensitive shared state.
@@ -249,7 +269,7 @@ Publishing to the KDE Store is a separate, explicitly approved release step.
 
 ## Out of scope for v1
 
-- providers beyond Claude, Umans, and Codex;
+- providers beyond Claude, Umans, Codex, Grok, and Kimi (Grok + Kimi added in 1.1.0; further providers remain out of scope);
 - cross-machine aggregation;
 - long-term historical charts;
 - notifications;
