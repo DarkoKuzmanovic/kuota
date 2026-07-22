@@ -239,6 +239,119 @@ TestCase {
         compare(JSON.stringify(sanitized.providerOrder), JSON.stringify(["claude", "umans", "codex", "grok", "kimi"]));
     }
 
+    // ---- M-T1 theming schema ----
+
+    function test_themingDefaultsReproduceV1() {
+        var empty = ConfigModel.sanitize({});
+        compare(empty.fontFamily, "");
+        compare(empty.customTextColorEnabled, false);
+        compare(empty.customTextColor, "");
+        compare(empty.labelOpacity, 1.0);
+        compare(empty.separatorOpacity, 1.0);
+        var providers = ["claude", "umans", "codex", "grok", "kimi"];
+        for (var i = 0; i < providers.length; i++) {
+            compare(empty[providers[i] + "AccentColor"], "");
+            compare(empty[providers[i] + "CustomIcon"], "");
+        }
+
+        var nullInput = ConfigModel.sanitize(null);
+        compare(nullInput.fontFamily, "");
+        compare(nullInput.labelOpacity, 1.0);
+        compare(nullInput.separatorOpacity, 1.0);
+    }
+
+    function test_opacityClampingBoundariesAndGarbage() {
+        var low = ConfigModel.sanitize({ labelOpacity: -0.5, separatorOpacity: -1 });
+        compare(low.labelOpacity, 0.0);
+        compare(low.separatorOpacity, 0.0);
+
+        var high = ConfigModel.sanitize({ labelOpacity: 1.5, separatorOpacity: 99 });
+        compare(high.labelOpacity, 1.0);
+        compare(high.separatorOpacity, 1.0);
+
+        var mid = ConfigModel.sanitize({ labelOpacity: 0.25, separatorOpacity: 0 });
+        compare(mid.labelOpacity, 0.25);
+        compare(mid.separatorOpacity, 0.0);
+
+        var garbage = ConfigModel.sanitize({ labelOpacity: "high", separatorOpacity: null });
+        compare(garbage.labelOpacity, 1.0);
+        compare(garbage.separatorOpacity, 1.0);
+    }
+
+    function test_colorStringValidation() {
+        var valid = ConfigModel.sanitize({
+            customTextColor: "#ff0000",
+            claudeAccentColor: "#abc",
+            umansAccentColor: "#abcd",
+            codexAccentColor: "#a1b2c3",
+            grokAccentColor: "#a1b2c3d4",
+            kimiAccentColor: "red"
+        });
+        compare(valid.customTextColor, "#ff0000");
+        compare(valid.claudeAccentColor, "#abc");
+        compare(valid.umansAccentColor, "#abcd");
+        compare(valid.codexAccentColor, "#a1b2c3");
+        compare(valid.grokAccentColor, "#a1b2c3d4");
+        compare(valid.kimiAccentColor, "red");
+
+        var garbage = ConfigModel.sanitize({
+            customTextColor: "not a color!",
+            claudeAccentColor: "#12",
+            umansAccentColor: "#12345",
+            codexAccentColor: 42,
+            grokAccentColor: "#xyzxyz",
+            kimiAccentColor: "has space"
+        });
+        compare(garbage.customTextColor, "");
+        compare(garbage.claudeAccentColor, "");
+        compare(garbage.umansAccentColor, "");
+        compare(garbage.codexAccentColor, "");
+        compare(garbage.grokAccentColor, "");
+        compare(garbage.kimiAccentColor, "");
+    }
+
+    function test_customTextColorEnabledSanitizesBool() {
+        compare(ConfigModel.sanitize({ customTextColorEnabled: true }).customTextColorEnabled, true);
+        compare(ConfigModel.sanitize({ customTextColorEnabled: "yes" }).customTextColorEnabled, false);
+        compare(ConfigModel.sanitize({ customTextColorEnabled: 1 }).customTextColorEnabled, false);
+    }
+
+    function test_iconNameValidation() {
+        var valid = ConfigModel.sanitize({
+            claudeCustomIcon: "network-server",
+            umansCustomIcon: "utilities-terminal",
+            codexCustomIcon: "emblem-favorite",
+            grokCustomIcon: "x.icon_2",
+            kimiCustomIcon: ""
+        });
+        compare(valid.claudeCustomIcon, "network-server");
+        compare(valid.umansCustomIcon, "utilities-terminal");
+        compare(valid.codexCustomIcon, "emblem-favorite");
+        compare(valid.grokCustomIcon, "x.icon_2");
+        compare(valid.kimiCustomIcon, "");
+
+        var garbage = ConfigModel.sanitize({
+            claudeCustomIcon: "../escape",
+            umansCustomIcon: "with space",
+            codexCustomIcon: "slash/name",
+            grokCustomIcon: 7,
+            kimiCustomIcon: "-leading-dash"
+        });
+        compare(garbage.claudeCustomIcon, "");
+        compare(garbage.umansCustomIcon, "");
+        compare(garbage.codexCustomIcon, "");
+        compare(garbage.grokCustomIcon, "");
+        compare(garbage.kimiCustomIcon, "");
+    }
+
+    function test_fontFamilyFreeStringWithGarbageFallback() {
+        compare(ConfigModel.sanitize({ fontFamily: "Inter" }).fontFamily, "Inter");
+        compare(ConfigModel.sanitize({ fontFamily: "Noto Sans Mono" }).fontFamily, "Noto Sans Mono");
+        compare(ConfigModel.sanitize({ fontFamily: "" }).fontFamily, "");
+        compare(ConfigModel.sanitize({ fontFamily: 12 }).fontFamily, "");
+        compare(ConfigModel.sanitize({ fontFamily: null }).fontFamily, "");
+    }
+
     function isRecord(input) {
         return typeof input === "object" && input !== null && !Array.isArray(input);
     }

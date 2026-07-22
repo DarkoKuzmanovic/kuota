@@ -356,4 +356,88 @@ TestCase {
         var claude = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "claude");
         compare(claude.thresholdLevel, "caution");
     }
+
+    // ---- M-T2 theming consumption + precedence ----
+
+    function claudeAt(usedPercent, appearance) {
+        var snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: usedPercent, used: usedPercent, limit: 100 })] })
+        ]);
+        return providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig(), appearance), "claude");
+    }
+
+    function test_noAppearanceArgReproducesV1() {
+        var claude = claudeAt(42, undefined);
+        compare(claude.valueColor, "");
+        compare(claude.textColor, "");
+        compare(claude.iconName, "");
+        compare(claude.labelOpacity, 1.0);
+        compare(claude.separatorOpacity, 1.0);
+    }
+
+    function test_accentTintsValueTextWhenNoThreshold() {
+        var claude = claudeAt(42, { claudeAccentColor: "#ff0000" });
+        compare(claude.thresholdLevel, "none");
+        compare(claude.valueColor, "#ff0000");
+        compare(claude.textColor, "");
+    }
+
+    function test_thresholdSuppressesAccentAndCustom() {
+        var claude = claudeAt(95, {
+            claudeAccentColor: "#ff0000",
+            customTextColorEnabled: true,
+            customTextColor: "#00ff00"
+        });
+        compare(claude.thresholdLevel, "critical");
+        // Threshold color (resolved by the rep from thresholdLevel) always wins.
+        compare(claude.valueColor, "");
+        compare(claude.textColor, "");
+    }
+
+    function test_customTextColorAppliesWhenNoThresholdNoAccent() {
+        var claude = claudeAt(42, { customTextColorEnabled: true, customTextColor: "#00ff00" });
+        compare(claude.valueColor, "#00ff00");
+        compare(claude.textColor, "#00ff00");
+    }
+
+    function test_customTextColorDisabledIsIgnored() {
+        var claude = claudeAt(42, { customTextColorEnabled: false, customTextColor: "#00ff00" });
+        compare(claude.valueColor, "");
+        compare(claude.textColor, "");
+    }
+
+    function test_accentBeatsCustomOnValueTextOnly() {
+        var claude = claudeAt(42, {
+            claudeAccentColor: "#ff0000",
+            customTextColorEnabled: true,
+            customTextColor: "#00ff00"
+        });
+        compare(claude.valueColor, "#ff0000");
+        // Labels/icons follow the custom text color, never the accent.
+        compare(claude.textColor, "#00ff00");
+    }
+
+    function test_opacityAndCustomIconFields() {
+        var claude = claudeAt(42, {
+            labelOpacity: 0.5,
+            separatorOpacity: 0.25,
+            claudeCustomIcon: "network-server"
+        });
+        compare(claude.labelOpacity, 0.5);
+        compare(claude.separatorOpacity, 0.25);
+        compare(claude.iconName, "network-server");
+
+        var emptyIcon = claudeAt(42, { claudeCustomIcon: "" });
+        compare(emptyIcon.iconName, "");
+    }
+
+    function test_accentIsPerProvider() {
+        var snapshot = sampleSnapshot([
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 42, used: 42, limit: 100 })] }),
+            Fixtures.validUmansProvider({ windows: [Fixtures.validWindow({ usedPercent: 42, used: 42, limit: 100 })] })
+        ]);
+        var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig(), { claudeAccentColor: "#ff0000" });
+        compare(providerEntry(entries, "claude").valueColor, "#ff0000");
+        compare(providerEntry(entries, "umans").valueColor, "");
+    }
 }
