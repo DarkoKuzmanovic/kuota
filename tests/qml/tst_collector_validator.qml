@@ -74,10 +74,11 @@ TestCase {
         compare(result.ok, true);
         compare(result.value.providers.length, 3);
         compare(result.value.providers[0].id, "claude");
-        compare(result.value.providers[1].state, "auth-needed");
+        compare(result.value.providers[1].id, "codex");
+        compare(result.value.providers[2].id, "grok");
     }
 
-    // Regression: the collector always emits all five providers (grok/kimi
+    // Regression: the collector always emits all four providers (grok/kimi
     // added in the integration milestone). A stale QML PROVIDER_IDS/detail
     // allowlist rejected the whole document as schema-invalid, blanking the
     // widget for every user. This asserts the mirror accepts grok/kimi and
@@ -86,7 +87,6 @@ TestCase {
         var document = Fixtures.minimalDocument({
             providers: [
                 Fixtures.validClaudeProvider(),
-                Fixtures.validUmansProvider(),
                 Fixtures.validCodexProvider(),
                 Fixtures.validGrokProvider(),
                 Fixtures.validKimiProvider()
@@ -94,14 +94,14 @@ TestCase {
         });
         var result = CollectorValidator.validateCollectorResponse(json(document));
         compare(result.ok, true);
-        compare(result.value.providers.length, 5);
-        compare(result.value.providers[3].id, "grok");
-        compare(result.value.providers[3].details.grok.monthlyUsed, 3669);
-        compare(result.value.providers[3].details.grok.monthlyLimit, 20000);
-        compare(result.value.providers[3].details.grok.monthlyResetAt, "2026-08-01T00:00:00.000Z");
-        compare(result.value.providers[4].id, "kimi");
-        compare(result.value.providers[4].details.kimi.concurrency, 2);
-        compare(result.value.providers[4].details.kimi.concurrencyLimit, 20);
+        compare(result.value.providers.length, 4);
+        compare(result.value.providers[2].id, "grok");
+        compare(result.value.providers[2].details.grok.monthlyUsed, 3669);
+        compare(result.value.providers[2].details.grok.monthlyLimit, 20000);
+        compare(result.value.providers[2].details.grok.monthlyResetAt, "2026-08-01T00:00:00.000Z");
+        compare(result.value.providers[3].id, "kimi");
+        compare(result.value.providers[3].details.kimi.concurrency, 2);
+        compare(result.value.providers[3].details.kimi.concurrencyLimit, 20);
     }
 
     function test_acceptsValidPartialProviderSuccess() {
@@ -128,10 +128,40 @@ TestCase {
     }
 
     function test_rejectsUnsupportedSchemaVersion() {
-        var document = Fixtures.minimalDocument({ schemaVersion: 2 });
+        var document = Fixtures.minimalDocument({ schemaVersion: 0 });
         var result = CollectorValidator.validateCollectorResponse(json(document));
         compare(result.ok, false);
         compare(result.code, CollectorValidator.VALIDATION_FAILURE.SCHEMA_INVALID);
+    }
+
+    function test_migratesSchemaV1ByStrippingUmans() {
+        var raw = JSON.stringify({
+            schemaVersion: 1,
+            collectionStartedAt: "2026-07-11T10:00:00.000Z",
+            collectionFinishedAt: "2026-07-11T10:00:01.000Z",
+            providers: [
+                Fixtures.validClaudeProvider(),
+                Fixtures.validUmansProvider(),
+                Fixtures.validCodexProvider()
+            ]
+        });
+        var result = CollectorValidator.validateCollectorResponse(raw);
+        verify(result.ok);
+        compare(result.value.schemaVersion, 2);
+        compare(result.value.providers.length, 2);
+        compare(result.value.providers[0].id, "claude");
+        compare(result.value.providers[1].id, "codex");
+    }
+
+    function test_rejectsSchemaV2WithUmans() {
+        var raw = JSON.stringify({
+            schemaVersion: 2,
+            collectionStartedAt: "2026-07-11T10:00:00.000Z",
+            collectionFinishedAt: "2026-07-11T10:00:01.000Z",
+            providers: [Fixtures.validUmansProvider()]
+        });
+        var result = CollectorValidator.validateCollectorResponse(raw);
+        verify(!result.ok);
     }
 
     function test_rejectsMissingRequiredTopLevelField() {
@@ -347,19 +377,14 @@ TestCase {
         compare(result.ok, false);
     }
 
-    function test_acceptsUmansAndCodexDetailNamespaces() {
-        var umans = Fixtures.validUmansProvider({
-            state: "ok",
-            lastSuccessAt: "2026-07-11T10:00:01.000Z",
-            details: { umans: { plan: "pro", requests: 10 } }
-        });
+    function test_acceptsCodexDetailNamespace() {
         var codex = Fixtures.validCodexProvider({
             state: "ok",
             lastSuccessAt: "2026-07-11T10:00:01.000Z",
             details: { codex: { plan: "plus", credits: 12.5, cost: 3.4 } }
         });
         var result = CollectorValidator.validateCollectorResponse(
-            json(Fixtures.minimalDocument({ providers: [umans, codex] }))
+            json(Fixtures.minimalDocument({ providers: [codex] }))
         );
         compare(result.ok, true);
     }

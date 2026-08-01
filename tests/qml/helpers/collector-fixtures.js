@@ -93,7 +93,7 @@ function validStaleClaudeProvider(overrides) {
 
 function minimalDocument(overrides) {
     return shallowMerge({
-        schemaVersion: 1,
+        schemaVersion: 2,
         collectionStartedAt: "2026-07-11T10:00:00.000Z",
         collectionFinishedAt: "2026-07-11T10:00:01.000Z",
         providers: []
@@ -102,6 +102,6 @@ function minimalDocument(overrides) {
 
 function fullDocument(overrides) {
     return minimalDocument(shallowMerge({
-        providers: [validClaudeProvider(), validUmansProvider(), validCodexProvider()]
+        providers: [validClaudeProvider(), validCodexProvider(), validGrokProvider()]
     }, overrides));
 }
