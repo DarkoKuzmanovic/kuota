@@ -1,12 +1,11 @@
 # Kuota
 
 Kuota is a standalone KDE Plasma 6 widget for showing authoritative Claude,
-Umans, Codex, Grok, and Kimi usage without a running Pi session.
-Umans, and Codex usage without a running Pi session.
+Codex, Grok, and Kimi usage without a running Pi session.
 
 Milestones M1–M9 are complete (gates G0–G9 PASS): the normalized collector
-contract and safe filesystem primitives; live Claude, Umans, Codex, Grok, and
-Kimi adapters
+contract and safe filesystem primitives; live Claude, Codex, Grok, and Kimi
+adapters
 with credential discovery, bounded fetches, backoff, and per-provider
 last-known-good caching; an integrated, cross-process-locked collector CLI;
 the isolated QML collector bridge with whole-document validation and snapshot
@@ -22,7 +21,6 @@ is in progress: install/update/uninstall scripts and this documentation are
 landed; the live collector and config-dialog smoke tests passed, and the
 release-candidate gate is under final review. KDE Store publication is a
 separate explicitly approved step, not part of V1.
-of V1.
 
 ## Contents
 
@@ -88,7 +86,7 @@ runtime rendering harness. The Qt 6 QML test suite runs via `npm run test:qml`.
 `scripts/check-artifact.js`. If `zip` is available and succeeds, it also creates
 `dist/artifact/kuota-v0.1.0.plasmoid`; archive creation is optional and is not
 required for build success. The check executes the packaged CLI, validates its
-schema-v1 JSON, and verifies a credential-shaped argument fails with the safe
+schema-v2 JSON, and verifies a credential-shaped argument fails with the safe
 constant diagnostic.
 
 ## Installation
@@ -138,8 +136,7 @@ script references it.
 - **A provider shows `auth-needed`.** The collector could not find a usable
   credential in `~/.pi/agent/auth.json` for that provider. Check that the
   matching entry exists (Claude `auth.anthropic`, Codex `auth["openai-codex"]`
-  with `accountId`, Umans `auth.umans` or the `UMANS_API_KEY` environment
-  variable, Grok `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` or the
+  with `accountId`, Grok `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` or the
   `GROK_CLI_OAUTH_TOKEN` environment variable, Kimi `auth["kimi-coding"]` or
   the `KIMI_API_KEY` environment variable). Kuota never writes credentials
   itself except the Codex token refresh.
@@ -152,19 +149,18 @@ script references it.
   Settings persist in the Plasma config; the views read them through a single
   sanitized read boundary, so invalid values fall back to safe defaults.
 - **The collector shows an unexpected `error` after an API change.** Provider
-  APIs drift; the Umans `resets_at` field, for example, moved from epoch
-  seconds to an ISO 8601 string and required a parser fix. If a provider
-  regresses, check the adapter in `collector/src/providers/` and report it.
+  APIs drift; adapters in `collector/src/providers/` may need parser updates.
+  If a provider regresses, check the adapter and report it.
 
 ## Current behavior
 
-The collector CLI runs the live Claude, Umans, and Codex adapters through
+The collector CLI runs the live Claude, Codex, Grok, and Kimi adapters through
 bounded concurrent orchestration, a whole-collector last-known-good cache, and
 strict cross-process locking. A normal invocation emits exactly one
-newline-terminated schema-v1 JSON document and no stderr diagnostics.
+newline-terminated schema-v2 JSON document and no stderr diagnostics.
 
 The widget's compact panel renders one horizontal line of enabled providers
-(default order Claude, Umans, Codex). Each entry shows its most useful current
+(default order Claude, Codex, Grok, Kimi). Each entry shows its most useful current
 metric — a window's used percentage when available, otherwise a used count —
 with configurable caution (default ≥75%) and critical (default ≥90%) threshold colors, concise
 login-needed / stale / error markers, icon / text / icon+text modes, and
@@ -201,7 +197,7 @@ replaceable. Only normalized, secret-free JSON crosses into QML, and the
 compact model derives display values from that validated snapshot alone.
 
 The collector owns credential access and provider I/O. It reads
-`~/.pi/agent/auth.json` for credential discovery (Claude, Codex, Umans); only
+`~/.pi/agent/auth.json` for credential discovery (Claude, Codex, Grok, Kimi); only
 the Codex token refresh writes back, via a latest-read atomic,
 permission-preserving merge that keeps unrelated entries and the existing file
 mode. Only normalized, secret-free JSON crosses into QML. Diagnostics and
@@ -229,7 +225,7 @@ last-known-good cache (`~/.cache/kuota/collector.json`), the Claude cache
 - [`docs/architecture/overview.md`](docs/architecture/overview.md) — layer
   ownership, current data flow, and future boundaries.
 - [`docs/architecture/collector-contract.md`](docs/architecture/collector-contract.md)
-  — schema-v1 document and validation contract.
+  — schema-v2 document and validation contract.
 - [`docs/specs/2026-07-10-kuota-design.md`](docs/specs/2026-07-10-kuota-design.md)
   — approved product specification.
 - [`tests/fixtures/README.md`](tests/fixtures/README.md) — fixture and

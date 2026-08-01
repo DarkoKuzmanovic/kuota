@@ -86,18 +86,18 @@ crossing payload is the normalized JSON document only.
 
 The collector owns the credential and provider-I/O boundary, plus
 normalization, orchestration, and safe persistence. It contains the CLI shell,
-the live Claude, Umans, and Codex adapters, schema validation, provider
+the live Claude, Codex, Grok, and Kimi adapters, schema validation, provider
 interfaces/registry, filesystem primitives, redaction, the cross-process lock,
 and the fallback cache.
 
 The collector's internal ownership is split as follows:
 
-- `contract/` owns schema-v1 types and whole-document/runtime validation.
+- `contract/` owns schema types and whole-document/runtime validation (including v1→v2 migrate-then-validate).
 - `providers/` owns adapter identity, normalized-result construction, registry
-  selection, safe provider-error mapping, and the live Claude/Codex/Umans
+  selection, safe provider-error mapping, and the live Claude/Codex/Grok/Kimi
   fetch + credential + auth-persistence paths. Provider-specific payloads are
-  namespaced under their provider record (`details.claude`, `details.umans`,
-  `details.codex`).
+  namespaced under their provider record (`details.claude`, `details.codex`,
+  `details.grok`, `details.kimi`).
 - `collect/` owns bounded concurrent invocation, cancellation/deadline races,
   independent provider outcomes, timestamps, the whole-collector last-known-good
   cache, and final document validation.
@@ -115,7 +115,7 @@ QML timer or refresh action
   -> isolated executable bridge (CollectorBridge.qml)
      -> short-lived collector process
         -> cross-process lock + credential access + live provider adapters
-           -> normalized schema-v1 document
+           -> normalized schema-v2 document
      <- stdout JSON only
   <- whole-document validation and snapshot replacement (retain on failure)
   -> presentation (compact-model.js / full-model.js)
@@ -124,9 +124,9 @@ QML timer or refresh action
 The collector CLI runs the live adapters through bounded concurrent
 orchestration, a whole-collector last-known-good cache, and strict
 cross-process locking. A normal invocation emits exactly one
-newline-terminated schema-v1 JSON document and no stderr diagnostics. The
-default configuration enables the canonical providers in Claude, Umans, Codex
-order. A provider failure is represented in its own record rather than
+newline-terminated schema-v2 JSON document and no stderr diagnostics. The
+default configuration enables the canonical providers in Claude, Codex, Grok,
+Kimi order. A provider failure is represented in its own record rather than
 preventing other records from being returned; one provider failing never blocks
 successful providers from updating.
 
@@ -137,8 +137,7 @@ last-known-good cache, honoring `Retry-After` and a minimum 429 backoff, and
 retains stale data on failure. Codex uses normal HTTP first, falls back to
 stdin-configured curl on Cloudflare/TLS rejection, refreshes an expired OAuth
 token once, and persists refreshed auth via latest-read atomic
-permission-preserving merge. Umans reports rolling-window requests and optional
-limits; unlimited plans show counts/timing without invented percentages.
+permission-preserving merge.
 
 ## Bridge replacement boundary
 
@@ -153,16 +152,16 @@ presentation modules, and the collector contract are unchanged.
 
 ## Normalized contract boundary
 
-Schema v1 is the only public data shape between collector and bridge. It
+Schema v2 is the public data shape between collector and bridge. It
 contains collection start/end UTC timestamps and one record per selected
-enabled provider. Provider IDs are `claude`, `umans`, and `codex`; states are
+enabled provider. Provider IDs are `claude`, `codex`, `grok`, and `kimi`; states are
 `ok`, `stale`, `auth-needed`, and `error`.
 
 Optional fields are omitted when unavailable. Usage windows may contain
 percentage, used/limit counts, and reset timestamps. Unlimited plans omit
 `limit` and `usedPercent` rather than inventing values. Provider-specific data
-is namespaced under the matching provider (`details.claude`, `details.umans`,
-or `details.codex`). A stale record retains real data and its `lastSuccessAt`
+is namespaced under the matching provider (`details.claude`, `details.codex`,
+`details.grok`, or `details.kimi`). A stale record retains real data and its `lastSuccessAt`
 timestamp; it is not an empty failure marker.
 
 `validateCollectorDocument(input: unknown)` validates the complete document,
@@ -184,7 +183,7 @@ An adapter is selected by a typed provider ID and receives a
 It returns a promise of one provider-ID-correlated normalized result. Native
 provider payloads must not enter common records. The registry rejects unknown,
 duplicate, mismatched, and unregistered entries; disabled providers are not
-selected; selected adapters use canonical Claude, Umans, Codex order.
+selected; selected adapters use canonical Claude, Codex, Grok, Kimi order.
 
 The native `AbortSignal` is a trusted-adapter rule: adapters receive it without
 a proxy or wrapper, and abort-listener callbacks must never throw. If callback
@@ -221,7 +220,7 @@ refresh. Their safety invariants are:
   committed.
 
 The collector reads `~/.pi/agent/auth.json` for credential discovery (Claude,
-Codex, Umans). Only the Codex token refresh writes back, via the latest-read
+Codex, Grok, Kimi). Only the Codex token refresh writes back, via the latest-read
 atomic merge above. Credentials never cross the bridge or appear in caches,
 fixtures, output, or diagnostics. The whole-collector normalized LKG envelope
 lives at `~/.cache/kuota/collector.json` with a kernel advisory lock at

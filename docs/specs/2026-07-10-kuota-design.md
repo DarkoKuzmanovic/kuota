@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Kuota is a KDE Plasma 6 widget that keeps Claude, Umans, and Codex account usage visible without requiring a running Pi session.
+Kuota is a KDE Plasma 6 widget that keeps Claude, Codex, Grok, and Kimi account usage visible without requiring a running Pi session.
 
 It combines two interaction patterns:
 
@@ -25,7 +25,7 @@ The requirements grill resolved these decisions:
 4. The popup and desktop placement use a richer CodexBar-inspired view.
 5. Kuota displays every genuine field available from a provider source.
 6. Missing fields are omitted rather than estimated or filled with `N/A`.
-7. The first release supports only Claude, Umans, and Codex.
+7. The first release supported Claude, Umans, and Codex (Umans removed 2026-08-02; current scope is Claude, Codex, Grok, and Kimi — see [`2026-08-02-remove-umans-provider-design.md`](2026-08-02-remove-umans-provider-design.md)).
 8. The implementation is a QML plasmoid plus a short-lived collector program, not a permanent service or compiled C++ plugin.
 
 ## User experience
@@ -42,7 +42,7 @@ Users can:
 - control labels, separators, and font sizing;
 - configure caution and critical colors.
 
-The default order is Claude, Umans, Codex. Each entry shows the provider's most useful current limit in a compact form. The exact compact value is adapter-defined because the providers expose different quota shapes.
+The default order is Claude, Codex, Grok, Kimi. Each entry shows the provider's most useful current limit in a compact form. The exact compact value is adapter-defined because the providers expose different quota shapes.
 
 Clicking the compact representation opens the full representation.
 
@@ -50,7 +50,7 @@ Clicking the compact representation opens the full representation.
 
 The same full representation is used for the panel popup and desktop placement. It adapts to available width and height.
 
-The top area contains a provider switcher for Claude, Umans, and Codex. The selected provider view contains:
+The top area contains a provider switcher for Claude, Codex, Grok, and Kimi. The selected provider view contains:
 
 - provider name and state;
 - last-successful update time;
@@ -141,13 +141,9 @@ Kuota preserves the proven fallback behavior:
 - refresh an expired OAuth token once;
 - update auth state with a latest-read, atomic, permission-preserving write rather than a blind overwrite.
 
-### Umans
+### Umans (removed 2026-08-02)
 
-Source: `https://api.code.umans.ai/v1/usage` using the existing Umans OAuth token or API key.
-
-Known data includes requests in the rolling window, optional request limit, window length and reset time, concurrent sessions, and optional concurrency limit.
-
-For unlimited request plans, Kuota shows request count and reset timing without inventing a utilization percentage.
+Umans was a V1 provider (rolling-window requests, optional limits, concurrency). It was removed end-to-end per [`2026-08-02-remove-umans-provider-design.md`](2026-08-02-remove-umans-provider-design.md). Historical source: `https://api.code.umans.ai/v1/usage` using the Umans OAuth token or API key in `~/.pi/agent/auth.json`.
 
 ### Grok
 
@@ -215,9 +211,8 @@ Defaults should be useful without configuration and conservative about provider 
 
 Use secret-free fixtures to cover:
 
-- valid and malformed responses for all three providers;
+- valid and malformed responses for all supported providers;
 - optional and missing fields;
-- limited and unlimited Umans plans;
 - reset-time conversion;
 - Claude cache preference, stale fallback, 429 backoff, and `Retry-After`;
 - Codex HTTP success, curl fallback, one-time token refresh, and safe auth persistence;
@@ -269,7 +264,7 @@ Publishing to the KDE Store is a separate, explicitly approved release step.
 
 ## Out of scope for v1
 
-- providers beyond Claude, Umans, Codex, Grok, and Kimi (Grok + Kimi added in 1.1.0; further providers remain out of scope);
+- providers beyond Claude, Codex, Grok, and Kimi (further providers remain out of scope);
 - cross-machine aggregation;
 - long-term historical charts;
 - notifications;
