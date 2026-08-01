@@ -285,19 +285,16 @@ async function collectAny(
   provider: import("../providers/types.js").AnyProviderAdapter,
   options: ResolvedCollectionOptions,
 ): Promise<ProviderCollectionOutcome> {
-  if (provider.id === "claude") {
-    return collectOne(provider, options);
+  switch (provider.id) {
+    case "claude":
+      return collectOne(provider, options);
+    case "codex":
+      return collectOne(provider, options);
+    case "grok":
+      return collectOne(provider, options);
+    case "kimi":
+      return collectOne(provider, options);
   }
-  if (provider.id === "umans") {
-    return collectOne(provider, options);
-  }
-  if (provider.id === "codex") {
-    return collectOne(provider, options);
-  }
-  if (provider.id === "grok") {
-    return collectOne(provider, options);
-  }
-  return collectOne(provider, options);
 }
 
 async function runCollection(options: CollectOptions): Promise<CollectionOutcome> {
@@ -325,12 +322,6 @@ async function runCollection(options: CollectOptions): Promise<CollectionOutcome
 function failureToRecord(
   outcome: ProviderCollectionFailure,
 ): ProviderNormalizedResult<ProviderId> {
-  if (outcome.id === "claude") {
-    return providerOutcomeToRecord(outcome);
-  }
-  if (outcome.id === "umans") {
-    return providerOutcomeToRecord(outcome);
-  }
   return providerOutcomeToRecord(outcome);
 }
 

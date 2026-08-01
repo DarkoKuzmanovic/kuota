@@ -114,6 +114,10 @@ function validateStorableRecord(value: unknown): ProviderRecord | undefined {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function validateEnvelope(value: unknown): CollectorCacheEnvelope | undefined {
   try {
     if (!isJsonValue(value) || scanForSecrets(value).length > 0) return undefined;
@@ -129,10 +133,14 @@ function validateEnvelope(value: unknown): CollectorCacheEnvelope | undefined {
 
     const records = new Map<ProviderId, ProviderRecord>();
     for (const rawRecord of value.records) {
+      if (isRecord(rawRecord) && rawRecord.id === "umans") {
+        continue;
+      }
       const record = validateStorableRecord(rawRecord);
       if (record === undefined || records.has(record.id)) return undefined;
       records.set(record.id, record);
     }
+    if (records.size === 0) return undefined;
     return createEnvelopeFromRecords(value.savedAt, records);
   } catch {
     return undefined;

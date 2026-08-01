@@ -37,16 +37,16 @@ function adapter<TId extends ProviderId>(id: TId, fail = false): ProviderAdapter
 function registry(failClaude = false) {
   return createProviderRegistry([
     createProviderRegistration(adapter("claude", failClaude)),
-    createProviderRegistration(adapter("umans")),
     createProviderRegistration(adapter("codex")),
+    createProviderRegistration(adapter("grok")),
   ]);
 }
 
 const config = {
   providers: [
     { id: "claude", enabled: true },
-    { id: "umans", enabled: true },
     { id: "codex", enabled: true },
+    { id: "grok", enabled: true },
   ],
   timeoutMs: 100,
 } as const;
@@ -55,7 +55,7 @@ test("collects every enabled adapter, validates canonical records, and persists 
   const home = await syntheticHome();
   try {
     const document = await collectIntegrated({ homeDirectory: home, registry: registry(), config });
-    assert.deepEqual(document.providers.map((provider) => provider.id), ["claude", "umans", "codex"]);
+    assert.deepEqual(document.providers.map((provider) => provider.id), ["claude", "codex", "grok"]);
     assert.deepEqual(document.providers.map((provider) => provider.state), ["ok", "ok", "ok"]);
     const fallback = await collectIntegrated({ homeDirectory: home, registry: registry(true), config });
     assert.equal(fallback.providers[0]?.state, "stale");
@@ -95,8 +95,8 @@ test("does not call adapters during active lock contention and serves LKG as sta
             });
           },
         }),
-        createProviderRegistration(adapter("umans")),
         createProviderRegistration(adapter("codex")),
+        createProviderRegistration(adapter("grok")),
       ]),
     });
     assert.equal(calls, 0);

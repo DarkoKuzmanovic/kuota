@@ -32,7 +32,7 @@ import {
 } from "../../src/contract/validate.js";
 import type { ProviderCollectionSuccess } from "../../src/collect/types.js";
 
-const canonicalIds: readonly ProviderId[] = ["claude", "umans", "codex", "grok", "kimi"];
+const canonicalIds: readonly ProviderId[] = ["claude", "codex", "grok", "kimi"];
 
 function adapterFor<TId extends ProviderId>(id: TId): ProviderAdapter<TId> {
   return {
@@ -47,8 +47,6 @@ function registrationFor(id: ProviderId): ProviderRegistration {
   switch (id) {
     case "claude":
       return createProviderRegistration(adapterFor("claude"));
-    case "umans":
-      return createProviderRegistration(adapterFor("umans"));
     case "codex":
       return createProviderRegistration(adapterFor("codex"));
     case "grok":
@@ -86,12 +84,12 @@ const bareProviderAdapter: ProviderAdapter = typedAdapter;
 
 const heterogeneousAdapters: readonly AnyProviderAdapter[] = [
   typedAdapter,
-  adapterFor("umans"),
+  adapterFor("grok"),
   adapterFor("codex"),
 ];
 const heterogeneousRegistrations = [
   createProviderRegistration(typedAdapter),
-  createProviderRegistration(adapterFor("umans")),
+  createProviderRegistration(adapterFor("grok")),
   createProviderRegistration(adapterFor("codex")),
 ] as const satisfies readonly ProviderRegistration[];
 
@@ -230,8 +228,8 @@ test("registry exposes real adapters without collecting auth at registration", (
     canonicalIds,
   );
   assert.equal(registry.adapters[0], CLAUDE_ADAPTER);
-  assert.equal(registry.adapters[2], CODEX_ADAPTER);
-  assert.equal(registry.adapters[1]?.id, "umans");
+  assert.equal(registry.adapters[1], CODEX_ADAPTER);
+  assert.equal(registry.adapters[1]?.id, "codex");
 });
 
 test("registry selects an injected Codex adapter without consulting live auth", async () => {
@@ -248,7 +246,7 @@ test("registry selects an injected Codex adapter without consulting live auth", 
   });
   const registry = createProviderRegistry([
     createProviderRegistration(adapterFor("claude")),
-    createProviderRegistration(adapterFor("umans")),
+    createProviderRegistration(adapterFor("grok")),
     createProviderRegistration(codex),
   ]);
   assert.equal(pathCalls, 0);
@@ -310,7 +308,6 @@ test("selection tolerates a disabled unregistered provider without throwing", ()
   // with a registry that predates the Kimi registration.
   const registry = createProviderRegistry([
     createProviderRegistration(adapterFor("claude")),
-    createProviderRegistration(adapterFor("umans")),
     createProviderRegistration(adapterFor("codex")),
   ]);
 
@@ -322,7 +319,6 @@ test("selection tolerates a disabled unregistered provider without throwing", ()
 test("selection rejects an enabled unregistered provider without echoing the id", () => {
   const registry = createProviderRegistry([
     createProviderRegistration(adapterFor("claude")),
-    createProviderRegistration(adapterFor("umans")),
     createProviderRegistration(adapterFor("codex")),
   ]);
 
@@ -367,18 +363,18 @@ test("selection excludes disabled providers and uses canonical order", () => {
   const registry = createProviderRegistry([
     registrationFor("codex"),
     registrationFor("claude"),
-    registrationFor("umans"),
+    registrationFor("grok"),
   ]);
 
   const selected = registry.selectEnabled([
     { id: "codex", enabled: true },
     { id: "claude", enabled: false },
-    { id: "umans", enabled: true },
+    { id: "grok", enabled: true },
   ]);
 
   assert.deepEqual(
     selected.map((adapter) => adapter.id),
-    ["umans", "codex"],
+    ["codex", "grok"],
   );
 
   assert.equal(Object.isFrozen(selected), true);
@@ -391,7 +387,7 @@ test("selection excludes disabled providers and uses canonical order", () => {
   }, TypeError);
   assert.deepEqual(
     selected.map((adapter) => adapter.id),
-    ["umans", "codex"],
+    ["codex", "grok"],
   );
 });
 
@@ -430,7 +426,7 @@ test("adapter failures map independently to safe provider outcomes", () => {
     new ProviderAdapterError("auth-needed"),
   );
   const stale = mapAdapterErrorToOutcome(
-    "umans",
+    "grok",
     new ProviderAdapterError("stale"),
   );
   const thrownSecret = "raw-token-account-secret";
@@ -442,7 +438,7 @@ test("adapter failures map independently to safe provider outcomes", () => {
     status: "Authentication required",
   });
   assert.deepEqual(stale, {
-    id: "umans",
+    id: "grok",
     state: "error",
     status: "Provider unavailable",
   });
@@ -459,7 +455,7 @@ test("adapter failures map independently to safe provider outcomes", () => {
   ];
   assert.equal(
     validateCollectorDocument({
-      schemaVersion: 1 as const,
+      schemaVersion: 2 as const,
       collectionStartedAt: "2026-07-11T10:00:00.000Z",
       collectionFinishedAt: "2026-07-11T10:00:01.000Z",
       providers: mappedRecords,
@@ -469,8 +465,8 @@ test("adapter failures map independently to safe provider outcomes", () => {
 });
 
 test("stale outcomes retain only a valid same-provider last-known-good record", () => {
-  const staleCandidate = createNormalizedProviderResult("umans", {
-    id: "umans",
+  const staleCandidate = createNormalizedProviderResult("kimi", {
+    id: "kimi",
     state: "stale",
     lastSuccessAt: "2026-07-10T10:00:00.000Z",
     windows: [{ id: "requests", label: "Requests", used: 3 }],
@@ -480,13 +476,13 @@ test("stale outcomes retain only a valid same-provider last-known-good record", 
   }
   const lastKnownGood = staleCandidate;
   const outcome = mapAdapterErrorToOutcome(
-    "umans",
+    "kimi",
     new ProviderAdapterError("stale"),
     lastKnownGood,
   );
   const record = providerOutcomeToRecord(outcome);
   const document = {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     collectionStartedAt: "2026-07-11T10:00:00.000Z",
     collectionFinishedAt: "2026-07-11T10:00:01.000Z",
     providers: [record],
@@ -503,12 +499,12 @@ test("stale outcomes retain only a valid same-provider last-known-good record", 
     windows: [{ id: "weekly", label: "Weekly" }],
   };
   const invalidOutcome = mapAdapterErrorToOutcome(
-    "umans",
+    "kimi",
     new ProviderAdapterError("stale"),
-    mismatched as unknown as ProviderStaleRecordFor<"umans">,
+    mismatched as unknown as ProviderStaleRecordFor<"kimi">,
   );
   assert.deepEqual(invalidOutcome, {
-    id: "umans",
+    id: "kimi",
     state: "error",
     status: "Provider unavailable",
   });

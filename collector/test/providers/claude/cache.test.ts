@@ -286,7 +286,7 @@ test("rejects envelopes whose record is not successful Claude usage", async () =
     { id: "claude", state: "stale", lastSuccessAt: OBSERVED_AT, windows: [{ id: "session", label: "Session (5-hour)", usedPercent: 10 }] },
     { id: "claude", state: "error", status: "Provider unavailable" },
     { id: "claude", state: "auth-needed", status: "Authentication required" },
-    { id: "umans", state: "ok", lastSuccessAt: OBSERVED_AT },
+    { id: "codex", state: "ok", lastSuccessAt: OBSERVED_AT },
     { id: "claude", state: "ok" },
     { id: "claude", state: "ok", lastSuccessAt: "2026-07-11T10:00:00", windows: [{ id: "session", label: "Session (5-hour)", usedPercent: 10 }] },
     { id: "claude", state: "ok", lastSuccessAt: OBSERVED_AT, windows: [{ id: "session", label: "Session (5-hour)", usedPercent: 10 }], unexpected: true },
