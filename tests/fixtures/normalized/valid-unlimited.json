@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "collectionStartedAt": "2026-07-11T11:00:00.000Z",
   "collectionFinishedAt": "2026-07-11T11:00:01.000Z",
   "providers": [
     {
-      "id": "umans",
+      "id": "kimi",
       "state": "ok",
       "status": "Synthetic unlimited plan",
       "windows": [
@@ -16,9 +16,7 @@
         }
       ],
       "details": {
-        "umans": {
-          "plan": "synthetic-unlimited-plan",
-          "requests": 150,
+        "kimi": {
           "concurrency": 3
         }
       }

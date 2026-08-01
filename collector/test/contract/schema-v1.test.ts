@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { validateCollectorDocument } from "../../src/contract/validate.js";
-import type { CollectorDocument, ProviderRecord } from "../../src/contract/schema-v1.js";
+import { PROVIDER_IDS, SCHEMA_VERSION, type CollectorDocument, type ProviderRecord } from "../../src/contract/schema-v1.js";
 
 const FIXTURE_DIRECTORY = findFixtureDirectory();
 const REQUIRED_VALID_FIXTURE_NAMES = [
@@ -43,8 +43,14 @@ test("normalized fixture inventory is explicit", () => {
   assert.deepEqual(fixtureNames(), expected);
 });
 
+test("schema v2 identity excludes umans", () => {
+  assert.equal(SCHEMA_VERSION, 2);
+  assert.deepEqual([...PROVIDER_IDS], ["claude", "codex", "grok", "kimi"]);
+  assert.equal((PROVIDER_IDS as readonly string[]).includes("umans"), false);
+});
+
 const minimalDocument = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   collectionStartedAt: "2026-07-11T10:00:00.000Z",
   collectionFinishedAt: "2026-07-11T10:00:01.000Z",
   providers: [],
@@ -58,10 +64,10 @@ const typedClaudeRecord: ProviderRecord = {
   windows: [{ id: "weekly", label: "Weekly" }],
   details: { claude: { model: "synthetic-model" } },
 };
-const typedUmansRecord: ProviderRecord = {
-  id: "umans",
+const typedKimiRecord: ProviderRecord = {
+  id: "kimi",
   state: "auth-needed",
-  details: { umans: { plan: "synthetic-plan" } },
+  details: { kimi: { concurrency: 2 } },
 };
 const typedCodexRecord: ProviderRecord = {
   id: "codex",
@@ -93,17 +99,17 @@ const typedMismatchedClaudeDetails: ProviderRecord = {
   // @ts-expect-error provider IDs and namespaced details must match
   details: { umans: { plan: "synthetic-plan" } },
 };
-const typedMismatchedUmansDetails: ProviderRecord = {
-  id: "umans",
-  state: "ok",
-  // @ts-expect-error provider IDs and namespaced details must match
-  details: { codex: { credits: 1.5 } },
-};
 const typedMismatchedCodexDetails: ProviderRecord = {
   id: "codex",
   state: "ok",
   // @ts-expect-error provider IDs and namespaced details must match
   details: { claude: { model: "synthetic-model" } },
+};
+const typedMismatchedKimiDetails: ProviderRecord = {
+  id: "kimi",
+  state: "ok",
+  // @ts-expect-error provider IDs and namespaced details must match
+  details: { codex: { credits: 1.5 } },
 };
 const typedMismatchedGrokDetails: ProviderRecord = {
   id: "grok",
@@ -111,7 +117,7 @@ const typedMismatchedGrokDetails: ProviderRecord = {
   // @ts-expect-error provider IDs and namespaced details must match
   details: { kimi: { concurrency: 2 } },
 };
-const typedMismatchedKimiDetails: ProviderRecord = {
+const typedMismatchedKimiNamespaceDetails: ProviderRecord = {
   id: "kimi",
   state: "ok",
   // @ts-expect-error provider IDs and namespaced details must match
@@ -122,7 +128,7 @@ const typedGrokRecord: ProviderRecord = {
   state: "ok",
   details: { grok: { monthlyUsed: 100, monthlyLimit: 1000, monthlyResetAt: "2026-07-11T10:00:00.000Z" } },
 };
-const typedKimiRecord: ProviderRecord = {
+const typedKimiOkRecord: ProviderRecord = {
   id: "kimi",
   state: "ok",
   details: { kimi: { concurrency: 2, concurrencyLimit: 4 } },
@@ -142,23 +148,23 @@ const typedGrokStaleWithEmptyDetails: ProviderRecord = {
 };
 // @ts-expect-error stale records require a last-success timestamp and retained data
 const typedStaleWithoutRetention: ProviderRecord = {
-  id: "umans",
+  id: "kimi",
   state: "stale",
 };
 void [
   typedClaudeRecord,
-  typedUmansRecord,
+  typedKimiRecord,
   typedCodexRecord,
   typedGrokRecord,
-  typedKimiRecord,
+  typedKimiOkRecord,
   typedStaleWithWindow,
   typedStaleWithDetails,
   typedGrokStaleWithDetails,
   typedMismatchedClaudeDetails,
-  typedMismatchedUmansDetails,
+  typedMismatchedKimiDetails,
   typedMismatchedCodexDetails,
   typedMismatchedGrokDetails,
-  typedMismatchedKimiDetails,
+  typedMismatchedKimiNamespaceDetails,
   typedStaleWithoutRetention,
   typedGrokStaleWithEmptyDetails,
 ];
@@ -205,7 +211,7 @@ test("normalized schema v1 narrows unknown input to the contract", () => {
 test("unlimited windows omit invented limits and percentages", () => {
   const result = validateCollectorDocument(
     documentWith({
-      id: "umans",
+      id: "kimi",
       state: "ok",
       windows: [{ id: "requests", label: "Requests", used: 120 }],
     }),
@@ -215,16 +221,16 @@ test("unlimited windows omit invented limits and percentages", () => {
 });
 
 
-test("Umans concurrencyLimit is optional, namespaced, and a non-negative integer", () => {
+test("Kimi concurrencyLimit is optional, namespaced, and a non-negative integer", () => {
   const valid = validateCollectorDocument(documentWith({
-    id: "umans",
+    id: "kimi",
     state: "ok",
-    details: { umans: { concurrency: 2, concurrencyLimit: 3 } },
+    details: { kimi: { concurrency: 2, concurrencyLimit: 3 } },
   }));
   const malformed = validateCollectorDocument(documentWith({
-    id: "umans",
+    id: "kimi",
     state: "ok",
-    details: { umans: { concurrencyLimit: -1 } },
+    details: { kimi: { concurrencyLimit: -1 } },
   }));
   assert.equal(valid.ok, true);
   assert.equal(malformed.ok, false);
@@ -368,7 +374,7 @@ test("Grok and Kimi stale records require retained data", () => {
 test("provider details namespaces must match provider IDs", () => {
   const mismatches = [
     { id: "claude", details: { umans: { plan: "synthetic-plan" } } },
-    { id: "umans", details: { codex: { credits: 1.5 } } },
+    { id: "kimi", details: { codex: { credits: 1.5 } } },
     { id: "codex", details: { claude: { model: "synthetic-model" } } },
     { id: "grok", details: { kimi: { concurrency: 2 } } },
     { id: "kimi", details: { grok: { monthlyUsed: 100 } } },
@@ -419,7 +425,7 @@ test("stale records require a timestamp and retained data", () => {
 
   const missingRetention = validateCollectorDocument(
     documentWith({
-      id: "umans",
+      id: "kimi",
       state: "stale",
       lastSuccessAt: "2026-07-10T10:00:00.000Z",
     }),
@@ -445,7 +451,7 @@ test("document state fixtures describe partial and unlimited semantics", () => {
       partial.value.providers.map(({ id, state }) => ({ id, state })),
       [
         { id: "claude", state: "ok" },
-        { id: "umans", state: "auth-needed" },
+        { id: "kimi", state: "auth-needed" },
         { id: "codex", state: "error" },
       ],
     );
@@ -456,7 +462,7 @@ test("document state fixtures describe partial and unlimited semantics", () => {
   if (unlimited.ok) {
     const provider = unlimited.value.providers[0];
     assert.ok(provider);
-    assert.equal(provider.id, "umans");
+    assert.equal(provider.id, "kimi");
     assert.equal(provider.windows?.[0]?.limit, undefined);
     assert.equal(provider.windows?.[0]?.usedPercent, undefined);
   }
@@ -563,9 +569,58 @@ test("rejects stale records with unknown provider IDs without retaining issue va
   }
 });
 
-test("accepts UTC timestamps without fractional seconds", () => {
+test("migrates schema v1 documents by stripping umans then validating as v2", () => {
   const result = validateCollectorDocument({
     schemaVersion: 1,
+    collectionStartedAt: "2026-07-11T10:00:00.000Z",
+    collectionFinishedAt: "2026-07-11T10:00:01.000Z",
+    providers: [
+      {
+        id: "claude",
+        state: "ok",
+        status: "Usage is current",
+        windows: [{ id: "weekly", label: "Weekly", usedPercent: 10, used: 10, limit: 100 }],
+        details: { claude: { model: "synthetic-model" } },
+      },
+      { id: "umans", state: "auth-needed", status: "Login required" },
+      { id: "codex", state: "error", status: "Provider unavailable" },
+    ],
+  });
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.value.schemaVersion, 2);
+  assert.deepEqual(
+    result.value.providers.map((provider) => provider.id),
+    ["claude", "codex"],
+  );
+});
+
+test("rejects schema v2 documents that still include umans", () => {
+  const result = validateCollectorDocument({
+    schemaVersion: 2,
+    collectionStartedAt: "2026-07-11T10:00:00.000Z",
+    collectionFinishedAt: "2026-07-11T10:00:01.000Z",
+    providers: [{ id: "umans", state: "auth-needed", status: "Login required" }],
+  });
+  assert.equal(result.ok, false);
+});
+
+test("migration does not salvage malformed non-umans fields", () => {
+  const result = validateCollectorDocument({
+    schemaVersion: 1,
+    collectionStartedAt: "2026-07-11T10:00:00.000Z",
+    collectionFinishedAt: "2026-07-11T10:00:01.000Z",
+    providers: [
+      { id: "claude", state: "ok", windows: [{ id: "weekly", label: "Weekly", usedPercent: 101 }] },
+      { id: "umans", state: "auth-needed", status: "Login required" },
+    ],
+  });
+  assert.equal(result.ok, false);
+});
+
+test("accepts UTC timestamps without fractional seconds", () => {
+  const result = validateCollectorDocument({
+    schemaVersion: 2,
     collectionStartedAt: "2026-07-11T10:00:00Z",
     collectionFinishedAt: "2026-07-11T10:00:01Z",
     providers: [],
@@ -587,7 +642,7 @@ function assertHasIssue(
 
 function documentWith(provider: unknown): unknown {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     collectionStartedAt: minimalDocument.collectionStartedAt,
     collectionFinishedAt: minimalDocument.collectionFinishedAt,
     providers: [provider],

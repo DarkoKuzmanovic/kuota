@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "collectionStartedAt": "2026-07-11T16:00:00.000Z",
   "collectionFinishedAt": "2026-07-11T16:00:01.000Z",
   "providers": [
     {
-      "id": "umans",
+      "id": "kimi",
       "state": "ok",
       "windows": [
         {
