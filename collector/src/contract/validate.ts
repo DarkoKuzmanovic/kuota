@@ -11,7 +11,6 @@ import {
   type ProviderId,
   type ProviderRecord,
   type ProviderState,
-  type UmansDetails,
   type UsageWindow,
 } from "./schema-v1.js";
 
@@ -60,7 +59,6 @@ const CLAUDE_DETAIL_KEYS = new Set([
   "extraUsageDecimalPlaces",
   "extraUsageDisabledReason",
 ]);
-const UMANS_DETAIL_KEYS = new Set(["plan", "requests", "concurrency", "concurrencyLimit"]);
 const CODEX_DETAIL_KEYS = new Set(["plan", "credits", "cost", "tokens"]);
 const GROK_DETAIL_KEYS = new Set(["monthlyUsed", "monthlyLimit", "monthlyResetAt"]);
 const KIMI_DETAIL_KEYS = new Set(["concurrency", "concurrencyLimit"]);
@@ -73,21 +71,33 @@ export function validateCollectorDocument(input: unknown): ValidationResult {
     return { ok: false, errors: [{ path: "$", reason: "expected an object" }] };
   }
 
-  validateObjectKeys(input, "$", DOCUMENT_KEYS, errors);
+  let document: Record<string, unknown> = input;
+  if (input.schemaVersion === 1) {
+    const providers = Array.isArray(input.providers) ? input.providers : undefined;
+    document = {
+      ...input,
+      schemaVersion: SCHEMA_VERSION,
+      providers: providers === undefined
+        ? input.providers
+        : providers.filter((provider) => !(isRecord(provider) && provider.id === "umans")),
+    };
+  }
 
-  const schemaVersion = input.schemaVersion;
+  validateObjectKeys(document, "$", DOCUMENT_KEYS, errors);
+
+  const schemaVersion = document.schemaVersion;
   if (schemaVersion !== SCHEMA_VERSION) {
     addIssue(errors, "$.schemaVersion", "unsupported schema version");
   }
 
   const collectionStartedAt = parseRequiredTimestamp(
-    input,
+    document,
     "collectionStartedAt",
     "$.collectionStartedAt",
     errors,
   );
   const collectionFinishedAt = parseRequiredTimestamp(
-    input,
+    document,
     "collectionFinishedAt",
     "$.collectionFinishedAt",
     errors,
@@ -104,7 +114,7 @@ export function validateCollectorDocument(input: unknown): ValidationResult {
     );
   }
 
-  const providersValue = input.providers;
+  const providersValue = document.providers;
   const providers: ProviderRecord[] = [];
   const providerIds = new Set<ProviderId>();
   if (!Array.isArray(providersValue)) {
@@ -356,13 +366,6 @@ function parseProviderDetails(
     }
     return details === undefined ? undefined : { claude: details };
   }
-  if (id === "umans") {
-    const details = parseUmansDetails(input.umans, `${path}.umans`, errors);
-    if (errors.length !== initialErrorCount && details === undefined) {
-      return undefined;
-    }
-    return details === undefined ? undefined : { umans: details };
-  }
   if (id === "codex") {
     const details = parseCodexDetails(input.codex, `${path}.codex`, errors);
     if (errors.length !== initialErrorCount && details === undefined) {
@@ -456,52 +459,6 @@ function parseClaudeDetails(
   if (extraUsageCurrency !== undefined) details.extraUsageCurrency = extraUsageCurrency;
   if (extraUsageDecimalPlaces !== undefined) details.extraUsageDecimalPlaces = extraUsageDecimalPlaces;
   if (extraUsageDisabledReason !== undefined) details.extraUsageDisabledReason = extraUsageDisabledReason;
-  return details;
-}
-
-function parseUmansDetails(
-  input: unknown,
-  path: string,
-  errors: ValidationIssue[],
-): UmansDetails | undefined {
-  if (!isRecord(input)) {
-    addIssue(errors, path, "expected an object");
-    return undefined;
-  }
-  const initialErrorCount = errors.length;
-  validateObjectKeys(input, path, UMANS_DETAIL_KEYS, errors);
-  const plan = parseOptionalSafeText(input, "plan", `${path}.plan`, 100, errors);
-  const requests = parseOptionalCount(
-    input,
-    "requests",
-    `${path}.requests`,
-    errors,
-  );
-  const concurrency = parseOptionalCount(
-    input,
-    "concurrency",
-    `${path}.concurrency`,
-    errors,
-  );
-  const concurrencyLimit = parseOptionalCount(
-    input,
-    "concurrencyLimit",
-    `${path}.concurrencyLimit`,
-    errors,
-  );
-  if (errors.length !== initialErrorCount) {
-    return undefined;
-  }
-  const details: {
-    plan?: string;
-    requests?: number;
-    concurrency?: number;
-    concurrencyLimit?: number;
-  } = {};
-  if (plan !== undefined) details.plan = plan;
-  if (requests !== undefined) details.requests = requests;
-  if (concurrency !== undefined) details.concurrency = concurrency;
-  if (concurrencyLimit !== undefined) details.concurrencyLimit = concurrencyLimit;
   return details;
 }
 
@@ -878,9 +835,6 @@ function hasRetainedData(
   }
   if ("claude" in details) {
     return Object.keys(details.claude).length > 0;
-  }
-  if ("umans" in details) {
-    return Object.keys(details.umans).length > 0;
   }
   if ("codex" in details) {
     return Object.keys(details.codex).length > 0;

@@ -1,4 +1,4 @@
-import type { CollectorDocument, ProviderId, ProviderRecord } from "../contract/schema-v1.js";
+import { SCHEMA_VERSION, type CollectorDocument, type ProviderId, type ProviderRecord } from "../contract/schema-v1.js";
 import { validateCollectorDocument } from "../contract/validate.js";
 import { createNormalizedProviderResult } from "../providers/types.js";
 import { createProviderRegistry } from "../providers/registry.js";
@@ -44,7 +44,7 @@ function validatedDocument(
   records: readonly ProviderRecord[],
 ): CollectorDocument {
   const validation = validateCollectorDocument({
-    schemaVersion: 1,
+    schemaVersion: SCHEMA_VERSION,
     collectionStartedAt: startedAt,
     collectionFinishedAt: finishedAt,
     providers: records,

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "collectionStartedAt": "2026-07-11T10:00:00.000Z",
   "collectionFinishedAt": "2026-07-11T10:00:01.000Z",
   "providers": [
@@ -26,7 +26,7 @@
       }
     },
     {
-      "id": "umans",
+      "id": "kimi",
       "state": "ok",
       "windows": [
         {
@@ -37,9 +37,7 @@
         }
       ],
       "details": {
-        "umans": {
-          "plan": "synthetic-plan",
-          "requests": 12,
+        "kimi": {
           "concurrency": 2,
           "concurrencyLimit": 3
         }
