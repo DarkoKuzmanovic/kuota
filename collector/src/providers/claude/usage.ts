@@ -217,14 +217,18 @@ function parseLimits(value: unknown | typeof MISSING): readonly WindowCandidate[
     // Unknown kinds are forward-compatible non-data: drop the entry without inspecting it.
     if (!recognized) continue;
 
-    // The activity gate runs before any metric or scope parsing so an inactive entry's
-    // malformed data cannot reject the whole payload and kill valid peers. A missing flag
-    // means active; a present non-boolean flag is malformed and rejects.
+    // Skip inactive entries before validating their metric or base-window scope. Claude's
+    // current Fable row is the exception: it is inactive in `limits[]` but still displayed
+    // by the Claude app, so inspect only that model-scoped row's safe display name.
     const active = parseActiveFlag(entry);
     if (active === INVALID) return undefined;
-    if (active === false) continue;
 
     const scope = ownValue(entry, "scope");
+    const inactiveFable =
+      active === false &&
+      (kindValue === "weekly_scoped" || kindValue === "seven_day") &&
+      isFableModelScope(scope);
+    if (active === false && !inactiveFable) continue;
 
     let kind: "session" | "weekly-all" | "weekly-scoped";
     if (SESSION_KINDS.has(kindValue)) {
@@ -240,8 +244,12 @@ function parseLimits(value: unknown | typeof MISSING): readonly WindowCandidate[
     }
 
     // A recognized active entry with a malformed metric value still rejects the payload.
+    // The explicitly retained inactive Fable row remains isolated if its metrics are bad.
     const metrics = parseMetricWindow(entry);
-    if (metrics === undefined) return undefined;
+    if (metrics === undefined) {
+      if (active === false) continue;
+      return undefined;
+    }
     if (!hasMetric(metrics)) continue;
     if (kind === "session") {
       candidates.push({
@@ -294,6 +302,11 @@ function parseScopedModel(
   }
   if (looksLikeSensitiveIdentifier(id)) return undefined;
   return { id, displayName };
+}
+
+function isFableModelScope(value: unknown | typeof MISSING): boolean {
+  const model = parseScopedModel(value);
+  return model !== undefined && model.displayName === "Fable";
 }
 
 function parseActiveFlag(entry: PlainRecord): boolean | typeof INVALID {
