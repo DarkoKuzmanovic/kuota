@@ -66,8 +66,8 @@ function adapterFor<TId extends ProviderId>(
 function registryFor(
   adapters: readonly [
     ProviderAdapter<"claude">,
-    ProviderAdapter<"umans">,
     ProviderAdapter<"codex">,
+    ProviderAdapter<"grok">,
   ],
 ) {
   return createProviderRegistry([
@@ -84,8 +84,8 @@ function okResult<TId extends ProviderId>(id: TId): ProviderNormalizedResult<TId
 function enabledProviders(): readonly ConfiguredProvider[] {
   return [
     { id: "claude", enabled: true },
-    { id: "umans", enabled: true },
     { id: "codex", enabled: true },
+    { id: "grok", enabled: true },
   ];
 }
 
@@ -109,8 +109,8 @@ test("collects enabled providers concurrently and returns canonical order once",
 
   const registry = registryFor([
     delayed("claude"),
-    delayed("umans"),
     delayed("codex"),
+    delayed("grok"),
   ]);
   const pending = collect({
     registry,
@@ -120,24 +120,24 @@ test("collects enabled providers concurrently and returns canonical order once",
   });
 
   await nextTurn();
-  assert.deepEqual(started, ["claude", "umans", "codex"]);
+  assert.deepEqual(started, ["claude", "codex", "grok"]);
   assert.deepEqual(
     [...invocationCounts.entries()],
     [
       ["claude", 1],
-      ["umans", 1],
       ["codex", 1],
+      ["grok", 1],
     ],
   );
 
   completion.get("codex")?.();
   completion.get("claude")?.();
-  completion.get("umans")?.();
+  completion.get("grok")?.();
   const document = await pending;
 
   assert.deepEqual(
     document.providers.map((provider) => provider.id),
-    ["claude", "umans", "codex"],
+    ["claude", "codex", "grok"],
   );
   assert.deepEqual(
     document.providers.map((provider) => provider.state),
@@ -159,8 +159,8 @@ test("bounds an abort-ignoring provider and consumes its late rejection", async 
   });
   const registry = registryFor([
     adapter,
-    adapterFor("umans", async () => okResult("umans")),
     adapterFor("codex", async () => okResult("codex")),
+    adapterFor("grok", async () => okResult("grok")),
   ]);
 
   const pending = collect({
@@ -196,8 +196,8 @@ test("parent abort cancels every independent provider budget", async () => {
   const pending = collect({
     registry: registryFor([
       abortIgnoring("claude"),
-      abortIgnoring("umans"),
       abortIgnoring("codex"),
+      abortIgnoring("grok"),
     ]),
     config: { providers: enabledProviders(), timeoutMs: 100 },
     signal: parent.signal,
@@ -208,7 +208,7 @@ test("parent abort cancels every independent provider budget", async () => {
   parent.abort();
   const document = await pending;
 
-  assert.deepEqual(aborted, ["claude", "umans", "codex"]);
+  assert.deepEqual(aborted, ["claude", "codex", "grok"]);
   assert.deepEqual(
     document.providers.map((provider) => provider.state),
     ["error", "error", "error"],
@@ -228,7 +228,7 @@ test("does not invoke providers when the parent is already aborted", async () =>
     });
 
   const document = await collect({
-    registry: registryFor([adapter("claude"), adapter("umans"), adapter("codex")]),
+    registry: registryFor([adapter("claude"), adapter("codex"), adapter("grok")]),
     config: { providers: enabledProviders(), timeoutMs: 100 },
     signal: parent.signal,
     clock: fixedClock,
@@ -253,7 +253,7 @@ test("does not invoke providers after the collection deadline has expired", asyn
     });
 
   const document = await collect({
-    registry: registryFor([adapter("claude"), adapter("umans"), adapter("codex")]),
+    registry: registryFor([adapter("claude"), adapter("codex"), adapter("grok")]),
     config: {
       providers: enabledProviders(),
       timeoutMs: 100,
@@ -278,7 +278,7 @@ test("converts thrown adapter failures and invalid results into safe provider er
       ({ id: "claude", state: "ok", credentials: { access: "synthetic" } }) as unknown as ProviderNormalizedResult<"claude">,
   );
   const throwingAdapter = adapterFor(
-    "umans",
+    "grok",
     async () => {
       throw new Error("Bearer should never be echoed");
     },
@@ -286,8 +286,8 @@ test("converts thrown adapter failures and invalid results into safe provider er
   const document = await collect({
     registry: registryFor([
       invalidAdapter,
-      throwingAdapter,
       adapterFor("codex", async () => okResult("codex")),
+      throwingAdapter,
     ]),
     config: { providers: enabledProviders(), timeoutMs: 100 },
     clock: fixedClock,
@@ -298,8 +298,8 @@ test("converts thrown adapter failures and invalid results into safe provider er
     document.providers.map((provider) => ({ id: provider.id, state: provider.state, status: provider.status })),
     [
       { id: "claude", state: "error", status: "Provider unavailable" },
-      { id: "umans", state: "error", status: "Provider unavailable" },
       { id: "codex", state: "ok", status: undefined },
+      { id: "grok", state: "error", status: "Provider unavailable" },
     ],
   );
 });
@@ -324,8 +324,8 @@ test("CLI writes one schema-valid JSON document and no normal diagnostics", asyn
   const exitCode = await runCli({
     registry: registryFor([
       adapterFor("claude", async () => okResult("claude")),
-      adapterFor("umans", async () => okResult("umans")),
       adapterFor("codex", async () => okResult("codex")),
+      adapterFor("grok", async () => okResult("grok")),
     ]),
     config: { providers: enabledProviders(), timeoutMs: 100 },
     clock: fixedClock,
@@ -352,19 +352,19 @@ test("CLI keeps partial and all-provider failures in the JSON contract", async (
   for (const adapters of [
     [
       adapterFor("claude", async () => okResult("claude")),
-      adapterFor("umans", async () => {
+      adapterFor("codex", async () => okResult("codex")),
+      adapterFor("grok", async () => {
         throw new Error("synthetic provider failure");
       }),
-      adapterFor("codex", async () => okResult("codex")),
     ],
     [
       adapterFor("claude", async () => {
         throw new Error("synthetic provider failure");
       }),
-      adapterFor("umans", async () => {
+      adapterFor("codex", async () => {
         throw new Error("synthetic provider failure");
       }),
-      adapterFor("codex", async () => {
+      adapterFor("grok", async () => {
         throw new Error("synthetic provider failure");
       }),
     ],
@@ -529,26 +529,26 @@ test("maps auth and stale failures safely, degrading invalid retention to error"
     windows: [{ id: "weekly", label: "Weekly", used: 4 }],
   };
   const invalidStale = {
-    id: "umans",
+    id: "grok",
     state: "stale",
     lastSuccessAt: "2026-07-10T12:00:00.000Z",
-  } as ProviderStaleRecordFor<"umans">;
+  } as ProviderStaleRecordFor<"grok">;
   const document = await collect({
     registry: registryFor([
       adapterFor("claude", async () => {
         throw new ProviderAdapterError("stale");
       }),
-      adapterFor("umans", async () => {
-        throw new ProviderAdapterError("stale");
-      }),
       adapterFor("codex", async () => {
         throw new ProviderAdapterError("auth-needed");
+      }),
+      adapterFor("grok", async () => {
+        throw new ProviderAdapterError("stale");
       }),
     ]),
     config: {
       providers: enabledProviders(),
       timeoutMs: 25,
-      retainedStaleRecords: { claude: stale, umans: invalidStale },
+      retainedStaleRecords: { claude: stale, grok: invalidStale },
     },
     clock: fixedClock,
     timers: new ManualTimers(),
@@ -558,8 +558,8 @@ test("maps auth and stale failures safely, degrading invalid retention to error"
     document.providers.map((provider) => ({ id: provider.id, state: provider.state })),
     [
       { id: "claude", state: "stale" },
-      { id: "umans", state: "error" },
       { id: "codex", state: "auth-needed" },
+      { id: "grok", state: "error" },
     ],
   );
   assert.equal(document.providers[0]?.status, "Using last known data");
@@ -573,7 +573,7 @@ test("passes bounded UTC deadline context to each provider", async () => {
       return okResult(id);
     });
   await collect({
-    registry: registryFor([capture("claude"), capture("umans"), capture("codex")]),
+    registry: registryFor([capture("claude"), capture("codex"), capture("grok")]),
     config: { providers: enabledProviders(), timeoutMs: 25 },
     clock: fixedClock,
     timers: new ManualTimers(),
@@ -686,7 +686,7 @@ test("CLI transport composes with parseCollectorConfig for canonical order and r
   const allDisabled = parseCollectorConfig(parseCliArgv(["--enabled-providers="]));
   assert.deepEqual(
     allDisabled.providers.map((provider) => provider.enabled),
-    [false, false, false, false, false],
+    [false, false, false, false],
   );
 
   for (const argv of [

@@ -22,17 +22,46 @@ test("defaults to all canonical providers with bounded internal defaults", () =>
   assertValueFree(() => parseCollectorConfig(null));
 });
 
+test("default config enables four providers without umans", () => {
+  assert.deepEqual(
+    DEFAULT_COLLECTOR_CONFIG.providers.map((provider) => [provider.id, provider.enabled]),
+    [
+      ["claude", true],
+      ["codex", true],
+      ["grok", true],
+      ["kimi", true],
+    ],
+  );
+});
+
 test("normalizes enabled provider IDs to canonical order", () => {
   assert.deepEqual(parseCollectorConfig({ enabledProviders: ["codex", "claude"] }), {
     providers: [
       { id: "claude", enabled: true },
-      { id: "umans", enabled: false },
       { id: "codex", enabled: true },
       { id: "grok", enabled: false },
       { id: "kimi", enabled: false },
     ],
     timeoutMs: 10_000,
   });
+});
+
+test("silently drops umans from enabledProviders", () => {
+  const config = parseCollectorConfig({
+    enabledProviders: ["claude", "umans", "codex"],
+  });
+  assert.deepEqual(
+    config.providers.filter((provider) => provider.enabled).map((provider) => provider.id),
+    ["claude", "codex"],
+  );
+});
+
+test("umans-only enabledProviders yields all disabled", () => {
+  const config = parseCollectorConfig({ enabledProviders: ["umans"] });
+  assert.deepEqual(
+    config.providers.map((provider) => provider.enabled),
+    [false, false, false, false],
+  );
 });
 
 test("rejects duplicate, unknown, malformed, unsupported, and secret-bearing config", () => {

@@ -31,12 +31,21 @@ function claudeOk() {
   });
 }
 
-function umansOk() {
-  return createNormalizedProviderResult("umans", {
-    id: "umans",
+function codexOk() {
+  return createNormalizedProviderResult("codex", {
+    id: "codex",
     state: "ok",
     lastSuccessAt: OBSERVED_AT,
-    details: { umans: { requests: 3 } },
+    details: { codex: { credits: 3 } },
+  });
+}
+
+function grokOk() {
+  return createNormalizedProviderResult("grok", {
+    id: "grok",
+    state: "ok",
+    lastSuccessAt: OBSERVED_AT,
+    details: { grok: { monthlyUsed: 3 } },
   });
 }
 
@@ -48,7 +57,7 @@ function codexError() {
   });
 }
 
-function envelope(records = [claudeOk(), umansOk()]): CollectorCacheEnvelope {
+function envelope(records = [claudeOk(), grokOk()]): CollectorCacheEnvelope {
   return {
     schemaVersion: COLLECTOR_CACHE_SCHEMA_VERSION,
     savedAt: SAVED_AT,
@@ -64,19 +73,19 @@ test("resolves the injected-home whole-collector cache path", () => {
 });
 
 test("constructs only canonical successful-record envelopes", () => {
-  const constructed = createCollectorCacheEnvelope(SAVED_AT, [umansOk(), claudeOk()]);
+  const constructed = createCollectorCacheEnvelope(SAVED_AT, [codexOk(), claudeOk()]);
   assert.ok(constructed !== undefined);
-  assert.deepEqual(constructed.records.map((record) => record.id), ["claude", "umans"]);
+  assert.deepEqual(constructed.records.map((record) => record.id), ["claude", "codex"]);
   assert.equal(createCollectorCacheEnvelope(SAVED_AT, [codexError()]), undefined);
 });
 
 test("creates a canonical versioned envelope from a cold cache success", () => {
-  const result = mergeCollectorCache(undefined, [umansOk()], SAVED_AT);
+  const result = mergeCollectorCache(undefined, [codexOk()], SAVED_AT);
 
   assert.ok(result.envelope !== undefined);
   assert.equal(result.envelope.schemaVersion, COLLECTOR_CACHE_SCHEMA_VERSION);
   assert.equal(result.envelope.savedAt, SAVED_AT);
-  assert.deepEqual(result.envelope.records.map((record) => record.id), ["umans"]);
+  assert.deepEqual(result.envelope.records.map((record) => record.id), ["codex"]);
 });
 
 test("merges successful providers independently and retains matching cache only for transient errors", () => {
@@ -87,8 +96,8 @@ test("merges successful providers independently and retains matching cache only 
       lastSuccessAt: "2026-07-13T12:10:00.000Z",
       details: { claude: { tokens: 10 } },
     }),
-    createNormalizedProviderResult("umans", {
-      id: "umans",
+    createNormalizedProviderResult("grok", {
+      id: "grok",
       state: "auth-needed",
       status: "Authentication required",
     }),
@@ -97,13 +106,13 @@ test("merges successful providers independently and retains matching cache only 
 
   assert.deepEqual(result.records.map((record) => [record.id, record.state]), [
     ["claude", "ok"],
-    ["umans", "auth-needed"],
     ["codex", "error"],
+    ["grok", "auth-needed"],
   ]);
   assert.ok(result.envelope !== undefined);
   assert.deepEqual(result.envelope.records.map((record) => [record.id, record.state]), [
     ["claude", "ok"],
-    ["umans", "ok"],
+    ["grok", "ok"],
   ]);
   assert.equal(result.envelope.savedAt, UPDATED_SAVED_AT);
 
@@ -127,7 +136,7 @@ test("preserves a non-empty cache and its timestamp when every live record fails
   const result = mergeCollectorCache(envelope(), [codexError()], UPDATED_SAVED_AT);
 
   assert.equal(result.envelope?.savedAt, SAVED_AT);
-  assert.deepEqual(result.envelope?.records.map((record) => record.id), ["claude", "umans"]);
+  assert.deepEqual(result.envelope?.records.map((record) => record.id), ["claude", "grok"]);
   assert.deepEqual(result.records.map((record) => [record.id, record.state]), [["codex", "error"]]);
 });
 
@@ -144,12 +153,40 @@ test("writes only validated ok records atomically and reads them without secrets
     const read = await readCollectorCache({ homeDirectory: home });
     assert.equal(read.state, "available");
     if (read.state === "available") {
-      assert.deepEqual(read.envelope.records.map((record) => record.id), ["claude", "umans"]);
+      assert.deepEqual(read.envelope.records.map((record) => record.id), ["claude", "grok"]);
     }
     const raw = await readFile(cachePath, "utf8");
     assert.equal(raw.includes(SECRET), false);
     assert.equal(raw.includes("accessToken"), false);
     assert.equal((await stat(cachePath)).mode & 0o777, 0o600);
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test("skips legacy umans records when reading an otherwise valid envelope", async () => {
+  const home = await mkdtemp(join(tmpdir(), "kuota-collector-cache-"));
+  const cachePath = resolveCollectorCachePath(home);
+  await mkdir(join(home, ".cache", "kuota"), { recursive: true, mode: 0o700 });
+  try {
+    const legacy = {
+      schemaVersion: COLLECTOR_CACHE_SCHEMA_VERSION,
+      savedAt: SAVED_AT,
+      records: [
+        claudeOk(),
+        {
+          id: "umans",
+          state: "ok",
+          lastSuccessAt: SAVED_AT,
+          details: { umans: { requests: 3 } },
+        },
+      ],
+    };
+    await writeFile(cachePath, JSON.stringify(legacy), "utf8");
+    const read = await readCollectorCache({ homeDirectory: home });
+    assert.equal(read.state, "available");
+    if (read.state !== "available") return;
+    assert.deepEqual(read.envelope.records.map((record) => record.id), ["claude"]);
   } finally {
     await rm(home, { recursive: true, force: true });
   }

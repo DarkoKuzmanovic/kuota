@@ -10,7 +10,6 @@ import {
 } from "./types.js";
 import { createClaudeAdapter } from "./claude/adapter.js";
 import { createCodexAdapter } from "./codex/adapter.js";
-import { createUmansAdapter } from "./umans/adapter.js";
 import { createGrokAdapter } from "./grok/adapter.js";
 import { createKimiAdapter } from "./kimi/adapter.js";
 
@@ -92,7 +91,6 @@ function placeholderFor<TId extends ProviderId>(
 
 /** All V1 provider adapters are real; construction itself remains inert. */
 export const CLAUDE_ADAPTER = createClaudeAdapter();
-export const UMANS_ADAPTER = createUmansAdapter();
 export const CODEX_ADAPTER = createCodexAdapter();
 export const GROK_ADAPTER = createGrokAdapter();
 export const KIMI_ADAPTER = createKimiAdapter();
@@ -100,21 +98,18 @@ export const KIMI_ADAPTER = createKimiAdapter();
 /** Legacy name retained for collector test seams; all entries are real adapters. */
 export const PLACEHOLDER_ADAPTERS = [
   CLAUDE_ADAPTER,
-  UMANS_ADAPTER,
   CODEX_ADAPTER,
   GROK_ADAPTER,
   KIMI_ADAPTER,
 ] as const satisfies readonly RegisteredProviderAdapter[];
 
 const CLAUDE_REGISTRATION = createProviderRegistration(CLAUDE_ADAPTER);
-const UMANS_REGISTRATION = createProviderRegistration(UMANS_ADAPTER);
 const CODEX_REGISTRATION = createProviderRegistration(CODEX_ADAPTER);
 const GROK_REGISTRATION = createProviderRegistration(GROK_ADAPTER);
 const KIMI_REGISTRATION = createProviderRegistration(KIMI_ADAPTER);
 
 export const PLACEHOLDER_PROVIDER_REGISTRATIONS = [
   CLAUDE_REGISTRATION,
-  UMANS_REGISTRATION,
   CODEX_REGISTRATION,
   GROK_REGISTRATION,
   KIMI_REGISTRATION,
@@ -153,7 +148,7 @@ export class ProviderRegistry {
 
   /**
    * Validates every configured entry, then returns enabled adapters in
-   * canonical Claude, Umans, Codex, Grok, Kimi order.
+   * canonical Claude, Codex, Grok, Kimi order.
    */
   selectEnabled(
     configuredProviders: readonly ConfiguredProvider[],
