@@ -61,7 +61,7 @@ function checkNormalInvocation() {
     fail('normal invocation violated the collector schema');
   }
   const providerIds = validation.value.providers.map((provider) => provider.id);
-  if (JSON.stringify(providerIds) !== JSON.stringify(['claude', 'umans', 'codex', 'grok', 'kimi'])) {
+  if (JSON.stringify(providerIds) !== JSON.stringify(['claude', 'codex', 'grok', 'kimi'])) {
     fail('normal invocation did not use canonical provider IDs');
   }
 }
