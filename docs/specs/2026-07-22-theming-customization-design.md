@@ -49,7 +49,7 @@ New keys added to the flat KConfigXT schema in `plasmoid/contents/config/main.xm
 | `customTextColor` | color | Plasma theme text color | Used only when `customTextColorEnabled` is true. |
 | `labelOpacity` | real `0.0`–`1.0` | `1.0` | Opacity applied to provider labels. `1.0` reproduces V1. |
 | `separatorOpacity` | real `0.0`–`1.0` | `1.0` | Opacity applied to `\|` dividers. Only meaningful when the V1 `separator` bool is on. `1.0` reproduces V1. |
-| per-provider `accentColor` | color | provider identity color | Per Claude / Umans / Codex (and Grok / Kimi once 1.1.0 lands). |
+| per-provider `accentColor` | color | provider identity color | Per Claude / Codex / Grok / Kimi. |
 | per-provider `customIcon` | string | `""` | Freedesktop icon name; `""` = provider default icon. |
 
 Existing V1 keys (`separator` bool, `fontScale`, `compactDisplayMode`, threshold colors, etc.) are unchanged. `separatorOpacity` is only meaningful when `separator` is on; when `separator` is off, dividers are absent and `separatorOpacity` has no effect.

@@ -3,7 +3,7 @@
 Status: active
 
 Kuota is a standalone KDE Plasma 6 widget that reports authoritative Claude,
-Umans, and Codex account usage on the desktop. Releases are discrete; this file
+Codex, Grok, and Kimi account usage on the desktop. Releases are discrete; this file
 holds one-line version goals only. Tactical execution state lives in `PLAN.md`.
 A roadmap entry is a candidate, not authorization — starting a Planned version
 still requires the normal spec → grill → scope checkpoint → confirmation flow.
@@ -11,10 +11,11 @@ still requires the normal spec → grill → scope checkpoint → confirmation f
 ## Released
 
 - **1.0.0** (product label "V1") — shipped locally 2026-07-18 (merged to main;
-  not yet published). Approved 3-provider V1 (Claude, Umans, Codex): Plasma 6
-  widget, bundled short-lived Node collector, compact + full representations,
-  configuration layer, local install/update/uninstall scripts. KDE Store
-  publication is a separate explicitly approved step, not part of this version.
+  not yet published). Approved 3-provider V1 (Claude, Umans, Codex; Umans
+  removed 2026-08-02): Plasma 6 widget, bundled short-lived Node collector,
+  compact + full representations, configuration layer, local install/update/uninstall
+  scripts. KDE Store publication is a separate explicitly approved step, not part
+  of this version.
 
 ## Current
 

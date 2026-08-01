@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Config keys are a stable, additive-only contract (D7): later versions add keys
 but never rename or remove them within the compatibility window, so settings
-survive updates.
+survive updates. Umans-only config keys (`umansVisible`, `umansAccentColor`,
+`umansCustomIcon`) are an approved exception — removed from the schema and
+left unread on disk (see **Removed** under [Unreleased]).
+
+## [Unreleased]
+
+### Removed
+
+- **Umans provider.** Kuota no longer collects or displays Umans usage.
+  Collector documents now use `schemaVersion: 2` with providers
+  `claude`, `codex`, `grok`, and `kimi`. Schema v1 snapshots and configs
+  that still mention Umans are silently stripped on read. Orphan
+  `umansVisible` / accent / icon KConfig keys may remain on disk unread.
+  This amends D7 for the Umans-only keys as an explicit scope change
+  (see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
 
 ## [1.2.1] - 2026-07-22
 
