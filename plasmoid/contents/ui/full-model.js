@@ -217,9 +217,6 @@ function buildFacts(record) {
     if (id === "claude" && isRecord(details.claude)) {
         return claudeFacts(details.claude);
     }
-    if (id === "umans" && isRecord(details.umans)) {
-        return umansFacts(details.umans);
-    }
     if (id === "codex" && isRecord(details.codex)) {
         return codexFacts(details.codex);
     }
@@ -242,15 +239,6 @@ function claudeFacts(d) {
     pushCreditFact(facts, "Extra usage used", d.extraUsageUsedCredits, d);
     pushCreditFact(facts, "Extra usage limit", d.extraUsageMonthlyLimit, d);
     pushStringFact(facts, "Extra usage disabled reason", d.extraUsageDisabledReason);
-    return facts;
-}
-
-function umansFacts(d) {
-    var facts = [];
-    pushStringFact(facts, "Plan", d.plan);
-    pushNumberFact(facts, "Requests", d.requests);
-    pushNumberFact(facts, "Concurrency", d.concurrency);
-    pushNumberFact(facts, "Concurrency limit", d.concurrencyLimit);
     return facts;
 }
 

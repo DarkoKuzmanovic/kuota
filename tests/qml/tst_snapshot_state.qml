@@ -8,7 +8,7 @@ TestCase {
 
     function sampleDocument(overrides) {
         var document = {
-            schemaVersion: 1,
+            schemaVersion: 2,
             collectionStartedAt: "2026-07-11T10:00:00.000Z",
             collectionFinishedAt: "2026-07-11T10:00:01.000Z",
             providers: []
@@ -41,9 +41,9 @@ TestCase {
     function test_secondAcceptReplacesPriorSnapshotEntirely() {
         var initial = SnapshotState.createInitialSnapshotState();
         var first = SnapshotState.acceptSnapshot(initial, sampleDocument({ providers: [{ id: "claude", state: "ok" }] }), 1000);
-        var second = SnapshotState.acceptSnapshot(first, sampleDocument({ providers: [{ id: "umans", state: "ok" }] }), 2000);
+        var second = SnapshotState.acceptSnapshot(first, sampleDocument({ providers: [{ id: "grok", state: "ok" }] }), 2000);
         compare(second.snapshot.providers.length, 1);
-        compare(second.snapshot.providers[0].id, "umans");
+        compare(second.snapshot.providers[0].id, "grok");
         compare(second.acceptedAtMs, 2000);
     }
 

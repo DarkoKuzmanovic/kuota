@@ -135,8 +135,8 @@ TestCase {
 
         compact.snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] }),
-            Fixtures.validUmansProvider({ windows: [Fixtures.validWindow({ usedPercent: 20 })] }),
-            Fixtures.validCodexProvider({ windows: [Fixtures.validWindow({ usedPercent: 30 })] })
+            Fixtures.validCodexProvider({ windows: [Fixtures.validWindow({ usedPercent: 20 })] }),
+            Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ usedPercent: 30 })] })
         ]);
         tryVerify(function () { return compact.implicitWidth > widthOne; });
         verify(compact.entries.length === 3);
@@ -183,16 +183,16 @@ TestCase {
 
     function test_visibilityConfigHonoredInEntries() {
         compact.displayConfig = CompactModel.createDefaultDisplayConfig();
-        compact.displayConfig.visibility.umans = false;
+        compact.displayConfig.visibility.grok = false;
         compact.snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider(),
-            { id: "umans", state: "ok", windows: [Fixtures.validWindow({ used: 1, limit: undefined, usedPercent: undefined })] },
+            Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ used: 1, limit: undefined, usedPercent: undefined })] }),
             Fixtures.validCodexProvider({ id: "codex", state: "ok", windows: [Fixtures.validWindow({ usedPercent: 1 })] })
         ]);
         compare(compact.entries.length, 2);
         verify(compact.entries[0].providerId === "claude" || compact.entries[1].providerId === "claude");
         for (var i = 0; i < compact.entries.length; i++) {
-            verify(compact.entries[i].providerId !== "umans");
+            verify(compact.entries[i].providerId !== "grok");
         }
     }
 
@@ -277,7 +277,7 @@ TestCase {
     function twoProviderSnapshot() {
         return sampleSnapshot([
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 10 })] }),
-            Fixtures.validUmansProvider({ windows: [Fixtures.validWindow({ used: 3, limit: undefined, usedPercent: undefined })] })
+            Fixtures.validCodexProvider({ windows: [Fixtures.validWindow({ usedPercent: 3 })] })
         ]);
     }
 

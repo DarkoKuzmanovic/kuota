@@ -71,8 +71,8 @@ TestCase {
 
     function test_missingProvidersAreNotOfferedInSwitcher() {
         full.snapshot = sampleSnapshot([
-            Fixtures.validUmansProvider(),
-            Fixtures.validCodexProvider()
+            Fixtures.validCodexProvider(),
+            Fixtures.validGrokProvider()
         ]);
         compare(full.availableProviderIds.indexOf("claude"), -1);
         compare(full.availableProviderIds.length, 2);
@@ -82,18 +82,18 @@ TestCase {
     function test_switchingProvidersViaSwitcherCurrentIndexShowsCorrectModel() {
         full.snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider(),
-            Fixtures.validUmansProvider({ state: "ok", windows: [Fixtures.validWindow({ used: 5, limit: undefined, usedPercent: undefined })] }),
+            Fixtures.validGrokProvider({ state: "ok", windows: [Fixtures.validWindow({ used: 5, limit: undefined, usedPercent: undefined })] }),
             Fixtures.validCodexProvider({ state: "ok", windows: [Fixtures.validWindow({ usedPercent: 3 })] })
         ]);
         compare(full.effectiveProviderId, "claude");
 
         full.providerSwitcherItem.currentIndex = 1;
-        compare(full.effectiveProviderId, "umans");
-        compare(full.activeModel.providerId, "umans");
-
-        full.providerSwitcherItem.currentIndex = 2;
         compare(full.effectiveProviderId, "codex");
         compare(full.activeModel.providerId, "codex");
+
+        full.providerSwitcherItem.currentIndex = 2;
+        compare(full.effectiveProviderId, "grok");
+        compare(full.activeModel.providerId, "grok");
     }
 
     function test_claudeProviderRendersWindowAndFacts() {
@@ -114,13 +114,13 @@ TestCase {
         verify(hasModelFact);
     }
 
-    function test_unlimitedUmansOmitsPercentAndProgress() {
+    function test_unlimitedGrokOmitsPercentAndProgress() {
         full.snapshot = sampleSnapshot([
             {
-                id: "umans",
+                id: "grok",
                 state: "ok",
                 windows: [{ id: "rolling", label: "Rolling window", used: 1200, resetAt: "2026-07-15T00:00:00.000Z" }],
-                details: { umans: { requests: 1200 } }
+                details: { grok: { monthlyUsed: 1200 } }
             }
         ]);
         var row = full.activeModel.windows[0];
@@ -176,7 +176,7 @@ TestCase {
     }
 
     function test_authNeededStateShowsLoginMessage() {
-        full.snapshot = sampleSnapshot([Fixtures.validUmansProvider({ state: "auth-needed" })]);
+        full.snapshot = sampleSnapshot([Fixtures.validCodexProvider({ state: "auth-needed" })]);
         compare(full.activeModel.stateMessage, "Login needed");
     }
 
@@ -229,13 +229,13 @@ TestCase {
     function test_keyboardActivatesProviderSwitchTab() {
         full.snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider(),
-            Fixtures.validUmansProvider({ state: "ok" })
+            Fixtures.validGrokProvider({ state: "ok" })
         ]);
         var secondTab = full.providerSwitcherItem.itemAt(1);
         secondTab.forceActiveFocus();
         keyClick(Qt.Key_Space);
         compare(full.providerSwitcherItem.currentIndex, 1);
-        compare(full.effectiveProviderId, "umans");
+        compare(full.effectiveProviderId, "grok");
     }
 
     function test_accessibleNamesPresent() {
@@ -377,25 +377,19 @@ TestCase {
         compare(full.windowValueTextColor("caution"), Kirigami.Theme.neutralTextColor);
     }
 
-    // All five V1 providers must render with a capitalized display name in
-    // the full-view tab bar. The earlier switch fell through to the raw
-    // providerId for grok and kimi, producing lowercase "grok"/"kimi" tabs
-    // next to the capitalized Claude/Umans/Codex tabs.
+    // All four V1 providers must render with a capitalized display name in
+    // the full-view tab bar.
     function test_providerDisplayNameCapitalizesAllProviders() {
         compare(full.providerDisplayName("claude"), "Claude");
-        compare(full.providerDisplayName("umans"), "Umans");
         compare(full.providerDisplayName("codex"), "Codex");
         compare(full.providerDisplayName("grok"), "Grok");
         compare(full.providerDisplayName("kimi"), "Kimi");
     }
 
-    // Regression: the tab button text for grok and kimi providers must reflect
-    // the display name, not the raw lowercase providerId.
     function test_tabButtonsUseCapitalizedDisplayNames() {
-        full.providerOrder = ["claude", "umans", "codex", "grok", "kimi"];
+        full.providerOrder = ["claude", "codex", "grok", "kimi"];
         full.snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider(),
-            Fixtures.validUmansProvider(),
             Fixtures.validCodexProvider(),
             Fixtures.validGrokProvider(),
             Fixtures.validKimiProvider()
@@ -406,11 +400,10 @@ TestCase {
         for (var i = 0; i < tabBar.count; i++) {
             labels.push(tabBar.itemAt(i).text);
         }
-        compare(labels.length, 5);
+        compare(labels.length, 4);
         compare(labels[0], "Claude");
-        compare(labels[1], "Umans");
-        compare(labels[2], "Codex");
-        compare(labels[3], "Grok");
-        compare(labels[4], "Kimi");
+        compare(labels[1], "Codex");
+        compare(labels[2], "Grok");
+        compare(labels[3], "Kimi");
     }
 }

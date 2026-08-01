@@ -60,7 +60,7 @@ TestCase {
 
     function test_progressFractionOmittedWhenNeitherPercentNorRatio() {
         var record = {
-            id: "umans",
+            id: "grok",
             state: "ok",
             windows: [Fixtures.validWindow({
                 usedPercent: undefined,
@@ -83,7 +83,7 @@ TestCase {
 
     function test_remainingOmittedWhenNotDerivable() {
         var record = {
-            id: "umans",
+            id: "grok",
             state: "ok",
             windows: [Fixtures.validWindow({ used: 12, limit: undefined, usedPercent: undefined })]
         };
@@ -192,30 +192,6 @@ TestCase {
         compare(FullModel.buildFullViewModel(record).facts.length, 0);
     }
 
-    function test_umansFactsFullAndPartial() {
-        var full = {
-            id: "umans",
-            state: "ok",
-            windows: [Fixtures.validWindow()],
-            details: { umans: { plan: "Pro", requests: 42, concurrency: 2, concurrencyLimit: 5 } }
-        };
-        var modelFull = FullModel.buildFullViewModel(full);
-        compare(factValue(modelFull, "Plan"), "Pro");
-        compare(factValue(modelFull, "Requests"), "42");
-        compare(factValue(modelFull, "Concurrency"), "2");
-        compare(factValue(modelFull, "Concurrency limit"), "5");
-
-        var partial = {
-            id: "umans",
-            state: "ok",
-            windows: [],
-            details: { umans: { requests: 7 } }
-        };
-        var modelPartial = FullModel.buildFullViewModel(partial);
-        compare(modelPartial.facts.length, 1);
-        compare(factValue(modelPartial, "Requests"), "7");
-    }
-
     function test_codexFactsExtraction() {
         var record = {
             id: "codex",
@@ -266,9 +242,9 @@ TestCase {
         compare(factValue(modelPartial, "Concurrency"), "3");
     }
 
-    function test_unlimitedUmansWindowNoInventedPercent() {
+    function test_unlimitedGrokWindowNoInventedPercent() {
         var record = {
-            id: "umans",
+            id: "grok",
             state: "ok",
             windows: [{
                 id: "rolling",
@@ -276,7 +252,7 @@ TestCase {
                 used: 1200,
                 resetAt: "2026-07-15T00:00:00.000Z"
             }],
-            details: { umans: { requests: 1200 } }
+            details: { grok: { monthlyUsed: 1200 } }
         };
         var model = FullModel.buildFullViewModel(record);
         var row = windowRow(model, 0);
@@ -303,7 +279,7 @@ TestCase {
     }
 
     function test_stateAuthNeededMessage() {
-        var record = Fixtures.validUmansProvider({ state: "auth-needed" });
+        var record = Fixtures.validCodexProvider({ state: "auth-needed" });
         var model = FullModel.buildFullViewModel(record);
         compare(model.state, "auth-needed");
         compare(model.stateMessage, "Login needed");
@@ -323,7 +299,7 @@ TestCase {
     }
 
     function test_missingWindowsEmptyArray() {
-        var record = Fixtures.validUmansProvider({ windows: undefined });
+        var record = Fixtures.validCodexProvider({ windows: undefined });
         compare(FullModel.buildFullViewModel(record).windows.length, 0);
     }
 

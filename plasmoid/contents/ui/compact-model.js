@@ -4,11 +4,10 @@
 // CollectorDocument plus display config to ordered compact entries.
 // Never imports Plasma executable APIs or touches I/O.
 
-var DEFAULT_ORDER = ["claude", "umans", "codex", "grok", "kimi"];
+var DEFAULT_ORDER = ["claude", "codex", "grok", "kimi"];
 
 var PROVIDER_LABELS = Object.freeze({
     claude: "Claude",
-    umans: "Umans",
     codex: "Codex",
     grok: "Grok",
     kimi: "Kimi"
@@ -28,7 +27,6 @@ function createDefaultDisplayConfig() {
         order: DEFAULT_ORDER.slice(),
         visibility: {
             claude: true,
-            umans: true,
             codex: true,
             grok: true,
             kimi: true
