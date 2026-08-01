@@ -82,8 +82,6 @@ FocusScope {
         switch (providerId) {
         case "claude":
             return "assistant";
-        case "umans":
-            return "applications-development";
         case "codex":
             return "utilities-terminal";
         default:

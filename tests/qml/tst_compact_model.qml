@@ -62,26 +62,26 @@ TestCase {
     function test_usedCountFallbackWhenNoUsedPercent() {
         var snapshot = sampleSnapshot([
             {
-                id: "umans",
+                id: "grok",
                 state: "ok",
                 windows: [Fixtures.validWindow({ usedPercent: undefined, used: 1240, limit: undefined })]
             }
         ]);
         var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig());
-        var umans = providerEntry(entries, "umans");
-        compare(umans.displayValue, "1240");
-        compare(umans.thresholdLevel, "none");
+        var grok = providerEntry(entries, "grok");
+        compare(grok.displayValue, "1240");
+        compare(grok.thresholdLevel, "none");
     }
 
     function test_stateOnlyFallbackWithoutWindows() {
         var snapshot = sampleSnapshot([
-            Fixtures.validUmansProvider({ windows: undefined })
+            Fixtures.validCodexProvider({ state: "auth-needed", status: "Login required", windows: undefined })
         ]);
         var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig());
-        var umans = providerEntry(entries, "umans");
-        compare(umans.state, "auth-needed");
-        compare(umans.displayValue, "Login required");
-        compare(umans.thresholdLevel, "none");
+        var codex = providerEntry(entries, "codex");
+        compare(codex.state, "auth-needed");
+        compare(codex.displayValue, "Login required");
+        compare(codex.thresholdLevel, "none");
     }
 
     function test_thresholdBoundary74_9IsNone() {
@@ -159,20 +159,20 @@ TestCase {
     function test_uncappedCountHasNeutralThreshold() {
         var snapshot = sampleSnapshot([
             {
-                id: "umans",
+                id: "grok",
                 state: "ok",
                 windows: [Fixtures.validWindow({ usedPercent: undefined, used: 500, limit: undefined })]
             }
         ]);
-        var umans = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "umans");
-        compare(umans.thresholdLevel, "none");
+        var grok = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "grok");
+        compare(grok.thresholdLevel, "none");
     }
 
     function test_eachProviderStateProducesEntry() {
         var snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider({ state: "ok" }),
             {
-                id: "umans",
+                id: "grok",
                 state: "stale",
                 lastSuccessAt: "2026-07-10T10:00:01.000Z",
                 windows: [Fixtures.validWindow({ usedPercent: 10 })]
@@ -182,62 +182,60 @@ TestCase {
         var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig());
         compare(entries.length, 3);
         compare(providerEntry(entries, "claude").state, "ok");
-        compare(providerEntry(entries, "umans").state, "stale");
-        compare(providerEntry(entries, "umans").displayValue, "10%");
+        compare(providerEntry(entries, "grok").state, "stale");
+        compare(providerEntry(entries, "grok").displayValue, "10%");
         compare(providerEntry(entries, "codex").state, "error");
         compare(providerEntry(entries, "codex").displayValue, "Provider unavailable");
     }
 
     function test_authNeededStateUsesStatusWhenPresent() {
-        var snapshot = sampleSnapshot([Fixtures.validUmansProvider({ state: "auth-needed" })]);
-        var umans = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "umans");
-        compare(umans.state, "auth-needed");
-        compare(umans.displayValue, "Login required");
+        var snapshot = sampleSnapshot([
+            Fixtures.validCodexProvider({ state: "auth-needed", status: "Login required" })
+        ]);
+        var codex = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "codex");
+        compare(codex.state, "auth-needed");
+        compare(codex.displayValue, "Login required");
     }
 
-    function test_defaultOrderClaudeUmansCodex() {
+    function test_defaultOrderClaudeCodexGrokKimi() {
         var snapshot = sampleSnapshot([
             Fixtures.validCodexProvider({ id: "codex", state: "ok", windows: [Fixtures.validWindow({ usedPercent: 1 })] }),
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 2 })] }),
-            {
-                id: "umans",
-                state: "ok",
-                windows: [Fixtures.validWindow({ used: 3, usedPercent: undefined, limit: undefined })]
-            }
+            Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ used: 3, usedPercent: undefined, limit: undefined })] })
         ]);
         var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig());
         compare(entries.length, 3);
         compare(entries[0].providerId, "claude");
-        compare(entries[1].providerId, "umans");
-        compare(entries[2].providerId, "codex");
+        compare(entries[1].providerId, "codex");
+        compare(entries[2].providerId, "grok");
     }
 
     function test_customOrderRespected() {
         var snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider(),
-            { id: "umans", state: "ok", windows: [Fixtures.validWindow({ used: 1, limit: undefined, usedPercent: undefined })] },
+            Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ used: 1, limit: undefined, usedPercent: undefined })] }),
             Fixtures.validCodexProvider({ id: "codex", state: "ok", windows: [Fixtures.validWindow({ usedPercent: 1 })] })
         ]);
         var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig({
-            order: ["codex", "umans", "claude"]
+            order: ["codex", "grok", "claude"]
         }));
         compare(entries[0].providerId, "codex");
-        compare(entries[1].providerId, "umans");
+        compare(entries[1].providerId, "grok");
         compare(entries[2].providerId, "claude");
     }
 
     function test_visibilityOmitsHiddenProviders() {
         var snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider(),
-            { id: "umans", state: "ok", windows: [Fixtures.validWindow({ used: 1, limit: undefined, usedPercent: undefined })] },
+            Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ used: 1, limit: undefined, usedPercent: undefined })] }),
             Fixtures.validCodexProvider({ id: "codex", state: "ok", windows: [Fixtures.validWindow({ usedPercent: 1 })] })
         ]);
         var config = defaultConfig({
-            visibility: { claude: true, umans: false, codex: true }
+            visibility: { claude: true, grok: false, codex: true }
         });
         var entries = CompactModel.buildCompactEntries(snapshot, config);
         compare(entries.length, 2);
-        verify(providerEntry(entries, "umans") === null);
+        verify(providerEntry(entries, "grok") === null);
     }
 
     function test_emptyWindowsOnOkUsesStateOnly() {
@@ -274,14 +272,12 @@ TestCase {
     function test_labelsAreStableProviderNames() {
         var snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider(),
-            { id: "umans", state: "ok", windows: [Fixtures.validWindow({ used: 1, limit: undefined, usedPercent: undefined })] },
             Fixtures.validCodexProvider({ id: "codex", state: "ok", windows: [Fixtures.validWindow({ usedPercent: 1 })] }),
-            { id: "grok", state: "ok", windows: [Fixtures.validWindow({ usedPercent: 1 })] },
-            { id: "kimi", state: "ok", windows: [Fixtures.validWindow({ usedPercent: 1 })] }
+            Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ usedPercent: 1 })] }),
+            Fixtures.validKimiProvider({ windows: [Fixtures.validWindow({ usedPercent: 1 })] })
         ]);
         var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig());
         compare(providerEntry(entries, "claude").label, "Claude");
-        compare(providerEntry(entries, "umans").label, "Umans");
         compare(providerEntry(entries, "codex").label, "Codex");
         compare(providerEntry(entries, "grok").label, "Grok");
         compare(providerEntry(entries, "kimi").label, "Kimi");
@@ -434,10 +430,10 @@ TestCase {
     function test_accentIsPerProvider() {
         var snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 42, used: 42, limit: 100 })] }),
-            Fixtures.validUmansProvider({ windows: [Fixtures.validWindow({ usedPercent: 42, used: 42, limit: 100 })] })
+            Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ usedPercent: 42, used: 42, limit: 100 })] })
         ]);
         var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig(), { claudeAccentColor: "#ff0000" });
         compare(providerEntry(entries, "claude").valueColor, "#ff0000");
-        compare(providerEntry(entries, "umans").valueColor, "");
+        compare(providerEntry(entries, "grok").valueColor, "");
     }
 }
