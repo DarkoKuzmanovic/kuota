@@ -144,9 +144,23 @@ export function parseGrokUsageResponse(input: unknown, observedAt: string): Grok
     };
     const windows: UsageWindow[] = [];
 
+    // Week first so compact's windows[0] primary shows the tighter 7d
+    // credit window; month (30d) follows. Order is intentional product UX.
+    if (weekly !== undefined && weekly.applicable && weekly.usedPercent !== undefined && weekly.usedPercent !== INVALID) {
+      const weeklyWindow: UsageWindow = {
+        id: "week",
+        label: "7d",
+        usedPercent: weekly.usedPercent,
+        ...(weekly.resetAt !== undefined && weekly.resetAt !== INVALID
+          ? { resetAt: weekly.resetAt }
+          : {}),
+      };
+      windows.push(weeklyWindow);
+    }
+
     const monthlyWindow: UsageWindow = {
       id: "month",
-      label: "Month",
+      label: "30d",
       ...(monthly.used !== undefined ? { used: monthly.used } : {}),
       ...(monthly.limit !== undefined ? { limit: monthly.limit } : {}),
       ...(monthly.used !== undefined && monthly.limit !== undefined && monthly.limit > 0
@@ -155,18 +169,6 @@ export function parseGrokUsageResponse(input: unknown, observedAt: string): Grok
       ...(monthly.resetAt !== undefined ? { resetAt: monthly.resetAt } : {}),
     };
     windows.push(monthlyWindow);
-
-    if (weekly !== undefined && weekly.applicable && weekly.usedPercent !== undefined && weekly.usedPercent !== INVALID) {
-      const weeklyWindow: UsageWindow = {
-        id: "week",
-        label: "Week",
-        usedPercent: weekly.usedPercent,
-        ...(weekly.resetAt !== undefined && weekly.resetAt !== INVALID
-          ? { resetAt: weekly.resetAt }
-          : {}),
-      };
-      windows.push(weeklyWindow);
-    }
 
     const record: GrokProviderRecord & { readonly state: "ok" } = {
       id: "grok",

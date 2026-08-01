@@ -479,7 +479,7 @@ test("drops sensitive scoped model IDs without leaking them while valid peers su
   assert.deepEqual(scanForSecrets(record), []);
 });
 
-test("skips inactive limit entries before parsing their malformed metrics", () => {
+test("skips inactive limit entries before parsing their malformed metrics or scopes", () => {
   const record = assertSuccess({
     limits: [
       { kind: "session", utilization: 10, resets_at: SESSION_RESET },
@@ -488,6 +488,24 @@ test("skips inactive limit entries before parsing their malformed metrics", () =
         is_active: false,
         utilization: 999,
         scope: { model: { id: "synthetic-inactive", display_name: "Synthetic Inactive" } },
+      },
+      {
+        kind: "session",
+        is_active: false,
+        utilization: 999,
+        scope: { unexpected: true },
+      },
+      {
+        kind: "weekly_all",
+        is_active: false,
+        utilization: 999,
+        scope: { unexpected: true },
+      },
+      {
+        kind: "weekly_scoped",
+        is_active: false,
+        utilization: 999,
+        scope: { model: { id: null, display_name: "Fable" } },
       },
     ],
   });
@@ -507,6 +525,7 @@ test("emits the current null-id Fable window when the display name is safe", () 
     limits: [
       {
         kind: "weekly_scoped",
+        is_active: false,
         utilization: 5,
         resets_at: WEEKLY_RESET,
         scope: { model: { id: null, display_name: "Fable" } },

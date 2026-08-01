@@ -303,6 +303,13 @@ test("normalizes a current limits[] 2xx body into a validated ok record", async 
         utilization: 8,
         scope: { model: { id: "synthetic-opus-id", display_name: "Synthetic Opus" } },
       },
+      {
+        kind: "weekly_scoped",
+        is_active: false,
+        percent: 58,
+        resets_at: WEEKLY_RESET,
+        scope: { model: { id: null, display_name: "Fable" } },
+      },
     ],
   };
   const { seam } = respondWith(makeResponse(200, {}, usageStream(payload).body));
@@ -313,6 +320,7 @@ test("normalizes a current limits[] 2xx body into a validated ok record", async 
   assert.deepEqual(result.record.windows, [
     { id: "session", label: "Session (5-hour)", usedPercent: 12, resetAt: SESSION_RESET },
     { id: "weekly-all", label: "Weekly (all)", usedPercent: 34, resetAt: WEEKLY_RESET },
+    { id: "weekly-fable", label: "Weekly Fable", usedPercent: 58, resetAt: WEEKLY_RESET },
     { id: "weekly-synthetic-opus", label: "Weekly Synthetic Opus", usedPercent: 8 },
   ]);
   assertNoToken(result);

@@ -56,7 +56,7 @@ Provider details are namespaced and typed under the provider record. Claude deta
 
 The TypeScript `ProviderRecord` is a discriminated union: a `claude` record can only contain `details.claude`, a `umans` record only `details.umans`, a `codex` record only `details.codex`, a `grok` record only `details.grok`, and a `kimi` record only `details.kimi`. Runtime validation enforces the same correlation and the stale retention rule before narrowing unknown input.
 
-Grok details (`details.grok`) may contain non-negative `monthlyUsed` and `monthlyLimit` counts and a UTC `monthlyResetAt` timestamp. The optional weekly credit window is represented as a second `UsageWindow` entry on the provider record, not as a detail field.
+Grok details (`details.grok`) may contain non-negative `monthlyUsed` and `monthlyLimit` counts and a UTC `monthlyResetAt` timestamp. Usage windows are ordered week (`id: "week"`, label `"7d"`) then month (`id: "month"`, label `"30d"`) so compact primary defaults to the tighter credit window; the weekly window is optional and omitted when the credits endpoint does not return a weekly period.
 
 Kimi details (`details.kimi`) may contain non-negative integer `concurrency` and `concurrencyLimit` counts, mirroring the Umans concurrency shape. Weekly and short usage windows are represented as `UsageWindow` entries on the provider record; numeric fields are normalized to numbers by the adapter before entering the contract.
 

@@ -52,18 +52,18 @@ test("normalizes monthly Grok credits and optional weekly window", () => {
     lastSuccessAt: OBSERVED_AT,
     windows: [
       {
+        id: "week",
+        label: "7d",
+        usedPercent: 45,
+        resetAt: "2026-07-29T00:00:00.000Z",
+      },
+      {
         id: "month",
-        label: "Month",
+        label: "30d",
         used: 250,
         limit: 1000,
         usedPercent: 25,
         resetAt: "2026-08-01T00:00:00.000Z",
-      },
-      {
-        id: "week",
-        label: "Week",
-        usedPercent: 45,
-        resetAt: "2026-07-29T00:00:00.000Z",
       },
     ],
     details: {
@@ -86,7 +86,7 @@ test("omits weekly window when unavailable", () => {
   assert.deepEqual(result.record.windows, [
     {
       id: "month",
-      label: "Month",
+      label: "30d",
       used: 250,
       limit: 1000,
       usedPercent: 25,
@@ -134,7 +134,7 @@ test("omits percentage when monthly limit is missing or zero", () => {
   assert.deepEqual(missingLimit.record.windows, [
     {
       id: "month",
-      label: "Month",
+      label: "30d",
       used: 250,
       resetAt: "2026-08-01T00:00:00.000Z",
     },
@@ -238,6 +238,10 @@ test("fetch output pipes through the parser to a fully populated record (integra
   if (!parsed.ok) throw new Error("expected parse success on real-shaped fetch output");
 
   assert.equal(parsed.record.windows?.length, 2);
+  assert.equal(parsed.record.windows?.[0]?.id, "week");
+  assert.equal(parsed.record.windows?.[0]?.label, "7d");
+  assert.equal(parsed.record.windows?.[1]?.id, "month");
+  assert.equal(parsed.record.windows?.[1]?.label, "30d");
   assert.deepEqual(parsed.record.details, {
     grok: {
       monthlyUsed: 250,
