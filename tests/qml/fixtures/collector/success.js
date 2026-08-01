@@ -1,11 +1,11 @@
 // Synthetic, non-secret collector stand-in used only by real DataSource
-// bridge tests. Emits one valid schema-v1 document, reflecting the
+// bridge tests. Emits one valid schema-v2 document, reflecting the
 // `--enabled-providers=<csv>` argument if present, defaulting to the
-// canonical three providers otherwise. No credentials, network, or
+// canonical four providers otherwise. No credentials, network, or
 // filesystem access.
 "use strict";
 
-var CANONICAL_PROVIDER_IDS = ["claude", "umans", "codex"];
+var CANONICAL_PROVIDER_IDS = ["claude", "codex", "grok", "kimi"];
 
 function enabledProviderIds(argv) {
   for (var i = 0; i < argv.length; i++) {
@@ -21,7 +21,7 @@ function enabledProviderIds(argv) {
 var providerIds = enabledProviderIds(process.argv.slice(2));
 var now = new Date().toISOString();
 var document = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   collectionStartedAt: now,
   collectionFinishedAt: now,
   providers: providerIds.map(function (id) {

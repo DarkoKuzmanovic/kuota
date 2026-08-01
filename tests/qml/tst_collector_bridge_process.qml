@@ -67,7 +67,7 @@ TestCase {
 
         compare(bridge.inFlight, false);
         compare(bridge.snapshotState.lifecycleStatus, SnapshotState.LIFECYCLE_STATUS.ACCEPTED);
-        compare(bridge.snapshotState.snapshot.providers.length, 3);
+        compare(bridge.snapshotState.snapshot.providers.length, 4);
     }
 
     function test_partialProviderSuccessReflectsRequestedSubset() {

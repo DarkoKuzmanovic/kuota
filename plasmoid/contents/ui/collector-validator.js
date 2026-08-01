@@ -1,7 +1,7 @@
 .pragma library
 
 // Plasma-independent whole-document validator for the collector contract
-// (schema version 1). This module must never import the Plasma executable
+// (schema version 2). This module must never import the Plasma executable
 // data-source plugin, touch the filesystem/network/process APIs, or read
 // Qt/QML settings. It only parses and validates plain JS values so it
 // stays testable and reusable from the executable bridge added in a later
@@ -12,8 +12,8 @@
 // exception, or field-path detail -- because this boundary is reachable
 // from process output that must never be echoed back verbatim.
 
-var SCHEMA_VERSION = 1;
-var PROVIDER_IDS = ["claude", "umans", "codex", "grok", "kimi"];
+var SCHEMA_VERSION = 2;
+var PROVIDER_IDS = ["claude", "codex", "grok", "kimi"];
 var PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"];
 var MAX_INPUT_LENGTH = 262144; // 256 KiB of QML string content.
 
@@ -30,7 +30,6 @@ var CLAUDE_DETAIL_KEYS = [
     "extraUsageDecimalPlaces",
     "extraUsageDisabledReason"
 ];
-var UMANS_DETAIL_KEYS = ["plan", "requests", "concurrency", "concurrencyLimit"];
 var CODEX_DETAIL_KEYS = ["plan", "credits", "cost", "tokens"];
 var GROK_DETAIL_KEYS = ["monthlyUsed", "monthlyLimit", "monthlyResetAt"];
 var KIMI_DETAIL_KEYS = ["concurrency", "concurrencyLimit"];
@@ -67,6 +66,15 @@ function validateCollectorResponse(rawText) {
     return validateCollectorDocument(parsed);
 }
 
+function shallowCopy(input) {
+    var copy = {};
+    var keys = Object.keys(input);
+    for (var i = 0; i < keys.length; i++) {
+        copy[keys[i]] = input[keys[i]];
+    }
+    return copy;
+}
+
 function validateCollectorDocument(parsed) {
     var state = { invalid: false };
 
@@ -74,14 +82,31 @@ function validateCollectorDocument(parsed) {
         return failure(VALIDATION_FAILURE.SCHEMA_INVALID);
     }
 
-    validateObjectKeys(parsed, DOCUMENT_KEYS, state);
+    var document = parsed;
+    if (parsed.schemaVersion === 1) {
+        var rawProviders = Array.isArray(parsed.providers) ? parsed.providers : undefined;
+        document = shallowCopy(parsed);
+        document.schemaVersion = SCHEMA_VERSION;
+        if (rawProviders !== undefined) {
+            document.providers = [];
+            for (var m = 0; m < rawProviders.length; m++) {
+                var rawProvider = rawProviders[m];
+                if (isRecord(rawProvider) && rawProvider.id === "umans") {
+                    continue;
+                }
+                document.providers.push(rawProvider);
+            }
+        }
+    }
 
-    if (parsed.schemaVersion !== SCHEMA_VERSION) {
+    validateObjectKeys(document, DOCUMENT_KEYS, state);
+
+    if (document.schemaVersion !== SCHEMA_VERSION) {
         state.invalid = true;
     }
 
-    var collectionStartedAt = parseRequiredTimestamp(parsed, "collectionStartedAt", state);
-    var collectionFinishedAt = parseRequiredTimestamp(parsed, "collectionFinishedAt", state);
+    var collectionStartedAt = parseRequiredTimestamp(document, "collectionStartedAt", state);
+    var collectionFinishedAt = parseRequiredTimestamp(document, "collectionFinishedAt", state);
     if (
         collectionStartedAt !== undefined &&
         collectionFinishedAt !== undefined &&
@@ -92,11 +117,11 @@ function validateCollectorDocument(parsed) {
 
     var providers = [];
     var seenProviderIds = {};
-    if (!Array.isArray(parsed.providers)) {
+    if (!Array.isArray(document.providers)) {
         state.invalid = true;
     } else {
-        for (var i = 0; i < parsed.providers.length; i++) {
-            var provider = parseProvider(parsed.providers[i], state);
+        for (var i = 0; i < document.providers.length; i++) {
+            var provider = parseProvider(document.providers[i], state);
             if (provider === undefined) {
                 continue;
             }
@@ -239,7 +264,6 @@ function parseProviderDetails(input, id, state) {
     }
 
     var detailKeys = id === "claude" ? CLAUDE_DETAIL_KEYS
-        : id === "umans" ? UMANS_DETAIL_KEYS
         : id === "codex" ? CODEX_DETAIL_KEYS
         : id === "grok" ? GROK_DETAIL_KEYS
         : KIMI_DETAIL_KEYS;
@@ -293,11 +317,6 @@ function parseDetailFields(input, allowedKeys, id, state) {
             "extraUsageDisabledReason",
             parseOptionalSafeText(input, "extraUsageDisabledReason", 100, state)
         );
-    } else if (id === "umans") {
-        assignIfDefined(details, "plan", parseOptionalSafeText(input, "plan", 100, state));
-        assignIfDefined(details, "requests", parseOptionalCount(input, "requests", state));
-        assignIfDefined(details, "concurrency", parseOptionalCount(input, "concurrency", state));
-        assignIfDefined(details, "concurrencyLimit", parseOptionalCount(input, "concurrencyLimit", state));
     } else if (id === "codex") {
         assignIfDefined(details, "plan", parseOptionalSafeText(input, "plan", 100, state));
         assignIfDefined(details, "credits", parseOptionalNonNegativeNumber(input, "credits", state));
