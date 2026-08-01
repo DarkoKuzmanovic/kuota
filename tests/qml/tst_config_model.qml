@@ -6,6 +6,20 @@ import "../../plasmoid/contents/ui/config-model.js" as ConfigModel
 TestCase {
     name: "ConfigModel"
 
+    function test_knownProvidersExcludeUmans() {
+        compare(ConfigModel.KNOWN_PROVIDERS, ["claude", "codex", "grok", "kimi"]);
+    }
+
+    function test_sanitizeDropsUmansFromOrder() {
+        var settings = ConfigModel.sanitize({
+            providerOrder: ["claude", "umans", "codex", "grok", "kimi"],
+            umansVisible: true
+        });
+        verify(settings.providerOrder.indexOf("umans") === -1);
+        compare(settings.providerOrder, ["claude", "codex", "grok", "kimi"]);
+        verify(!("umansVisible" in settings));
+    }
+
     function test_intervalFloorClamp() {
         compare(ConfigModel.sanitize({ refreshIntervalMinutes: 4 }).refreshIntervalMinutes, 5);
         compare(ConfigModel.sanitize({ refreshIntervalMinutes: 0 }).refreshIntervalMinutes, 5);
@@ -89,13 +103,12 @@ TestCase {
         compare(empty.fontScale, 1.0);
         compare(empty.showCountdown, true);
         compare(empty.claudeVisible, true);
-        compare(empty.umansVisible, true);
         compare(empty.codexVisible, true);
         compare(empty.grokVisible, true);
         compare(empty.kimiVisible, true);
         compare(empty.claudeWindow, "");
         compare(empty.codexWindow, "");
-        compare(JSON.stringify(empty.providerOrder), JSON.stringify(["claude", "umans", "codex", "grok", "kimi"]));
+        compare(JSON.stringify(empty.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi"]));
 
         var garbage = ConfigModel.sanitize({
             refreshIntervalMinutes: "soon",
@@ -107,7 +120,6 @@ TestCase {
             showCountdown: 1,
             providerOrder: "claude",
             claudeVisible: "true",
-            umansVisible: null,
             codexVisible: undefined,
             claudeWindow: 12,
             codexWindow: false,
@@ -121,9 +133,8 @@ TestCase {
         compare(garbage.separator, " · ");
         compare(garbage.fontScale, 1.0);
         compare(garbage.showCountdown, true);
-        compare(JSON.stringify(garbage.providerOrder), JSON.stringify(["claude", "umans", "codex", "grok", "kimi"]));
+        compare(JSON.stringify(garbage.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi"]));
         compare(garbage.claudeVisible, true);
-        compare(garbage.umansVisible, true);
         compare(garbage.codexVisible, true);
         compare(garbage.grokVisible, true);
         compare(garbage.kimiVisible, true);
@@ -132,23 +143,22 @@ TestCase {
 
         var nullInput = ConfigModel.sanitize(null);
         compare(nullInput.refreshIntervalMinutes, 5);
-        compare(JSON.stringify(nullInput.providerOrder), JSON.stringify(["claude", "umans", "codex", "grok", "kimi"]));
+        compare(JSON.stringify(nullInput.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi"]));
     }
 
     function test_displayConfigAssemblyCustomOrderAndVisibility() {
         var sanitized = ConfigModel.sanitize({
-            providerOrder: ["codex", "claude", "umans"],
+            providerOrder: ["codex", "claude", "grok"],
             claudeVisible: true,
-            umansVisible: false,
+            grokVisible: false,
             codexVisible: true
         });
         var displayConfig = ConfigModel.assembleDisplayConfig(sanitized);
 
-        compare(JSON.stringify(displayConfig.order), JSON.stringify(["codex", "claude", "grok", "kimi"]));
+        compare(JSON.stringify(displayConfig.order), JSON.stringify(["codex", "claude", "kimi"]));
         compare(displayConfig.visibility.claude, true);
-        compare(displayConfig.visibility.umans, false);
         compare(displayConfig.visibility.codex, true);
-        compare(displayConfig.visibility.grok, true);
+        compare(displayConfig.visibility.grok, false);
         compare(displayConfig.visibility.kimi, true);
         verify(isRecord(displayConfig.metric));
         verify(isRecord(displayConfig.window));
@@ -156,15 +166,13 @@ TestCase {
 
     function test_displayConfigAssemblyAllVisible() {
         var sanitized = ConfigModel.sanitize({
-            providerOrder: ["umans", "codex", "claude"],
+            providerOrder: ["grok", "codex", "claude"],
             claudeVisible: true,
-            umansVisible: true,
             codexVisible: true
         });
         var displayConfig = ConfigModel.assembleDisplayConfig(sanitized);
-        compare(JSON.stringify(displayConfig.order), JSON.stringify(["umans", "codex", "claude", "grok", "kimi"]));
+        compare(JSON.stringify(displayConfig.order), JSON.stringify(["grok", "codex", "claude", "kimi"]));
         compare(displayConfig.visibility.claude, true);
-        compare(displayConfig.visibility.umans, true);
         compare(displayConfig.visibility.codex, true);
         compare(displayConfig.visibility.grok, true);
         compare(displayConfig.visibility.kimi, true);
@@ -173,7 +181,6 @@ TestCase {
     function test_displayConfigAllHiddenYieldsEmptyOrder() {
         var sanitized = ConfigModel.sanitize({
             claudeVisible: false,
-            umansVisible: false,
             codexVisible: false,
             grokVisible: false,
             kimiVisible: false
@@ -181,7 +188,6 @@ TestCase {
         var displayConfig = ConfigModel.assembleDisplayConfig(sanitized);
         compare(displayConfig.order.length, 0);
         compare(displayConfig.visibility.claude, false);
-        compare(displayConfig.visibility.umans, false);
         compare(displayConfig.visibility.codex, false);
         compare(displayConfig.visibility.grok, false);
         compare(displayConfig.visibility.kimi, false);
@@ -195,8 +201,7 @@ TestCase {
         var displayConfig = ConfigModel.assembleDisplayConfig(sanitized);
         compare(displayConfig.window.claude, "weekly-all");
         compare(displayConfig.window.codex, "secondary");
-        // Umans has no window selector key.
-        verify(!Object.prototype.hasOwnProperty.call(displayConfig.window, "umans"));
+        verify(!Object.prototype.hasOwnProperty.call(displayConfig.window, "grok"));
     }
 
     function test_resolveWindowHonorsPresentId() {
@@ -222,9 +227,8 @@ TestCase {
         compare(ConfigModel.resolveWindow("claude", empty, ["session"]), undefined);
     }
 
-    function test_resolveWindowUnknownProviderOrUmansIsUndefined() {
+    function test_resolveWindowUnknownProviderIsUndefined() {
         var sanitized = ConfigModel.sanitize({ claudeWindow: "session", codexWindow: "primary" });
-        compare(ConfigModel.resolveWindow("umans", sanitized, ["requests"]), undefined);
         compare(ConfigModel.resolveWindow("unknown", sanitized, ["session"]), undefined);
         // Selected id outside static known catalog → undefined even if present in available.
         var bogus = ConfigModel.sanitize({ claudeWindow: "not-a-window" });
@@ -233,10 +237,10 @@ TestCase {
 
     function test_providerOrderFiltersUnknownIds() {
         var sanitized = ConfigModel.sanitize({
-            providerOrder: ["claude", "bogus", "umans", "claude", "codex"]
+            providerOrder: ["claude", "bogus", "codex", "claude", "codex"]
         });
         // sanitize keeps a clean unique order of known providers only.
-        compare(JSON.stringify(sanitized.providerOrder), JSON.stringify(["claude", "umans", "codex", "grok", "kimi"]));
+        compare(JSON.stringify(sanitized.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi"]));
     }
 
     // ---- M-T1 theming schema ----
@@ -248,7 +252,7 @@ TestCase {
         compare(empty.customTextColor, "");
         compare(empty.labelOpacity, 1.0);
         compare(empty.separatorOpacity, 1.0);
-        var providers = ["claude", "umans", "codex", "grok", "kimi"];
+        var providers = ["claude", "codex", "grok", "kimi"];
         for (var i = 0; i < providers.length; i++) {
             compare(empty[providers[i] + "AccentColor"], "");
             compare(empty[providers[i] + "CustomIcon"], "");
@@ -282,14 +286,12 @@ TestCase {
         var valid = ConfigModel.sanitize({
             customTextColor: "#ff0000",
             claudeAccentColor: "#abc",
-            umansAccentColor: "#abcd",
             codexAccentColor: "#a1b2c3",
             grokAccentColor: "#a1b2c3d4",
             kimiAccentColor: "red"
         });
         compare(valid.customTextColor, "#ff0000");
         compare(valid.claudeAccentColor, "#abc");
-        compare(valid.umansAccentColor, "#abcd");
         compare(valid.codexAccentColor, "#a1b2c3");
         compare(valid.grokAccentColor, "#a1b2c3d4");
         compare(valid.kimiAccentColor, "red");
@@ -297,14 +299,12 @@ TestCase {
         var garbage = ConfigModel.sanitize({
             customTextColor: "not a color!",
             claudeAccentColor: "#12",
-            umansAccentColor: "#12345",
             codexAccentColor: 42,
             grokAccentColor: "#xyzxyz",
             kimiAccentColor: "has space"
         });
         compare(garbage.customTextColor, "");
         compare(garbage.claudeAccentColor, "");
-        compare(garbage.umansAccentColor, "");
         compare(garbage.codexAccentColor, "");
         compare(garbage.grokAccentColor, "");
         compare(garbage.kimiAccentColor, "");
@@ -319,13 +319,11 @@ TestCase {
     function test_iconNameValidation() {
         var valid = ConfigModel.sanitize({
             claudeCustomIcon: "network-server",
-            umansCustomIcon: "utilities-terminal",
             codexCustomIcon: "emblem-favorite",
             grokCustomIcon: "x.icon_2",
             kimiCustomIcon: ""
         });
         compare(valid.claudeCustomIcon, "network-server");
-        compare(valid.umansCustomIcon, "utilities-terminal");
         compare(valid.codexCustomIcon, "emblem-favorite");
         compare(valid.grokCustomIcon, "x.icon_2");
         compare(valid.kimiCustomIcon, "");
@@ -334,26 +332,22 @@ TestCase {
         // sanitize — otherwise custom PNG/SVG selections fall back to defaults.
         var paths = ConfigModel.sanitize({
             claudeCustomIcon: "/home/user/Pictures/Icons/kuota/claude.png",
-            umansCustomIcon: "/home/user/Pictures/Icons/kuota/umans.svg",
             codexCustomIcon: "file:///home/user/icons/codex.webp",
             grokCustomIcon: "/tmp/logo.JPEG",
             kimiCustomIcon: "/opt/icons/kimi.ico"
         });
         compare(paths.claudeCustomIcon, "/home/user/Pictures/Icons/kuota/claude.png");
-        compare(paths.umansCustomIcon, "/home/user/Pictures/Icons/kuota/umans.svg");
         compare(paths.codexCustomIcon, "/home/user/icons/codex.webp");
         compare(paths.grokCustomIcon, "/tmp/logo.JPEG");
         compare(paths.kimiCustomIcon, "/opt/icons/kimi.ico");
 
         var garbage = ConfigModel.sanitize({
             claudeCustomIcon: "../escape",
-            umansCustomIcon: "with space",
             codexCustomIcon: "slash/name",
             grokCustomIcon: 7,
             kimiCustomIcon: "-leading-dash"
         });
         compare(garbage.claudeCustomIcon, "");
-        compare(garbage.umansCustomIcon, "");
         compare(garbage.codexCustomIcon, "");
         compare(garbage.grokCustomIcon, "");
         compare(garbage.kimiCustomIcon, "");
@@ -361,13 +355,11 @@ TestCase {
         // Path-shaped garbage: relative, traversal, non-image extension.
         var badPaths = ConfigModel.sanitize({
             claudeCustomIcon: "relative/path.png",
-            umansCustomIcon: "/home/user/../etc/passwd.png",
             codexCustomIcon: "/tmp/not-an-image.txt",
             grokCustomIcon: "/tmp/noext",
             kimiCustomIcon: "file://localhost/tmp/evil.exe"
         });
         compare(badPaths.claudeCustomIcon, "");
-        compare(badPaths.umansCustomIcon, "");
         compare(badPaths.codexCustomIcon, "");
         compare(badPaths.grokCustomIcon, "");
         compare(badPaths.kimiCustomIcon, "");
@@ -380,13 +372,11 @@ TestCase {
         // checks) is normalised to "" before reaching iconSourceFor.
         var encoded = ConfigModel.sanitize({
             claudeCustomIcon: "/tmp/icons/%2e%2e/private/logo.png",
-            umansCustomIcon: "/tmp/a%2f..%2fb.png",
             codexCustomIcon: "/tmp/logo%00.png",
             grokCustomIcon: "/tmp/has%23hash.png",
             kimiCustomIcon: "/tmp/has%3Fquestion.png"
         });
         compare(encoded.claudeCustomIcon, "");
-        compare(encoded.umansCustomIcon, "");
         compare(encoded.codexCustomIcon, "");
         compare(encoded.grokCustomIcon, "");
         compare(encoded.kimiCustomIcon, "");
@@ -396,10 +386,10 @@ TestCase {
         // position, not only after decoding.
         var urlSigns = ConfigModel.sanitize({
             claudeCustomIcon: "/tmp/icons/hash#fragment.png",
-            umansCustomIcon: "/tmp/icons/query?param.png"
+            codexCustomIcon: "/tmp/icons/query?param.png"
         });
         compare(urlSigns.claudeCustomIcon, "");
-        compare(urlSigns.umansCustomIcon, "");
+        compare(urlSigns.codexCustomIcon, "");
     }
 
     function test_fontFamilyFreeStringWithGarbageFallback() {

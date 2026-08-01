@@ -7,7 +7,6 @@ Kirigami.FormLayout {
     id: page
 
     property alias cfg_claudeVisible: claudeVisibleCheck.checked
-    property alias cfg_umansVisible: umansVisibleCheck.checked
     property alias cfg_codexVisible: codexVisibleCheck.checked
     property alias cfg_grokVisible: grokVisibleCheck.checked
     property alias cfg_kimiVisible: kimiVisibleCheck.checked
@@ -16,14 +15,12 @@ Kirigami.FormLayout {
 
     // StringList has no 1:1 widget; the reorder Repeater below reads/writes
     // this plain array directly (matches the compact-model.js entries pattern).
-    property var cfg_providerOrder: ["claude", "umans", "codex", "grok", "kimi"]
+    property var cfg_providerOrder: ["claude", "codex", "grok", "kimi"]
 
     function providerLabel(providerId) {
         switch (providerId) {
         case "claude":
             return qsTr("Claude");
-        case "umans":
-            return qsTr("Umans");
         case "codex":
             return qsTr("Codex");
         case "grok":
@@ -58,13 +55,6 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: qsTr("Claude:")
         text: qsTr("Show in widget")
         Accessible.name: qsTr("Claude visible")
-    }
-
-    Controls.CheckBox {
-        id: umansVisibleCheck
-        Kirigami.FormData.label: qsTr("Umans:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Umans visible")
     }
 
     Controls.CheckBox {

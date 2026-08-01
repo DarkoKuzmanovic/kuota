@@ -16,24 +16,20 @@ Kirigami.FormLayout {
     // Per-provider theming keys (flat KConfigXT entries, read/written by the
     // repeater rows below via dynamic property access).
     property string cfg_claudeAccentColor: ""
-    property string cfg_umansAccentColor: ""
     property string cfg_codexAccentColor: ""
     property string cfg_grokAccentColor: ""
     property string cfg_kimiAccentColor: ""
     property string cfg_claudeCustomIcon: ""
-    property string cfg_umansCustomIcon: ""
     property string cfg_codexCustomIcon: ""
     property string cfg_grokCustomIcon: ""
     property string cfg_kimiCustomIcon: ""
 
-    readonly property var providerIds: ["claude", "umans", "codex", "grok", "kimi"]
+    readonly property var providerIds: ["claude", "codex", "grok", "kimi"]
 
     function providerLabel(providerId) {
         switch (providerId) {
         case "claude":
             return qsTr("Claude");
-        case "umans":
-            return qsTr("Umans");
         case "codex":
             return qsTr("Codex");
         case "grok":
@@ -49,8 +45,6 @@ Kirigami.FormLayout {
         switch (providerId) {
         case "claude":
             return "assistant";
-        case "umans":
-            return "applications-development";
         case "codex":
             return "utilities-terminal";
         default:

@@ -17,14 +17,10 @@
   <group name="General">
     <entry name="providerOrder" type="StringList">
       <label>Ordered list of provider IDs for compact and full views.</label>
-      <default>claude,umans,codex,grok,kimi</default>
+      <default>claude,codex,grok,kimi</default>
     </entry>
     <entry name="claudeVisible" type="Bool">
       <label>Whether Claude is shown in the widget.</label>
-      <default>true</default>
-    </entry>
-    <entry name="umansVisible" type="Bool">
-      <label>Whether Umans is shown in the widget.</label>
       <default>true</default>
     </entry>
     <entry name="codexVisible" type="Bool">
@@ -109,10 +105,6 @@
       <label>Claude accent color. Empty uses the provider identity color.</label>
       <default></default>
     </entry>
-    <entry name="umansAccentColor" type="String">
-      <label>Umans accent color. Empty uses the provider identity color.</label>
-      <default></default>
-    </entry>
     <entry name="codexAccentColor" type="String">
       <label>Codex accent color. Empty uses the provider identity color.</label>
       <default></default>
@@ -127,10 +119,6 @@
     </entry>
     <entry name="claudeCustomIcon" type="String">
       <label>Claude custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
-      <default></default>
-    </entry>
-    <entry name="umansCustomIcon" type="String">
-      <label>Umans custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
     <entry name="codexCustomIcon" type="String">
