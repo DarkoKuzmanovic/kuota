@@ -4,9 +4,9 @@
 // Owns the read-boundary invariant for plasmoid settings before they reach
 // compact/full models. Never imports Plasma executable APIs or touches I/O.
 
-var KNOWN_PROVIDERS = Object.freeze(["claude", "umans", "codex", "grok", "kimi"]);
+var KNOWN_PROVIDERS = Object.freeze(["claude", "codex", "grok", "kimi"]);
 
-var DEFAULT_PROVIDER_ORDER = Object.freeze(["claude", "umans", "codex", "grok", "kimi"]);
+var DEFAULT_PROVIDER_ORDER = Object.freeze(["claude", "codex", "grok", "kimi"]);
 
 var DISPLAY_MODES = Object.freeze({
     icons: true,
@@ -14,8 +14,7 @@ var DISPLAY_MODES = Object.freeze({
     "icons+text": true
 });
 
-// Static known window IDs per provider (D4). Umans has a single window and
-// no selector key — resolveWindow always returns undefined for it.
+// Static known window IDs per provider (D4).
 var KNOWN_WINDOWS = Object.freeze({
     claude: Object.freeze(["session", "weekly-all", "weekly-oauth-apps"]),
     codex: Object.freeze(["primary", "secondary"])
@@ -26,7 +25,6 @@ var KNOWN_WINDOWS = Object.freeze({
 var DEFAULTS = Object.freeze({
     providerOrder: DEFAULT_PROVIDER_ORDER.slice(),
     claudeVisible: true,
-    umansVisible: true,
     codexVisible: true,
     grokVisible: true,
     kimiVisible: true,
@@ -56,7 +54,6 @@ function createDefaultSettings() {
     var settings = {
         providerOrder: DEFAULTS.providerOrder.slice(),
         claudeVisible: DEFAULTS.claudeVisible,
-        umansVisible: DEFAULTS.umansVisible,
         codexVisible: DEFAULTS.codexVisible,
         grokVisible: DEFAULTS.grokVisible,
         kimiVisible: DEFAULTS.kimiVisible,
@@ -102,7 +99,6 @@ function sanitize(rawConfig) {
 
     out.providerOrder = sanitizeProviderOrder(rawConfig.providerOrder);
     out.claudeVisible = sanitizeBool(rawConfig.claudeVisible, DEFAULTS.claudeVisible);
-    out.umansVisible = sanitizeBool(rawConfig.umansVisible, DEFAULTS.umansVisible);
     out.codexVisible = sanitizeBool(rawConfig.codexVisible, DEFAULTS.codexVisible);
     out.grokVisible = sanitizeBool(rawConfig.grokVisible, DEFAULTS.grokVisible);
     out.kimiVisible = sanitizeBool(rawConfig.kimiVisible, DEFAULTS.kimiVisible);
@@ -142,7 +138,6 @@ function assembleDisplayConfig(sanitized) {
     var settings = isRecord(sanitized) ? sanitized : createDefaultSettings();
     var visibility = {
         claude: settings.claudeVisible === true,
-        umans: settings.umansVisible === true,
         codex: settings.codexVisible === true,
         grok: settings.grokVisible === true,
         kimi: settings.kimiVisible === true

@@ -13,7 +13,7 @@
 // quoting alone already neutralizes shell metacharacters.
 
 var NODE_PATH = "/usr/bin/node";
-var CANONICAL_PROVIDER_IDS = Object.freeze(["claude", "umans", "codex"]);
+var CANONICAL_PROVIDER_IDS = Object.freeze(["claude", "codex", "grok", "kimi"]);
 var MAX_PATH_LENGTH = 4096;
 
 var COMMAND_BUILD_FAILURE = Object.freeze({
@@ -71,7 +71,13 @@ function buildProviderToken(enabledProviders) {
     var seen = {};
     for (var i = 0; i < enabledProviders.length; i++) {
         var id = enabledProviders[i];
-        if (typeof id !== "string" || CANONICAL_PROVIDER_IDS.indexOf(id) === -1) {
+        if (typeof id !== "string") {
+            return undefined;
+        }
+        if (id === "umans") {
+            continue;
+        }
+        if (CANONICAL_PROVIDER_IDS.indexOf(id) === -1) {
             return undefined;
         }
         if (Object.prototype.hasOwnProperty.call(seen, id)) {
