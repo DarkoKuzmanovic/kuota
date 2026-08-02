@@ -161,6 +161,14 @@ Known data includes weekly and short usage windows plus concurrency; numeric fie
 
 Kuota routes Kimi through the same hardened collector fetch and redaction paths as Grok. No credential persistence is performed for Kimi in 1.1.0.
 
+### Cursor
+
+Source: `https://cursor.com/api/usage-summary` (unofficial dashboard endpoint, not a published individual API). Auth reads the local Cursor `state.vscdb` (`cursorAuth/accessToken`) via system `sqlite3`, or `CURSOR_SESSION_TOKEN` when local discovery fails. Kuota never writes `auth.json` and never persists the session token.
+
+Known data includes included-plan usage (`individualUsage.plan`), billing-cycle reset, membership type, optional on-demand spend (cents), and optional auto/API/total percent fields. The compact primary window is `plan` percent.
+
+Breakage of the unofficial endpoint surfaces as `auth-needed` or `error`; Kuota does not fabricate quotas. See `docs/specs/2026-08-02-cursor-provider-design.md` and `docs/specs/2026-08-02-cursor-provider-recon.md`.
+
 ### 1.1.0 provider amendment
 
 Grok and Kimi are added in 1.1.0, amending owner-approved Decision #2 (which froze V1 at Claude/Umans/Codex). This re-opens the design spec provider table, the collector contract `ProviderId` union and `details.{grok,kimi}` namespaces, the registry canonical order, the QML compact/full model allowlists, the config UI, and the docs. Recon is complete (pi-hud, live-verified 2026-07-17); implementation follows the normal spec → grill → scope checkpoint → confirmation flow. Both adapters follow the existing adapter patterns (auth discovery → one bounded fetch → normalization → registry), with no curl fallback or token refresh in 1.1.0 unless recon reveals it is required.

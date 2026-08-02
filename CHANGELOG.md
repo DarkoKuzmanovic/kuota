@@ -13,6 +13,13 @@ left unread on disk (see **Removed** under [Unreleased]).
 
 ## [Unreleased]
 
+### Added
+
+- **Cursor provider (unofficial).** Shows included plan usage from Cursor’s
+  dashboard `usage-summary` endpoint. Auth: local Cursor `state.vscdb` session
+  first, else `CURSOR_SESSION_TOKEN`. Not an official individual API — may break
+  without notice (see design + recon docs).
+
 ### Removed
 
 - **Umans provider.** Kuota no longer collects or displays Umans usage.

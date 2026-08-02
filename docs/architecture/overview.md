@@ -97,7 +97,7 @@ The collector's internal ownership is split as follows:
   selection, safe provider-error mapping, and the live Claude/Codex/Grok/Kimi
   fetch + credential + auth-persistence paths. Provider-specific payloads are
   namespaced under their provider record (`details.claude`, `details.codex`,
-  `details.grok`, `details.kimi`).
+  `details.grok`, `details.kimi`, `details.cursor`).
 - `collect/` owns bounded concurrent invocation, cancellation/deadline races,
   independent provider outcomes, timestamps, the whole-collector last-known-good
   cache, and final document validation.
@@ -154,14 +154,14 @@ presentation modules, and the collector contract are unchanged.
 
 Schema v2 is the public data shape between collector and bridge. It
 contains collection start/end UTC timestamps and one record per selected
-enabled provider. Provider IDs are `claude`, `codex`, `grok`, and `kimi`; states are
+enabled provider. Provider IDs are `claude`, `codex`, `grok`, `kimi`, and `cursor`; states are
 `ok`, `stale`, `auth-needed`, and `error`.
 
 Optional fields are omitted when unavailable. Usage windows may contain
 percentage, used/limit counts, and reset timestamps. Unlimited plans omit
 `limit` and `usedPercent` rather than inventing values. Provider-specific data
 is namespaced under the matching provider (`details.claude`, `details.codex`,
-`details.grok`, or `details.kimi`). A stale record retains real data and its `lastSuccessAt`
+`details.grok`, `details.kimi`, or `details.cursor`). A stale record retains real data and its `lastSuccessAt`
 timestamp; it is not an empty failure marker.
 
 `validateCollectorDocument(input: unknown)` validates the complete document,
