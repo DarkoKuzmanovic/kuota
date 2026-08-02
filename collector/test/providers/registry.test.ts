@@ -32,7 +32,7 @@ import {
 } from "../../src/contract/validate.js";
 import type { ProviderCollectionSuccess } from "../../src/collect/types.js";
 
-const canonicalIds: readonly ProviderId[] = ["claude", "codex", "grok", "kimi"];
+const canonicalIds: readonly ProviderId[] = ["claude", "codex", "grok", "kimi", "cursor"];
 
 function adapterFor<TId extends ProviderId>(id: TId): ProviderAdapter<TId> {
   return {
@@ -53,6 +53,8 @@ function registrationFor(id: ProviderId): ProviderRegistration {
       return createProviderRegistration(adapterFor("grok"));
     case "kimi":
       return createProviderRegistration(adapterFor("kimi"));
+    case "cursor":
+      return createProviderRegistration(adapterFor("cursor"));
     default: {
       const _exhaustive: never = id;
       throw new Error(`unhandled provider id: ${_exhaustive}`);
@@ -219,6 +221,10 @@ test("normalized result construction rejects native extras and invalid values", 
       status: 42,
     }),
   );
+});
+
+test("registry canonical order ends with cursor", () => {
+  assert.deepEqual(canonicalIds, ["claude", "codex", "grok", "kimi", "cursor"]);
 });
 
 test("registry exposes real adapters without collecting auth at registration", () => {
