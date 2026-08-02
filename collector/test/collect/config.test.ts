@@ -22,7 +22,7 @@ test("defaults to all canonical providers with bounded internal defaults", () =>
   assertValueFree(() => parseCollectorConfig(null));
 });
 
-test("default config enables four providers without umans", () => {
+test("default config enables five providers without umans", () => {
   assert.deepEqual(
     DEFAULT_COLLECTOR_CONFIG.providers.map((provider) => [provider.id, provider.enabled]),
     [
@@ -30,6 +30,7 @@ test("default config enables four providers without umans", () => {
       ["codex", true],
       ["grok", true],
       ["kimi", true],
+      ["cursor", true],
     ],
   );
 });
@@ -41,6 +42,7 @@ test("normalizes enabled provider IDs to canonical order", () => {
       { id: "codex", enabled: true },
       { id: "grok", enabled: false },
       { id: "kimi", enabled: false },
+      { id: "cursor", enabled: false },
     ],
     timeoutMs: 10_000,
   });
@@ -60,7 +62,7 @@ test("umans-only enabledProviders yields all disabled", () => {
   const config = parseCollectorConfig({ enabledProviders: ["umans"] });
   assert.deepEqual(
     config.providers.map((provider) => provider.enabled),
-    [false, false, false, false],
+    [false, false, false, false, false],
   );
 });
 

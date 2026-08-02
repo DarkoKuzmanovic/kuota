@@ -294,6 +294,8 @@ async function collectAny(
       return collectOne(provider, options);
     case "kimi":
       return collectOne(provider, options);
+    case "cursor":
+      return collectOne(provider, options);
   }
 }
 
