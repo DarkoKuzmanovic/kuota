@@ -12,12 +12,20 @@ function parse(input: unknown) {
   return parseCursorUsageResponse(input, OBSERVED_AT);
 }
 
-test("normalizes plan window and optional cursor details", () => {
+test("plan usedPercent comes from totalPercentUsed, not used/limit request counts", () => {
   const parsed = parse({
     billingCycleEnd: "2026-09-01T00:00:00.000Z",
     membershipType: "pro",
     individualUsage: {
-      plan: { enabled: true, used: 40, limit: 100, remaining: 60 },
+      plan: {
+        enabled: true,
+        used: 1107,
+        limit: 2000,
+        remaining: 893,
+        autoPercentUsed: 3.3333333333333335,
+        apiPercentUsed: 0.8888888888888888,
+        totalPercentUsed: 3.288695652173913,
+      },
       onDemand: { enabled: true, used: 250, limit: null, remaining: null },
     },
   });
@@ -25,31 +33,34 @@ test("normalizes plan window and optional cursor details", () => {
   if (!parsed.ok) return;
   assert.equal(parsed.record.id, "cursor");
   assert.equal(parsed.record.windows?.[0]?.id, "plan");
-  assert.equal(parsed.record.windows?.[0]?.used, 40);
-  assert.equal(parsed.record.windows?.[0]?.limit, 100);
-  assert.equal(parsed.record.windows?.[0]?.usedPercent, 40);
+  assert.equal(parsed.record.windows?.[0]?.used, undefined);
+  assert.equal(parsed.record.windows?.[0]?.limit, undefined);
+  assert.equal(parsed.record.windows?.[0]?.usedPercent, 3.288695652173913);
   assert.equal(parsed.record.windows?.[0]?.resetAt, "2026-09-01T00:00:00.000Z");
   assert.deepEqual(parsed.record.details, {
     cursor: {
       membershipType: "pro",
       onDemandUsed: 250,
+      autoPercentUsed: 3.3333333333333335,
+      apiPercentUsed: 0.8888888888888888,
+      totalPercentUsed: 3.288695652173913,
     },
   });
   assert.equal(validateProviderRecord(parsed.record).ok, true);
 });
 
-test("omits invented percent when limit missing", () => {
+test("omits plan window when totalPercentUsed missing (request counts alone are not primary)", () => {
   const parsed = parse({
     billingCycleEnd: "2026-09-01T00:00:00.000Z",
+    membershipType: "pro",
     individualUsage: {
-      plan: { enabled: true, used: 40 },
+      plan: { enabled: true, used: 1107, limit: 2000 },
     },
   });
   assert.equal(parsed.ok, true);
   if (!parsed.ok) return;
-  assert.equal(parsed.record.windows?.[0]?.used, 40);
-  assert.equal(parsed.record.windows?.[0]?.limit, undefined);
-  assert.equal(parsed.record.windows?.[0]?.usedPercent, undefined);
+  assert.equal(parsed.record.windows, undefined);
+  assert.deepEqual(parsed.record.details, { cursor: { membershipType: "pro" } });
 });
 
 test("rejects empty recognition as not ok", () => {
@@ -113,6 +124,8 @@ test("fetch output pipes through the parser to a fully populated record (integra
   if (!parsed.ok) throw new Error("expected parse success on real-shaped fetch output");
 
   assert.equal(parsed.record.windows?.[0]?.id, "plan");
+  assert.equal(parsed.record.windows?.[0]?.used, undefined);
+  assert.equal(parsed.record.windows?.[0]?.limit, undefined);
   assert.equal(parsed.record.windows?.[0]?.usedPercent, 45.9);
   assert.deepEqual(parsed.record.details, {
     cursor: {

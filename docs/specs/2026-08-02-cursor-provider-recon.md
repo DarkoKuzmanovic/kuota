@@ -33,8 +33,8 @@ Observed (values illustrative of **types/units**, not a live dump to retain):
 - `membershipType`: string (e.g. `"pro"`)
 - `billingCycleStart` / `billingCycleEnd`: UTC ISO 8601 with millis
 - `individualUsage.plan.enabled`: boolean
-- `individualUsage.plan.used` / `.limit` / `.remaining`: **non-negative numbers (request/allowance counts, not cents)** — e.g. used 918, limit 2000 → compact percent ≈ 45.9%
-- `individualUsage.plan.autoPercentUsed` / `apiPercentUsed` / `totalPercentUsed`: floats (already percent-like)
+- `individualUsage.plan.used` / `.limit` / `.remaining`: **non-negative numbers (request/allowance counts, not cents)** — e.g. used 918, limit 2000; **not** used for compact primary percent
+- `individualUsage.plan.autoPercentUsed` / `apiPercentUsed` / `totalPercentUsed`: floats (already percent-like; `totalPercentUsed` drives the Plan window)
 - `individualUsage.plan.breakdown.included|bonus|total`: numbers (same unit as used)
 - `individualUsage.onDemand.enabled`: boolean
 - `individualUsage.onDemand.used`: number (**treat as cents** when enabled; observed `0` when disabled)
@@ -42,7 +42,9 @@ Observed (values illustrative of **types/units**, not a live dump to retain):
 
 ## Parser implications
 
-- Primary window: `used`/`limit` from `plan`; `usedPercent = (used/limit)*100` when `limit > 0`
-- `resetAt` = `billingCycleEnd`
+- Primary window `usedPercent` = `plan.totalPercentUsed` (dashboard spend share)
+- Do **not** compute primary percent from `plan.used` / `plan.limit` (those are request/allowance counts and disagree with the Spending UI, e.g. 1107/2000 ≈ 55% vs ~3–4% total)
+- Omit the plan window when `totalPercentUsed` is absent; never invent a percent from request counts
+- `resetAt` = `billingCycleEnd` on the plan window when `totalPercentUsed` is present
 - `details.cursor.onDemandUsed` / `onDemandLimit`: integer cents when present/enabled
 - Display messages are provider marketing strings — **do not** put in contract details (avoid leaking free-form status into facts); membershipType is enough

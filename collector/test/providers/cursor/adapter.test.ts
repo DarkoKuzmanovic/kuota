@@ -28,7 +28,8 @@ test("composes exactly one auth read and one fetch into a schema-valid Cursor re
         outcome: "ok",
         value: {
           billingCycleEnd: "2026-09-01T00:00:00.000Z",
-          individualUsage: { plan: { used: 10, limit: 100 } },
+          membershipType: "pro",
+          individualUsage: { plan: { used: 10, limit: 100, totalPercentUsed: 4.2 } },
         },
       };
     },
