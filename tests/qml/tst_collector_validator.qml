@@ -104,6 +104,25 @@ TestCase {
         compare(result.value.providers[3].details.kimi.concurrencyLimit, 20);
     }
 
+    function test_acceptsCursorProvider() {
+        var document = Fixtures.minimalDocument({
+            providers: [
+                Fixtures.validClaudeProvider(),
+                Fixtures.validCodexProvider(),
+                Fixtures.validGrokProvider(),
+                Fixtures.validKimiProvider(),
+                Fixtures.validCursorProvider()
+            ]
+        });
+        var result = CollectorValidator.validateCollectorResponse(json(document));
+        compare(result.ok, true);
+        compare(result.value.providers.length, 5);
+        compare(result.value.providers[4].id, "cursor");
+        compare(result.value.providers[4].details.cursor.membershipType, "pro");
+        compare(result.value.providers[4].details.cursor.onDemandUsed, 120);
+        compare(result.value.providers[4].windows[0].id, "plan");
+    }
+
     function test_acceptsValidPartialProviderSuccess() {
         var document = Fixtures.minimalDocument({ providers: [Fixtures.validClaudeProvider()] });
         var result = CollectorValidator.validateCollectorResponse(json(document));

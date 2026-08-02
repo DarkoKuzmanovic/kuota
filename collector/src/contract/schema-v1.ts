@@ -1,6 +1,6 @@
 export const SCHEMA_VERSION = 2 as const;
 
-export const PROVIDER_IDS = ["claude", "codex", "grok", "kimi"] as const;
+export const PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 export const PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"] as const;
@@ -44,16 +44,27 @@ export interface KimiDetails {
   readonly concurrencyLimit?: number;
 }
 
+export interface CursorDetails {
+  readonly membershipType?: string;
+  readonly onDemandUsed?: number;
+  readonly onDemandLimit?: number;
+  readonly autoPercentUsed?: number;
+  readonly apiPercentUsed?: number;
+  readonly totalPercentUsed?: number;
+}
+
 type ClaudeProviderDetails = { readonly claude: ClaudeDetails };
 type CodexProviderDetails = { readonly codex: CodexDetails };
 type GrokProviderDetails = { readonly grok: GrokDetails };
 type KimiProviderDetails = { readonly kimi: KimiDetails };
+type CursorProviderDetails = { readonly cursor: CursorDetails };
 
 export type ProviderDetails =
   | ClaudeProviderDetails
   | CodexProviderDetails
   | GrokProviderDetails
-  | KimiProviderDetails;
+  | KimiProviderDetails
+  | CursorProviderDetails;
 
 type NonEmptyClaudeDetails =
   | (ClaudeDetails & { readonly model: string })
@@ -78,12 +89,28 @@ type NonEmptyKimiDetails = { readonly concurrency?: number; readonly concurrency
   | { readonly concurrency: number }
   | { readonly concurrencyLimit: number }
 );
+type NonEmptyCursorDetails = {
+  readonly membershipType?: string;
+  readonly onDemandUsed?: number;
+  readonly onDemandLimit?: number;
+  readonly autoPercentUsed?: number;
+  readonly apiPercentUsed?: number;
+  readonly totalPercentUsed?: number;
+} & (
+  | { readonly membershipType: string }
+  | { readonly onDemandUsed: number }
+  | { readonly onDemandLimit: number }
+  | { readonly autoPercentUsed: number }
+  | { readonly apiPercentUsed: number }
+  | { readonly totalPercentUsed: number }
+);
 
 type NonEmptyProviderDetails =
   | { readonly claude: NonEmptyClaudeDetails }
   | { readonly codex: NonEmptyCodexDetails }
   | { readonly grok: NonEmptyGrokDetails }
-  | { readonly kimi: NonEmptyKimiDetails };
+  | { readonly kimi: NonEmptyKimiDetails }
+  | { readonly cursor: NonEmptyCursorDetails };
 
 interface ProviderRecordFields {
   readonly status?: string;
@@ -135,11 +162,16 @@ export type KimiProviderRecord =
   | CurrentProviderRecord<"kimi", KimiProviderDetails>
   | StaleProviderRecord<"kimi", KimiProviderDetails, { readonly kimi: NonEmptyKimiDetails }>;
 
+export type CursorProviderRecord =
+  | CurrentProviderRecord<"cursor", CursorProviderDetails>
+  | StaleProviderRecord<"cursor", CursorProviderDetails, { readonly cursor: NonEmptyCursorDetails }>;
+
 export type ProviderRecord =
   | ClaudeProviderRecord
   | CodexProviderRecord
   | GrokProviderRecord
-  | KimiProviderRecord;
+  | KimiProviderRecord
+  | CursorProviderRecord;
 
 export type ProviderRecordFor<TId extends ProviderId> = Extract<
   ProviderRecord,
@@ -153,6 +185,7 @@ type _AssertClaude = _AssertProviderRecordFor<"claude">;
 type _AssertCodex = _AssertProviderRecordFor<"codex">;
 type _AssertGrok = _AssertProviderRecordFor<"grok">;
 type _AssertKimi = _AssertProviderRecordFor<"kimi">;
+type _AssertCursor = _AssertProviderRecordFor<"cursor">;
 
 export interface CollectorDocument {
   readonly schemaVersion: typeof SCHEMA_VERSION;

@@ -13,7 +13,7 @@
 // from process output that must never be echoed back verbatim.
 
 var SCHEMA_VERSION = 2;
-var PROVIDER_IDS = ["claude", "codex", "grok", "kimi"];
+var PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor"];
 var PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"];
 var MAX_INPUT_LENGTH = 262144; // 256 KiB of QML string content.
 
@@ -33,6 +33,14 @@ var CLAUDE_DETAIL_KEYS = [
 var CODEX_DETAIL_KEYS = ["plan", "credits", "cost", "tokens"];
 var GROK_DETAIL_KEYS = ["monthlyUsed", "monthlyLimit", "monthlyResetAt"];
 var KIMI_DETAIL_KEYS = ["concurrency", "concurrencyLimit"];
+var CURSOR_DETAIL_KEYS = [
+    "membershipType",
+    "onDemandUsed",
+    "onDemandLimit",
+    "autoPercentUsed",
+    "apiPercentUsed",
+    "totalPercentUsed"
+];
 
 var UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 var WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -266,7 +274,8 @@ function parseProviderDetails(input, id, state) {
     var detailKeys = id === "claude" ? CLAUDE_DETAIL_KEYS
         : id === "codex" ? CODEX_DETAIL_KEYS
         : id === "grok" ? GROK_DETAIL_KEYS
-        : KIMI_DETAIL_KEYS;
+        : id === "kimi" ? KIMI_DETAIL_KEYS
+        : CURSOR_DETAIL_KEYS;
     var details = parseDetailFields(input[id], detailKeys, id, state);
     if (state.invalid !== startInvalid && details === undefined) {
         return undefined;
@@ -326,9 +335,16 @@ function parseDetailFields(input, allowedKeys, id, state) {
         assignIfDefined(details, "monthlyUsed", parseOptionalNonNegativeNumber(input, "monthlyUsed", state));
         assignIfDefined(details, "monthlyLimit", parseOptionalNonNegativeNumber(input, "monthlyLimit", state));
         assignIfDefined(details, "monthlyResetAt", parseOptionalTimestamp(input, "monthlyResetAt", state));
-    } else {
+    } else if (id === "kimi") {
         assignIfDefined(details, "concurrency", parseOptionalCount(input, "concurrency", state));
         assignIfDefined(details, "concurrencyLimit", parseOptionalCount(input, "concurrencyLimit", state));
+    } else {
+        assignIfDefined(details, "membershipType", parseOptionalSafeText(input, "membershipType", 100, state));
+        assignIfDefined(details, "onDemandUsed", parseOptionalCount(input, "onDemandUsed", state));
+        assignIfDefined(details, "onDemandLimit", parseOptionalCount(input, "onDemandLimit", state));
+        assignIfDefined(details, "autoPercentUsed", parseOptionalPercent(input, "autoPercentUsed", state));
+        assignIfDefined(details, "apiPercentUsed", parseOptionalPercent(input, "apiPercentUsed", state));
+        assignIfDefined(details, "totalPercentUsed", parseOptionalPercent(input, "totalPercentUsed", state));
     }
 
     if (state.invalid !== startInvalid) {

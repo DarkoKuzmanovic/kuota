@@ -82,6 +82,17 @@ function validKimiProvider(overrides) {
     }, overrides);
 }
 
+function validCursorProvider(overrides) {
+    return shallowMerge({
+        id: "cursor",
+        state: "ok",
+        status: "Usage is current",
+        lastSuccessAt: "2026-07-11T10:00:01.000Z",
+        windows: [validWindow({ id: "plan", label: "Plan", used: 40, limit: 100, usedPercent: 40 })],
+        details: { cursor: { membershipType: "pro", onDemandUsed: 120 } }
+    }, overrides);
+}
+
 function validStaleClaudeProvider(overrides) {
     return shallowMerge({
         id: "claude",
