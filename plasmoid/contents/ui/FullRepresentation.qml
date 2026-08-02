@@ -12,7 +12,7 @@ FocusScope {
     property bool inFlight: false
     property real nowMs: Date.now()
     property bool autoAdvanceClock: true
-    property var providerOrder: ["claude", "codex", "grok", "kimi"]
+    property var providerOrder: ["claude", "codex", "grok", "kimi", "cursor"]
     // Injected caution/critical thresholds (M9, D5). Defaults preserve M8's
     // 75/90 behavior for standalone instantiation (e.g. existing tests that
     // never set this).
@@ -95,6 +95,8 @@ FocusScope {
             return qsTr("Grok");
         case "kimi":
             return qsTr("Kimi");
+        case "cursor":
+            return qsTr("Cursor");
         default:
             return providerId;
         }

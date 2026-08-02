@@ -23,8 +23,10 @@ Kirigami.FormLayout {
     property string cfg_codexCustomIcon: ""
     property string cfg_grokCustomIcon: ""
     property string cfg_kimiCustomIcon: ""
+    property string cfg_cursorAccentColor: ""
+    property string cfg_cursorCustomIcon: ""
 
-    readonly property var providerIds: ["claude", "codex", "grok", "kimi"]
+    readonly property var providerIds: ["claude", "codex", "grok", "kimi", "cursor"]
 
     function providerLabel(providerId) {
         switch (providerId) {
@@ -36,6 +38,8 @@ Kirigami.FormLayout {
             return qsTr("Grok");
         case "kimi":
             return qsTr("Kimi");
+        case "cursor":
+            return qsTr("Cursor");
         default:
             return providerId;
         }
@@ -47,6 +51,8 @@ Kirigami.FormLayout {
             return "assistant";
         case "codex":
             return "utilities-terminal";
+        case "cursor":
+            return "input-keyboard";
         default:
             return "network-server";
         }

@@ -17,7 +17,7 @@
   <group name="General">
     <entry name="providerOrder" type="StringList">
       <label>Ordered list of provider IDs for compact and full views.</label>
-      <default>claude,codex,grok,kimi</default>
+      <default>claude,codex,grok,kimi,cursor</default>
     </entry>
     <entry name="claudeVisible" type="Bool">
       <label>Whether Claude is shown in the widget.</label>
@@ -33,6 +33,10 @@
     </entry>
     <entry name="kimiVisible" type="Bool">
       <label>Whether Kimi is shown in the widget.</label>
+      <default>true</default>
+    </entry>
+    <entry name="cursorVisible" type="Bool">
+      <label>Whether Cursor is shown in the widget.</label>
       <default>true</default>
     </entry>
     <entry name="claudeWindow" type="String">
@@ -131,6 +135,14 @@
     </entry>
     <entry name="kimiCustomIcon" type="String">
       <label>Kimi custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="cursorAccentColor" type="String">
+      <label>Cursor accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="cursorCustomIcon" type="String">
+      <label>Cursor custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
   </group>

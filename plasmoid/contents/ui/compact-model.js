@@ -4,13 +4,14 @@
 // CollectorDocument plus display config to ordered compact entries.
 // Never imports Plasma executable APIs or touches I/O.
 
-var DEFAULT_ORDER = ["claude", "codex", "grok", "kimi"];
+var DEFAULT_ORDER = ["claude", "codex", "grok", "kimi", "cursor"];
 
 var PROVIDER_LABELS = Object.freeze({
     claude: "Claude",
     codex: "Codex",
     grok: "Grok",
-    kimi: "Kimi"
+    kimi: "Kimi",
+    cursor: "Cursor"
 });
 
 var THRESHOLD_LEVEL = Object.freeze({
@@ -29,7 +30,8 @@ function createDefaultDisplayConfig() {
             claude: true,
             codex: true,
             grok: true,
-            kimi: true
+            kimi: true,
+            cursor: true
         },
         metric: {},
         window: {},
