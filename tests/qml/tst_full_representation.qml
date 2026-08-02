@@ -377,22 +377,24 @@ TestCase {
         compare(full.windowValueTextColor("caution"), Kirigami.Theme.neutralTextColor);
     }
 
-    // All four V1 providers must render with a capitalized display name in
+    // All five V1 providers must render with a capitalized display name in
     // the full-view tab bar.
     function test_providerDisplayNameCapitalizesAllProviders() {
         compare(full.providerDisplayName("claude"), "Claude");
         compare(full.providerDisplayName("codex"), "Codex");
         compare(full.providerDisplayName("grok"), "Grok");
         compare(full.providerDisplayName("kimi"), "Kimi");
+        compare(full.providerDisplayName("cursor"), "Cursor");
     }
 
     function test_tabButtonsUseCapitalizedDisplayNames() {
-        full.providerOrder = ["claude", "codex", "grok", "kimi"];
+        full.providerOrder = ["claude", "codex", "grok", "kimi", "cursor"];
         full.snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider(),
             Fixtures.validCodexProvider(),
             Fixtures.validGrokProvider(),
-            Fixtures.validKimiProvider()
+            Fixtures.validKimiProvider(),
+            Fixtures.validCursorProvider()
         ]);
         var tabBar = full.providerSwitcherItem;
         verify(tabBar !== null);
@@ -400,10 +402,11 @@ TestCase {
         for (var i = 0; i < tabBar.count; i++) {
             labels.push(tabBar.itemAt(i).text);
         }
-        compare(labels.length, 4);
+        compare(labels.length, 5);
         compare(labels[0], "Claude");
         compare(labels[1], "Codex");
         compare(labels[2], "Grok");
         compare(labels[3], "Kimi");
+        compare(labels[4], "Cursor");
     }
 }

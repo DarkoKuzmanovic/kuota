@@ -242,6 +242,43 @@ TestCase {
         compare(factValue(modelPartial, "Concurrency"), "3");
     }
 
+    function test_cursorFactsExtraction() {
+        var record = {
+            id: "cursor",
+            state: "ok",
+            windows: [Fixtures.validWindow({ id: "plan", label: "Plan", usedPercent: 40 })],
+            details: {
+                cursor: {
+                    membershipType: "pro",
+                    onDemandUsed: 250,
+                    onDemandLimit: 1000,
+                    autoPercentUsed: 12.5,
+                    apiPercentUsed: 8,
+                    totalPercentUsed: 40
+                }
+            }
+        };
+        var model = FullModel.buildFullViewModel(record);
+        compare(factValue(model, "Membership"), "pro");
+        compare(factValue(model, "On-demand used"), "$2.50");
+        compare(factValue(model, "On-demand limit"), "$10.00");
+        compare(factValue(model, "Auto usage"), "12.5%");
+        compare(factValue(model, "API usage"), "8%");
+        compare(factValue(model, "Total usage"), "40%");
+        compare(model.facts.length, 6);
+    }
+
+    function test_cursorFactsIgnoreMismatchedNamespace() {
+        var record = {
+            id: "cursor",
+            state: "ok",
+            windows: [Fixtures.validWindow({ id: "plan", label: "Plan", usedPercent: 40 })],
+            details: { kimi: { concurrency: 1 } }
+        };
+        var model = FullModel.buildFullViewModel(record);
+        compare(model.facts.length, 0);
+    }
+
     function test_unlimitedGrokWindowNoInventedPercent() {
         var record = {
             id: "grok",

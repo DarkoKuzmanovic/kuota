@@ -274,13 +274,15 @@ TestCase {
             Fixtures.validClaudeProvider(),
             Fixtures.validCodexProvider({ id: "codex", state: "ok", windows: [Fixtures.validWindow({ usedPercent: 1 })] }),
             Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ usedPercent: 1 })] }),
-            Fixtures.validKimiProvider({ windows: [Fixtures.validWindow({ usedPercent: 1 })] })
+            Fixtures.validKimiProvider({ windows: [Fixtures.validWindow({ usedPercent: 1 })] }),
+            Fixtures.validCursorProvider({ windows: [Fixtures.validWindow({ id: "plan", label: "Plan", usedPercent: 1 })] })
         ]);
         var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig());
         compare(providerEntry(entries, "claude").label, "Claude");
         compare(providerEntry(entries, "codex").label, "Codex");
         compare(providerEntry(entries, "grok").label, "Grok");
         compare(providerEntry(entries, "kimi").label, "Kimi");
+        compare(providerEntry(entries, "cursor").label, "Cursor");
     }
 
     function test_selectedWindowHonoredWhenPresent() {

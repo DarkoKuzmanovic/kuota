@@ -226,6 +226,9 @@ function buildFacts(record) {
     if (id === "kimi" && isRecord(details.kimi)) {
         return kimiFacts(details.kimi);
     }
+    if (id === "cursor" && isRecord(details.cursor)) {
+        return cursorFacts(details.cursor);
+    }
     return [];
 }
 
@@ -265,6 +268,17 @@ function kimiFacts(d) {
     return facts;
 }
 
+function cursorFacts(d) {
+    var facts = [];
+    pushStringFact(facts, "Membership", d.membershipType);
+    pushDollarCentsFact(facts, "On-demand used", d.onDemandUsed);
+    pushDollarCentsFact(facts, "On-demand limit", d.onDemandLimit);
+    pushPercentFact(facts, "Auto usage", d.autoPercentUsed);
+    pushPercentFact(facts, "API usage", d.apiPercentUsed);
+    pushPercentFact(facts, "Total usage", d.totalPercentUsed);
+    return facts;
+}
+
 function pushStringFact(facts, label, value) {
     if (typeof value === "string" && value.length > 0) {
         facts.push({ label: label, value: value });
@@ -282,6 +296,20 @@ function pushCreditFact(facts, label, amount, details) {
         return;
     }
     facts.push({ label: label, value: formatCreditAmount(amount, details) });
+}
+
+function pushDollarCentsFact(facts, label, cents) {
+    if (typeof cents !== "number" || !isFinite(cents)) {
+        return;
+    }
+    facts.push({ label: label, value: "$" + (cents / 100).toFixed(2) });
+}
+
+function pushPercentFact(facts, label, value) {
+    if (typeof value !== "number" || !isFinite(value)) {
+        return;
+    }
+    facts.push({ label: label, value: String(value) + "%" });
 }
 
 function formatCreditAmount(amount, details) {

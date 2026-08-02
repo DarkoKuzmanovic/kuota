@@ -84,6 +84,8 @@ FocusScope {
             return "assistant";
         case "codex":
             return "utilities-terminal";
+        case "cursor":
+            return "input-keyboard";
         default:
             return "network-server";
         }

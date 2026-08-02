@@ -13,11 +13,12 @@ TestCase {
     }
 
     function test_exposesCanonicalProviderIdsInOrder() {
-        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 4);
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 5);
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[0], "claude");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[1], "codex");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[2], "grok");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[3], "kimi");
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS[4], "cursor");
     }
 
     // --- Defaults / providers omitted ---------------------------------
@@ -58,11 +59,11 @@ TestCase {
     function test_buildsFullCanonicalSetInCanonicalOrder() {
         var result = CollectorCommand.buildCollectorCommand({
             collectorPath: samplePath,
-            enabledProviders: ["kimi", "codex", "claude", "grok"],
+            enabledProviders: ["kimi", "codex", "claude", "grok", "cursor"],
             sourceId: 3
         });
         compare(result.ok, true);
-        compare(result.value, "/usr/bin/node '" + samplePath + "' --enabled-providers=claude,codex,grok,kimi # 3");
+        compare(result.value, "/usr/bin/node '" + samplePath + "' --enabled-providers=claude,codex,grok,kimi,cursor # 3");
     }
 
     function test_silentlySkipsUmansInProviderList() {
