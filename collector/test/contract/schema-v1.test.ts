@@ -43,9 +43,9 @@ test("normalized fixture inventory is explicit", () => {
   assert.deepEqual(fixtureNames(), expected);
 });
 
-test("schema v2 identity excludes umans", () => {
+test("schema v2 identity includes cursor after kimi", () => {
   assert.equal(SCHEMA_VERSION, 2);
-  assert.deepEqual([...PROVIDER_IDS], ["claude", "codex", "grok", "kimi"]);
+  assert.deepEqual([...PROVIDER_IDS], ["claude", "codex", "grok", "kimi", "cursor"]);
   assert.equal((PROVIDER_IDS as readonly string[]).includes("umans"), false);
 });
 
@@ -281,7 +281,7 @@ test("Claude extra-usage details and integer credit windows remain schema-valid"
     }),
   );
   assert.equal(fractionalWindow.ok, false);
-
+});
 
 test("Grok details are optional, namespaced, and valid as non-negative numbers + timestamp", () => {
   const valid = validateCollectorDocument(
@@ -369,6 +369,53 @@ test("Grok and Kimi stale records require retained data", () => {
   assert.equal(grokStaleEmpty.ok, false);
   assert.equal(kimiStaleWithDetails.ok, true);
 });
+
+test("Cursor details are optional, namespaced, and correlated", () => {
+  const valid = validateCollectorDocument(documentWith({
+    id: "cursor",
+    state: "ok",
+    windows: [{ id: "plan", label: "Plan", used: 40, limit: 100, usedPercent: 40 }],
+    details: { cursor: { membershipType: "pro", onDemandUsed: 120 } },
+  }));
+  const mismatched = validateCollectorDocument(documentWith({
+    id: "cursor",
+    state: "ok",
+    details: { kimi: { concurrency: 1 } },
+  }));
+  assert.equal(valid.ok, true);
+  assert.equal(mismatched.ok, false);
+});
+
+test("Cursor details validate optional safe text, counts, and percents", () => {
+  const valid = validateCollectorDocument(documentWith({
+    id: "cursor",
+    state: "ok",
+    details: {
+      cursor: {
+        membershipType: "pro",
+        onDemandUsed: 250,
+        onDemandLimit: 1000,
+        autoPercentUsed: 12.5,
+        apiPercentUsed: 8,
+        totalPercentUsed: 40,
+      },
+    },
+  }));
+  const minimal = validateCollectorDocument(documentWith({ id: "cursor", state: "ok", details: { cursor: {} } }));
+  const malformedOnDemand = validateCollectorDocument(
+    documentWith({ id: "cursor", state: "ok", details: { cursor: { onDemandUsed: -1 } } }),
+  );
+  const malformedPercent = validateCollectorDocument(
+    documentWith({ id: "cursor", state: "ok", details: { cursor: { totalPercentUsed: 101 } } }),
+  );
+  const unknownField = validateCollectorDocument(
+    documentWith({ id: "cursor", state: "ok", details: { cursor: { unknownFlag: true } } }),
+  );
+  assert.equal(valid.ok, true);
+  assert.equal(minimal.ok, true);
+  assert.equal(malformedOnDemand.ok, false);
+  assert.equal(malformedPercent.ok, false);
+  assert.equal(unknownField.ok, false);
 });
 
 test("provider details namespaces must match provider IDs", () => {

@@ -5,6 +5,7 @@ import {
   type ClaudeDetails,
   type CodexDetails,
   type CollectorDocument,
+  type CursorDetails,
   type GrokDetails,
   type KimiDetails,
   type ProviderDetails,
@@ -62,6 +63,14 @@ const CLAUDE_DETAIL_KEYS = new Set([
 const CODEX_DETAIL_KEYS = new Set(["plan", "credits", "cost", "tokens"]);
 const GROK_DETAIL_KEYS = new Set(["monthlyUsed", "monthlyLimit", "monthlyResetAt"]);
 const KIMI_DETAIL_KEYS = new Set(["concurrency", "concurrencyLimit"]);
+const CURSOR_DETAIL_KEYS = new Set([
+  "membershipType",
+  "onDemandUsed",
+  "onDemandLimit",
+  "autoPercentUsed",
+  "apiPercentUsed",
+  "totalPercentUsed",
+]);
 const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
@@ -380,11 +389,18 @@ function parseProviderDetails(
     }
     return details === undefined ? undefined : { grok: details };
   }
-  const details = parseKimiDetails(input.kimi, `${path}.kimi`, errors);
+  if (id === "kimi") {
+    const details = parseKimiDetails(input.kimi, `${path}.kimi`, errors);
+    if (errors.length !== initialErrorCount && details === undefined) {
+      return undefined;
+    }
+    return details === undefined ? undefined : { kimi: details };
+  }
+  const details = parseCursorDetails(input.cursor, `${path}.cursor`, errors);
   if (errors.length !== initialErrorCount && details === undefined) {
     return undefined;
   }
-  return details === undefined ? undefined : { kimi: details };
+  return details === undefined ? undefined : { cursor: details };
 }
 
 function parseClaudeDetails(
@@ -561,6 +577,43 @@ function parseKimiDetails(
   } = {};
   if (concurrency !== undefined) details.concurrency = concurrency;
   if (concurrencyLimit !== undefined) details.concurrencyLimit = concurrencyLimit;
+  return details;
+}
+
+function parseCursorDetails(
+  input: unknown,
+  path: string,
+  errors: ValidationIssue[],
+): CursorDetails | undefined {
+  if (!isRecord(input)) {
+    addIssue(errors, path, "expected an object");
+    return undefined;
+  }
+  const initialErrorCount = errors.length;
+  validateObjectKeys(input, path, CURSOR_DETAIL_KEYS, errors);
+  const membershipType = parseOptionalSafeText(input, "membershipType", `${path}.membershipType`, 100, errors);
+  const onDemandUsed = parseOptionalCount(input, "onDemandUsed", `${path}.onDemandUsed`, errors);
+  const onDemandLimit = parseOptionalCount(input, "onDemandLimit", `${path}.onDemandLimit`, errors);
+  const autoPercentUsed = parseOptionalPercent(input, "autoPercentUsed", `${path}.autoPercentUsed`, errors);
+  const apiPercentUsed = parseOptionalPercent(input, "apiPercentUsed", `${path}.apiPercentUsed`, errors);
+  const totalPercentUsed = parseOptionalPercent(input, "totalPercentUsed", `${path}.totalPercentUsed`, errors);
+  if (errors.length !== initialErrorCount) {
+    return undefined;
+  }
+  const details: {
+    membershipType?: string;
+    onDemandUsed?: number;
+    onDemandLimit?: number;
+    autoPercentUsed?: number;
+    apiPercentUsed?: number;
+    totalPercentUsed?: number;
+  } = {};
+  if (membershipType !== undefined) details.membershipType = membershipType;
+  if (onDemandUsed !== undefined) details.onDemandUsed = onDemandUsed;
+  if (onDemandLimit !== undefined) details.onDemandLimit = onDemandLimit;
+  if (autoPercentUsed !== undefined) details.autoPercentUsed = autoPercentUsed;
+  if (apiPercentUsed !== undefined) details.apiPercentUsed = apiPercentUsed;
+  if (totalPercentUsed !== undefined) details.totalPercentUsed = totalPercentUsed;
   return details;
 }
 
@@ -842,7 +895,10 @@ function hasRetainedData(
   if ("grok" in details) {
     return Object.keys(details.grok).length > 0;
   }
-  return Object.keys(details.kimi).length > 0;
+  if ("kimi" in details) {
+    return Object.keys(details.kimi).length > 0;
+  }
+  return Object.keys(details.cursor).length > 0;
 }
 
 function isMember<const T extends readonly string[]>(
