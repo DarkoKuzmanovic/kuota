@@ -64,21 +64,17 @@ function failure(): CursorUsageParseResult {
   return { ok: false, reason: "malformed-response", status: "Provider unavailable" };
 }
 
-function usageWindow(
-  used: number | typeof INVALID | undefined,
-  limit: number | typeof INVALID | undefined,
+/** Plan primary is dashboard totalPercentUsed — never request-count used/limit. */
+function planUsageWindow(
+  usedPercent: number | typeof INVALID | undefined,
   resetAt: string | typeof INVALID | undefined,
 ): UsageWindow | typeof INVALID | undefined {
-  if (used === INVALID || limit === INVALID || resetAt === INVALID) return INVALID;
-  if (used === undefined && limit === undefined) return undefined;
-  if (used !== undefined && limit !== undefined && used > limit) return INVALID;
-  const usedPercent = used !== undefined && limit !== undefined && limit > 0 ? (used / limit) * 100 : undefined;
+  if (usedPercent === INVALID || resetAt === INVALID) return INVALID;
+  if (usedPercent === undefined) return undefined;
   return {
     id: "plan",
     label: "Plan",
-    ...(used === undefined ? {} : { used }),
-    ...(limit === undefined ? {} : { limit }),
-    ...(usedPercent === undefined ? {} : { usedPercent }),
+    usedPercent,
     ...(resetAt === undefined ? {} : { resetAt }),
   };
 }
@@ -105,8 +101,6 @@ export function parseCursorUsageResponse(input: unknown, observedAt: string): Cu
     const plan = isPlainRecord(planValue) ? planValue : undefined;
     const onDemand = isPlainRecord(onDemandValue) ? onDemandValue : undefined;
 
-    const used = finiteCount(plan === undefined ? undefined : ownValue(plan, "used"));
-    const limit = finiteCount(plan === undefined ? undefined : ownValue(plan, "limit"));
     const resetAt = parseResetTimestamp(ownValue(input, "billingCycleEnd"));
     const membershipType = parseMembershipType(ownValue(input, "membershipType"));
     const autoPercentUsed = finitePercent(plan === undefined ? undefined : ownValue(plan, "autoPercentUsed"));
@@ -122,13 +116,13 @@ export function parseCursorUsageResponse(input: unknown, observedAt: string): Cu
       ? undefined
       : finiteCount(onDemandLimitValue);
 
-    if (used === INVALID || limit === INVALID || resetAt === INVALID || membershipType === INVALID ||
+    if (resetAt === INVALID || membershipType === INVALID ||
       autoPercentUsed === INVALID || apiPercentUsed === INVALID || totalPercentUsed === INVALID ||
       onDemandUsed === INVALID || onDemandLimit === INVALID) {
       return failure();
     }
 
-    const planWindow = usageWindow(used, limit, resetAt);
+    const planWindow = planUsageWindow(totalPercentUsed, resetAt);
     if (planWindow === INVALID) return failure();
 
     const details: CursorDetails = {

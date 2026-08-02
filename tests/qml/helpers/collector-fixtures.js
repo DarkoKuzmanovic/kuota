@@ -88,8 +88,8 @@ function validCursorProvider(overrides) {
         state: "ok",
         status: "Usage is current",
         lastSuccessAt: "2026-07-11T10:00:01.000Z",
-        windows: [validWindow({ id: "plan", label: "Plan", used: 40, limit: 100, usedPercent: 40 })],
-        details: { cursor: { membershipType: "pro", onDemandUsed: 120 } }
+        windows: [validWindow({ id: "plan", label: "Plan", usedPercent: 40 })],
+        details: { cursor: { membershipType: "pro", onDemandUsed: 120, totalPercentUsed: 40 } }
     }, overrides);
 }
 

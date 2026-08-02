@@ -20,6 +20,12 @@ left unread on disk (see **Removed** under [Unreleased]).
   first, else `CURSOR_SESSION_TOKEN`. Not an official individual API — may break
   without notice (see design + recon docs).
 
+### Fixed
+
+- **Cursor plan percent.** Primary `Plan` window now uses `totalPercentUsed`
+  (dashboard spend share) instead of request-count `used`/`limit`, which
+  disagreed with the Spending page (e.g. ~55% vs ~4%).
+
 ### Removed
 
 - **Umans provider.** Kuota no longer collects or displays Umans usage.

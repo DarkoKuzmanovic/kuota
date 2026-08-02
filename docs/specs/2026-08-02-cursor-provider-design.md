@@ -30,7 +30,7 @@ Kuota shows Claude, Codex, Grok, and Kimi usage from authoritative provider APIs
 |---|---|
 | Audience | Individual dashboard usage (not Enterprise Admin API) |
 | Auth sources | Local Cursor state first, then `CURSOR_SESSION_TOKEN` |
-| Compact primary | Included plan `used` / `limit` → `usedPercent` |
+| Compact primary | Included plan `totalPercentUsed` (dashboard spend share) |
 | Token storage | Never persist; env is override-only; local read is in-process |
 | Approach | One bounded `GET /api/usage-summary` adapter |
 
@@ -77,10 +77,10 @@ Canonical order after addition: `claude`, `codex`, `grok`, `kimi`, `cursor`.
 **Normalization:**
 
 - Primary window: `id: "plan"`, label `"Plan"`, from `individualUsage.plan`:
-  - `used` and `limit` when both are finite non-negative numbers
-  - `usedPercent` when `limit > 0`
+  - `usedPercent` = `totalPercentUsed` when a finite number in `0..100` (dashboard spend share — same family as the Spending page bars)
   - `resetAt` = `billingCycleEnd` when a valid UTC ISO timestamp
-- If plan is disabled, unlimited, or lacks a usable limit: do **not** invent a percentage; still emit `used` when genuine
+  - Do **not** put request-count `used`/`limit` on this window (those are a different unit and disagree with the dashboard percent)
+- If `totalPercentUsed` is absent: omit the plan window; do not invent a percent from request counts
 - If a 2xx body recognizes nothing usable → fail as malformed / `error` (never a dataless `ok`)
 
 **Optional `details.cursor` (omit when unavailable):**
@@ -106,7 +106,7 @@ Canonical order after addition: `claude`, `codex`, `grok`, `kimi`, `cursor`.
 **Plasma:**
 
 - Add to `KNOWN_PROVIDERS`, defaults, visibility, theming, compact/full models, command allowlist, `main.xml`
-- Compact primary = plan window `usedPercent` (else `used` count per existing metric rules)
+- Compact primary = plan window `usedPercent` from `totalPercentUsed`
 - Full view: closed allowlist facts from `details.cursor` only; countdown from `resetAt` in QML
 
 **Security / product risk:**

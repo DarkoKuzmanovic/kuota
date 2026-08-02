@@ -60,7 +60,7 @@ Grok details (`details.grok`) may contain non-negative `monthlyUsed` and `monthl
 
 Kimi details (`details.kimi`) may contain non-negative integer `concurrency` and `concurrencyLimit` counts. Weekly and short usage windows are represented as `UsageWindow` entries on the provider record; numeric fields are normalized to numbers by the adapter before entering the contract.
 
-Cursor details (`details.cursor`) may contain bounded `membershipType` text; non-negative integer `onDemandUsed` and `onDemandLimit` (cents when present); and optional `autoPercentUsed`, `apiPercentUsed`, and `totalPercentUsed` in `0..100`. The primary usage window is `plan` (included-plan allowance). Cursor auth is local-session or env only — never `auth.json` and never persisted by Kuota.
+Cursor details (`details.cursor`) may contain bounded `membershipType` text; non-negative integer `onDemandUsed` and `onDemandLimit` (cents when present); and optional `autoPercentUsed`, `apiPercentUsed`, and `totalPercentUsed` in `0..100`. The primary usage window is `plan` with `usedPercent` taken from `totalPercentUsed` (dashboard spend share) — not from request-count `used`/`limit`. Cursor auth is local-session or env only — never `auth.json` and never persisted by Kuota.
 
 ## Migrate-then-validate
 
