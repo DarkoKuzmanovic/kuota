@@ -13,8 +13,8 @@
     "Id": "io.github.darkokuzmanovic.kuota",
     "License": "MIT",
     "Name": "Kuota",
-"Version": "1.2.1",
-    "Website": "https://github.com/darkokuzmanovic/kuota"
+    "Version": "1.2.1",
+    "Website": "https://github.com/DarkoKuzmanovic/kuota"
   },
   "X-Plasma-API-Minimum-Version": "6.0"
 }
