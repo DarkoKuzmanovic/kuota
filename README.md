@@ -70,22 +70,28 @@ touches `~/.pi/`, `auth.json`, or Plasma global config.
 | Codex | `auth["openai-codex"]` (OAuth + `accountId`; Kuota may refresh the token once) |
 | Grok | `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]`, or `GROK_CLI_OAUTH_TOKEN` |
 | Kimi | `auth["kimi-coding"]`, or `KIMI_API_KEY` |
+| Cursor | Local Cursor `state.vscdb` session (`cursorAuth/accessToken` via `sqlite3`), or `CURSOR_SESSION_TOKEN` |
 
 Kuota does not provide account login UI. Sign in with Pi (or set the env
-fallbacks) first.
+fallbacks) first. For Cursor, sign into the Cursor desktop app locally, or
+export a session cookie value to `CURSOR_SESSION_TOKEN` — never commit it.
 
 ## Troubleshooting
 
 - **Widget missing after install** — restart Plasma
   (`plasmashell --replace &`) or remove and re-add the widget.
 - **`auth-needed`** — no usable credential for that provider in
-  `~/.pi/agent/auth.json` (or the matching env fallback).
+  `~/.pi/agent/auth.json` (or the matching env fallback). For Cursor:
+  sign into the Cursor app so `state.vscdb` contains a session, install
+  `sqlite3`, or set `CURSOR_SESSION_TOKEN`.
 - **`error` / stale** — usually transient network or rate limiting. Last
   known-good data is retained and marked stale until the next successful
   refresh. Claude honors `Retry-After` with a minimum backoff.
 - **Settings look ignored** — restart Plasma or re-add the widget. Invalid
   values fall back to safe defaults at a single sanitize boundary.
 - **Provider API drift** — adapters live under `collector/src/providers/`.
+  Cursor uses an **unofficial** dashboard endpoint (`usage-summary`); breakage
+  may surface as `auth-needed` or `error` without notice.
 
 ## Development
 

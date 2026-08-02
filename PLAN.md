@@ -2,12 +2,12 @@
 
 **Source of truth:** `docs/specs/2026-07-10-kuota-design.md` (approved for implementation by the project owner on 2026-07-10)  
 **Plan status:** G0 passed; Milestone 1 foundation work ready to begin  
-**Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, and Kimi. Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
+**Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, and Cursor. Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
 
 ## Approved Decisions
 
 1. Kuota is a standalone KDE Plasma 6 widget that refreshes independently of Pi and reports authoritative provider data rather than estimating quota from local activity.
-2. Current supported providers are Claude, Codex, Grok, and Kimi; additional providers, cross-machine aggregation, history charts, notifications, account management, a permanent service, and KDE Store publication are out of scope. (V1 originally froze at Claude/Umans/Codex; Grok and Kimi were added in 1.1.0; Umans was removed 2026-08-02.)
+2. Current supported providers are Claude, Codex, Grok, Kimi, and Cursor; additional providers, cross-machine aggregation, history charts, notifications, account management, a permanent service, and KDE Store publication are out of scope. (V1 originally froze at Claude/Umans/Codex; Grok and Kimi were added in 1.1.0; Umans was removed 2026-08-02; Cursor was added 2026-08-02.)
 3. The compact representation is one configurable horizontal KVitals-style line; the full popup and desktop representation share a responsive, CodexBar-inspired view that remains native to Plasma.
 4. Users can configure provider visibility/order, icons/text mode, labels, separators, font sizing, compact metric choices, reset countdown visibility, refresh interval, and caution/critical thresholds and colors.
 5. Every genuine provider field may be displayed. Missing fields are omitted, unlimited plans do not receive invented percentages, and visually symmetric cards never justify fabricated data.

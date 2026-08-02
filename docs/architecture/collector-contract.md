@@ -46,7 +46,7 @@ The collector emits one normalized JSON document. Schema version 2 is deliberate
 }
 ```
 
-`collectionStartedAt` and `collectionFinishedAt` are UTC ISO 8601 timestamps, and the start cannot be after the finish. `providers` contains one record for each configured provider; it may be empty and may contain a partial result when another provider fails. Provider IDs are `claude`, `codex`, `grok`, and `kimi` (canonical order). States are `ok`, `stale`, `auth-needed`, and `error`.
+`collectionStartedAt` and `collectionFinishedAt` are UTC ISO 8601 timestamps, and the start cannot be after the finish. `providers` contains one record for each configured provider; it may be empty and may contain a partial result when another provider fails. Provider IDs are `claude`, `codex`, `grok`, `kimi`, and `cursor` (canonical order). States are `ok`, `stale`, `auth-needed`, and `error`.
 
 A `stale` provider is a last-known-good record, not an empty failure marker. It must include `lastSuccessAt` and retained real data: either at least one usage window or a non-empty details object in the namespace matching its provider ID. It does not need both kinds of data, nor every optional field. Other states may omit `lastSuccessAt`, windows, and details when those values are unavailable.
 
@@ -54,11 +54,13 @@ Optional values are omitted when the provider does not supply them. A usage wind
 
 Provider details are namespaced and typed under the provider record. Claude details may contain `model`, integer `tokens`, and the following optional extra-usage fields: boolean `extraUsageEnabled`; non-negative integer `extraUsageUsedCredits` and `extraUsageMonthlyLimit`, expressed as integer credit amounts in the currency's minor units (each independent, so overage where used exceeds the limit is retained rather than clamped); a bounded (≤16 character) `extraUsageCurrency` code; non-negative integer `extraUsageDecimalPlaces`, the number of decimal places used to render those minor-unit amounts in `extraUsageCurrency`; and a bounded (≤100 character) `extraUsageDisabledReason`. Each extra-usage field is omitted when unavailable, and malformed extra-usage is dropped in isolation so valid base and model windows still surface. Codex details may contain `plan`, non-negative `credits` and `cost`, and integer `tokens`. A details object must use only the namespace matching its provider ID. No provider detail is inferred from a missing native field, and no credential, account identifier, authorization field, raw response, or token-shaped value belongs in this document.
 
-The TypeScript `ProviderRecord` is a discriminated union: a `claude` record can only contain `details.claude`, a `codex` record only `details.codex`, a `grok` record only `details.grok`, and a `kimi` record only `details.kimi`. Runtime validation enforces the same correlation and the stale retention rule before narrowing unknown input.
+The TypeScript `ProviderRecord` is a discriminated union: a `claude` record can only contain `details.claude`, a `codex` record only `details.codex`, a `grok` record only `details.grok`, a `kimi` record only `details.kimi`, and a `cursor` record only `details.cursor`. Runtime validation enforces the same correlation and the stale retention rule before narrowing unknown input.
 
 Grok details (`details.grok`) may contain non-negative `monthlyUsed` and `monthlyLimit` counts and a UTC `monthlyResetAt` timestamp. Usage windows are ordered week (`id: "week"`, label `"7d"`) then month (`id: "month"`, label `"30d"`) so compact primary defaults to the tighter credit window; the weekly window is optional and omitted when the credits endpoint does not return a weekly period.
 
 Kimi details (`details.kimi`) may contain non-negative integer `concurrency` and `concurrencyLimit` counts. Weekly and short usage windows are represented as `UsageWindow` entries on the provider record; numeric fields are normalized to numbers by the adapter before entering the contract.
+
+Cursor details (`details.cursor`) may contain bounded `membershipType` text; non-negative integer `onDemandUsed` and `onDemandLimit` (cents when present); and optional `autoPercentUsed`, `apiPercentUsed`, and `totalPercentUsed` in `0..100`. The primary usage window is `plan` (included-plan allowance). Cursor auth is local-session or env only — never `auth.json` and never persisted by Kuota.
 
 ## Migrate-then-validate
 
