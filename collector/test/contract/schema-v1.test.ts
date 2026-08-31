@@ -527,6 +527,31 @@ test("CommandCode details are optional, namespaced, and correlated", () => {
   assert.equal(nonBooleanExceeded.ok, false);
 });
 
+test("CommandCode windows may exceed their cap; other providers may not (exceeded-window exception)", () => {
+  const commandCodeExceeded = validateCollectorDocument(
+    documentWith({
+      id: "commandcode",
+      state: "ok",
+      windows: [
+        { id: "fiveHour", label: "5h", used: 1500, limit: 1000, usedPercent: 100, resetAt: "2026-09-01T10:00:00.000Z" },
+      ],
+    }),
+  );
+  assert.equal(commandCodeExceeded.ok, true);
+  for (const id of ["claude", "codex", "grok", "kimi", "cursor", "opencode"]) {
+    const exceeded = validateCollectorDocument(
+      documentWith({
+        id,
+        state: "ok",
+        windows: [
+          { id: "rolling", label: "5h", used: 1500, limit: 1000, usedPercent: 100, resetAt: "2026-09-01T10:00:00.000Z" },
+        ],
+      }),
+    );
+    assert.equal(exceeded.ok, false, `${id} window must not exceed its limit`);
+  }
+});
+
 test("CommandCode stale records retain detail facts or windows", () => {
   const staleWithDetails = validateCollectorDocument(
     documentWith({

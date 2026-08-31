@@ -235,11 +235,9 @@ test("registry canonical order ends with commandcode", () => {
 
 test("registry exposes real adapters without collecting auth at registration", () => {
   const registry = createProviderRegistry();
-  // commandcode is recognized by the contract but registers its real adapter
-  // with its owning slice (V14.4).
   assert.deepEqual(
     registry.adapters.map((adapter) => adapter.id),
-    ["claude", "codex", "grok", "kimi", "cursor", "opencode"],
+    ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"],
   );
   assert.equal(registry.adapters[0], CLAUDE_ADAPTER);
   assert.equal(registry.adapters[1], CODEX_ADAPTER);
