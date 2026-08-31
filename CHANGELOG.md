@@ -15,6 +15,16 @@ left unread on disk (see **Removed** under [Unreleased]).
 
 ### Added
 
+- **OpenCode provider.** Shows usage from hosted OpenCode Go’s
+  `opencode.ai/zen/go/v1/usage` endpoint — three windows (5h rolling, weekly,
+  monthly) with reset countdowns. Auth: `auth["opencode-go"]` first, the
+  `opencode` alias second, then `OPENCODE_API_KEY`. No refresh/refresh-token
+  handling — read-only by design.
+- **CommandCode provider.** Shows credits and exceeded flags from
+  `api.commandcode.ai/alpha/billing/credits`, plus plan name from the optional
+  subscriptions call (non-fatal when it fails). Five-hour window is primary;
+  weekly window added when present. Auth: `auth.commandcode` (oauth-shaped
+  entry, `access` is the session key) or `COMMANDCODE_API_KEY`. Read-only.
 - **Cursor provider (unofficial).** Shows included plan usage from Cursor’s
   dashboard `usage-summary` endpoint. Auth: local Cursor `state.vscdb` session
   first, else `CURSOR_SESSION_TOKEN`. Not an official individual API — may break
@@ -30,7 +40,8 @@ left unread on disk (see **Removed** under [Unreleased]).
 
 - **Umans provider.** Kuota no longer collects or displays Umans usage.
   Collector documents now use `schemaVersion: 2` with providers
-  `claude`, `codex`, `grok`, and `kimi`. Schema v1 snapshots and configs
+  `claude`, `codex`, `grok`, `kimi`, `cursor`, `opencode`, and `commandcode`.
+  Schema v1 snapshots and configs
   that still mention Umans are silently stripped on read. Orphan
   `umansVisible` / accent / icon KConfig keys may remain on disk unread.
   This amends D7 for the Umans-only keys as an explicit scope change
