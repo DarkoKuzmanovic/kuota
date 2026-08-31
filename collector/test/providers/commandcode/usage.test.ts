@@ -45,6 +45,29 @@ test("clamps usedPercent to 100 for exceeded windows and keeps used > limit", ()
   assert.equal(parsed.record.windows?.[0]?.limit, 1000);
 });
 
+test("rounds fractional wire counts to integer window counts with percent from unrounded values", () => {
+  // Live wire lesson (2026-09-01 recon gate): weekly.used arrives fractional
+  // (credit consumption is not integer); the contract keeps safe-integer
+  // counts, but usedPercent must derive from the unrounded pair.
+  const body = okBody() as { windowLimits: { weekly: Record<string, unknown> } };
+  body.windowLimits.weekly.used = 12.49;
+  body.windowLimits.weekly.cap = 250.4;
+  const parsed = parseCommandCodeUsageResponse(body, OBSERVED_AT);
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) return;
+  const weekly = parsed.record.windows?.[1];
+  assert.equal(weekly?.used, 12);
+  assert.equal(weekly?.limit, 250);
+  assert.equal(weekly?.usedPercent, Math.min(100, (12.49 / 250.4) * 100));
+});
+
+test("rejects window counts beyond the safe-integer range", () => {
+  const body = okBody() as { windowLimits: { fiveHour: Record<string, unknown> } };
+  body.windowLimits.fiveHour.used = 2 ** 53 + 1;
+  const parsed = parseCommandCodeUsageResponse(body, OBSERVED_AT);
+  assert.equal(parsed.ok, false);
+});
+
 test("drops the weekly window when it is missing or its used/cap are unusable", () => {
   const missingWeekly = okBody() as { windowLimits: { weekly?: unknown } };
   delete missingWeekly.windowLimits.weekly;
