@@ -100,10 +100,16 @@ function usageWindow(
   row: { used: number | typeof INVALID | undefined; limit: number | typeof INVALID | undefined; resetAt: string | typeof INVALID | undefined },
 ): UsageWindow | typeof INVALID {
   if (row.used === INVALID || row.limit === INVALID || row.resetAt === INVALID) return INVALID;
-  const used = row.used;
-  const limit = row.limit;
-  if (used === undefined || limit === undefined) return INVALID;
-  const usedPercent = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+  const rawUsed = row.used;
+  const rawLimit = row.limit;
+  if (rawUsed === undefined || rawLimit === undefined) return INVALID;
+  // The wire may emit fractional credit counts; the contract keeps integer
+  // counts, but the percent derives from the unrounded values so display
+  // precision is not lost to rounding.
+  const usedPercent = rawLimit > 0 ? Math.min(100, (rawUsed / rawLimit) * 100) : 0;
+  const used = Math.round(rawUsed);
+  const limit = Math.round(rawLimit);
+  if (!Number.isSafeInteger(used) || !Number.isSafeInteger(limit)) return INVALID;
   const resetAt = row.resetAt;
   return {
     id,
