@@ -17,7 +17,7 @@
   <group name="General">
     <entry name="providerOrder" type="StringList">
       <label>Ordered list of provider IDs for compact and full views.</label>
-      <default>claude,codex,grok,kimi,cursor</default>
+      <default>claude,codex,grok,kimi,cursor,opencode,commandcode</default>
     </entry>
     <entry name="claudeVisible" type="Bool">
       <label>Whether Claude is shown in the widget.</label>
@@ -37,6 +37,14 @@
     </entry>
     <entry name="cursorVisible" type="Bool">
       <label>Whether Cursor is shown in the widget.</label>
+      <default>true</default>
+    </entry>
+    <entry name="opencodeVisible" type="Bool">
+      <label>Whether OpenCode is shown in the widget.</label>
+      <default>true</default>
+    </entry>
+    <entry name="commandcodeVisible" type="Bool">
+      <label>Whether CommandCode is shown in the widget.</label>
       <default>true</default>
     </entry>
     <entry name="claudeWindow" type="String">
@@ -143,6 +151,22 @@
     </entry>
     <entry name="cursorCustomIcon" type="String">
       <label>Cursor custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="opencodeAccentColor" type="String">
+      <label>OpenCode accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="opencodeCustomIcon" type="String">
+      <label>OpenCode custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="commandcodeAccentColor" type="String">
+      <label>CommandCode accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="commandcodeCustomIcon" type="String">
+      <label>CommandCode custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
   </group>

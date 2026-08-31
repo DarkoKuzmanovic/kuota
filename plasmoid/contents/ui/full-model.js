@@ -229,6 +229,9 @@ function buildFacts(record) {
     if (id === "cursor" && isRecord(details.cursor)) {
         return cursorFacts(details.cursor);
     }
+    if (id === "commandcode" && isRecord(details.commandcode)) {
+        return commandCodeFacts(details.commandcode);
+    }
     return [];
 }
 
@@ -277,6 +280,25 @@ function cursorFacts(d) {
     pushPercentFact(facts, "API usage", d.apiPercentUsed);
     pushPercentFact(facts, "Total usage", d.totalPercentUsed);
     return facts;
+}
+
+// Closed allowlist over details.commandcode (design V14): plan name, credit
+// allowance counts (caps, not spend), and the exceeded flags.
+function commandCodeFacts(d) {
+    var facts = [];
+    pushStringFact(facts, "Plan", d.planName);
+    pushNumberFact(facts, "Monthly credits", d.monthlyCredits);
+    pushNumberFact(facts, "Purchased credits", d.purchasedCredits);
+    pushNumberFact(facts, "Free credits", d.freeCredits);
+    pushFlagFact(facts, "5-hour window exceeded", d.exceeded);
+    pushFlagFact(facts, "Weekly window exceeded", d.weeklyExceeded);
+    return facts;
+}
+
+function pushFlagFact(facts, label, value) {
+    if (typeof value === "boolean") {
+        facts.push({ label: label, value: value ? "Yes" : "No" });
+    }
 }
 
 function pushStringFact(facts, label, value) {

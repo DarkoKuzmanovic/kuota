@@ -123,6 +123,46 @@ TestCase {
         compare(result.value.providers[4].windows[0].id, "plan");
     }
 
+    function test_acceptsOpencodeAndCommandCodeProviders() {
+        var document = Fixtures.minimalDocument({
+            providers: [
+                Fixtures.validOpencodeProvider(),
+                Fixtures.validCommandCodeProvider()
+            ]
+        });
+        var result = CollectorValidator.validateCollectorResponse(json(document));
+        compare(result.ok, true);
+        compare(result.value.providers.length, 2);
+        compare(result.value.providers[0].id, "opencode");
+        compare(result.value.providers[0].windows.length, 3);
+        compare(result.value.providers[0].windows[0].id, "rolling");
+        compare(result.value.providers[1].id, "commandcode");
+        compare(result.value.providers[1].details.commandcode.planName, "GOAT");
+        compare(result.value.providers[1].details.commandcode.monthlyCredits, 5000);
+    }
+
+    function test_acceptsCommandCodeExceededWindow() {
+        // CommandCode windows may legally carry used > limit when exceeded;
+        // every other provider is still rejected for that shape.
+        var valid = Fixtures.minimalDocument({
+            providers: [
+                Fixtures.validCommandCodeProvider({
+                    windows: [Fixtures.validWindow({ id: "fiveHour", label: "5h", usedPercent: 100, used: 150, limit: 100 })]
+                })
+            ]
+        });
+        compare(CollectorValidator.validateCollectorResponse(json(valid)).ok, true);
+
+        var invalid = Fixtures.minimalDocument({
+            providers: [
+                Fixtures.validClaudeProvider({
+                    windows: [Fixtures.validWindow({ id: "session", label: "Session", usedPercent: 100, used: 150, limit: 100 })]
+                })
+            ]
+        });
+        compare(CollectorValidator.validateCollectorResponse(json(invalid)).ok, false);
+    }
+
     function test_acceptsValidPartialProviderSuccess() {
         var document = Fixtures.minimalDocument({ providers: [Fixtures.validClaudeProvider()] });
         var result = CollectorValidator.validateCollectorResponse(json(document));

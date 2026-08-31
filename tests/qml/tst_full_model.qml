@@ -279,6 +279,76 @@ TestCase {
         compare(model.facts.length, 0);
     }
 
+    function test_commandCodeFactsExtraction() {
+        var record = {
+            id: "commandcode",
+            state: "ok",
+            windows: [
+                Fixtures.validWindow({ id: "fiveHour", label: "5h", usedPercent: 35, used: 35, limit: 100 }),
+                Fixtures.validWindow({ id: "weekly", label: "Weekly", usedPercent: 70, used: 70, limit: 100 })
+            ],
+            details: {
+                commandcode: {
+                    planName: "GOAT",
+                    monthlyCredits: 5000,
+                    purchasedCredits: 2000,
+                    freeCredits: 500,
+                    exceeded: false,
+                    weeklyExceeded: true
+                }
+            }
+        };
+        var model = FullModel.buildFullViewModel(record);
+        compare(factValue(model, "Plan"), "GOAT");
+        compare(factValue(model, "Monthly credits"), "5000");
+        compare(factValue(model, "Purchased credits"), "2000");
+        compare(factValue(model, "Free credits"), "500");
+        compare(factValue(model, "5-hour window exceeded"), "No");
+        compare(factValue(model, "Weekly window exceeded"), "Yes");
+        compare(model.facts.length, 6);
+    }
+
+    function test_commandCodeFactsAreClosedAllowlist() {
+        var record = {
+            id: "commandcode",
+            state: "ok",
+            windows: [Fixtures.validWindow({ id: "fiveHour", label: "5h", usedPercent: 1 })],
+            details: { commandcode: { someUnknownField: "pwn", planName: "GOAT" } }
+        };
+        var model = FullModel.buildFullViewModel(record);
+        compare(factValue(model, "Plan"), "GOAT");
+        // Unknown fields never become facts.
+        compare(model.facts.length, 1);
+    }
+
+    function test_commandCodeFactsIgnoreMismatchedNamespace() {
+        var record = {
+            id: "commandcode",
+            state: "ok",
+            windows: [Fixtures.validWindow({ id: "fiveHour", label: "5h", usedPercent: 1 })],
+            details: { cursor: { membershipType: "pro" } }
+        };
+        var model = FullModel.buildFullViewModel(record);
+        compare(model.facts.length, 0);
+    }
+
+    function test_opencodeRecordFactsEmptyButWindowsRender() {
+        var record = {
+            id: "opencode",
+            state: "ok",
+            windows: [
+                Fixtures.validWindow({ id: "rolling", label: "5h", usedPercent: 42 }),
+                Fixtures.validWindow({ id: "weekly", label: "Weekly", usedPercent: 60 }),
+                Fixtures.validWindow({ id: "monthly", label: "Monthly", usedPercent: 80 })
+            ]
+        };
+        var model = FullModel.buildFullViewModel(record);
+        compare(model.windows.length, 3);
+        compare(model.facts.length, 0);
+        compare(model.windows[0].label, "5h");
+        compare(model.windows[0].usedPercent, 42);
+    }
+
     function test_unlimitedGrokWindowNoInventedPercent() {
         var record = {
             id: "grok",

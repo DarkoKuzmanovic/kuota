@@ -4,9 +4,9 @@
 // Owns the read-boundary invariant for plasmoid settings before they reach
 // compact/full models. Never imports Plasma executable APIs or touches I/O.
 
-var KNOWN_PROVIDERS = Object.freeze(["claude", "codex", "grok", "kimi", "cursor"]);
+var KNOWN_PROVIDERS = Object.freeze(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
 
-var DEFAULT_PROVIDER_ORDER = Object.freeze(["claude", "codex", "grok", "kimi", "cursor"]);
+var DEFAULT_PROVIDER_ORDER = Object.freeze(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
 
 var DISPLAY_MODES = Object.freeze({
     icons: true,
@@ -29,6 +29,8 @@ var DEFAULTS = Object.freeze({
     grokVisible: true,
     kimiVisible: true,
     cursorVisible: true,
+    opencodeVisible: true,
+    commandcodeVisible: true,
     claudeWindow: "",
     codexWindow: "",
     displayMode: "icons+text",
@@ -59,6 +61,8 @@ function createDefaultSettings() {
         grokVisible: DEFAULTS.grokVisible,
         kimiVisible: DEFAULTS.kimiVisible,
         cursorVisible: DEFAULTS.cursorVisible,
+        opencodeVisible: DEFAULTS.opencodeVisible,
+        commandcodeVisible: DEFAULTS.commandcodeVisible,
         claudeWindow: DEFAULTS.claudeWindow,
         codexWindow: DEFAULTS.codexWindow,
         displayMode: DEFAULTS.displayMode,
@@ -105,6 +109,8 @@ function sanitize(rawConfig) {
     out.grokVisible = sanitizeBool(rawConfig.grokVisible, DEFAULTS.grokVisible);
     out.kimiVisible = sanitizeBool(rawConfig.kimiVisible, DEFAULTS.kimiVisible);
     out.cursorVisible = sanitizeBool(rawConfig.cursorVisible, DEFAULTS.cursorVisible);
+    out.opencodeVisible = sanitizeBool(rawConfig.opencodeVisible, DEFAULTS.opencodeVisible);
+    out.commandcodeVisible = sanitizeBool(rawConfig.commandcodeVisible, DEFAULTS.commandcodeVisible);
     out.claudeWindow = sanitizeWindowSelection("claude", rawConfig.claudeWindow);
     out.codexWindow = sanitizeWindowSelection("codex", rawConfig.codexWindow);
     out.displayMode = sanitizeDisplayMode(rawConfig.displayMode);
@@ -144,7 +150,9 @@ function assembleDisplayConfig(sanitized) {
         codex: settings.codexVisible === true,
         grok: settings.grokVisible === true,
         kimi: settings.kimiVisible === true,
-        cursor: settings.cursorVisible === true
+        cursor: settings.cursorVisible === true,
+        opencode: settings.opencodeVisible === true,
+        commandcode: settings.commandcodeVisible === true
     };
 
     var orderSource = Array.isArray(settings.providerOrder)

@@ -93,6 +93,43 @@ function validCursorProvider(overrides) {
     }, overrides);
 }
 
+function validOpencodeProvider(overrides) {
+    return shallowMerge({
+        id: "opencode",
+        state: "ok",
+        status: "Usage is current",
+        lastSuccessAt: "2026-07-11T10:00:01.000Z",
+        windows: [
+            validWindow({ id: "rolling", label: "5h", usedPercent: 42 }),
+            validWindow({ id: "weekly", label: "Weekly", usedPercent: 60 }),
+            validWindow({ id: "monthly", label: "Monthly", usedPercent: 80 })
+        ]
+    }, overrides);
+}
+
+function validCommandCodeProvider(overrides) {
+    return shallowMerge({
+        id: "commandcode",
+        state: "ok",
+        status: "Usage is current",
+        lastSuccessAt: "2026-07-11T10:00:01.000Z",
+        windows: [
+            validWindow({ id: "fiveHour", label: "5h", usedPercent: 35, used: 35, limit: 100 }),
+            validWindow({ id: "weekly", label: "Weekly", usedPercent: 70, used: 70, limit: 100 })
+        ],
+        details: {
+            commandcode: {
+                planName: "GOAT",
+                monthlyCredits: 5000,
+                purchasedCredits: 2000,
+                freeCredits: 500,
+                exceeded: false,
+                weeklyExceeded: false
+            }
+        }
+    }, overrides);
+}
+
 function validStaleClaudeProvider(overrides) {
     return shallowMerge({
         id: "claude",

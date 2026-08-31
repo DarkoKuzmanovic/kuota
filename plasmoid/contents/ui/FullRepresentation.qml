@@ -97,6 +97,10 @@ FocusScope {
             return qsTr("Kimi");
         case "cursor":
             return qsTr("Cursor");
+        case "opencode":
+            return qsTr("OpenCode");
+        case "commandcode":
+            return qsTr("CommandCode");
         default:
             return providerId;
         }

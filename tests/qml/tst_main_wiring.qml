@@ -46,7 +46,7 @@ TestCase {
         tryCompare(loader, "status", Loader.Ready);
         var root = loader.item;
 
-        root.configOverride = { claudeVisible: false, codexVisible: false, grokVisible: false, kimiVisible: false, cursorVisible: false };
+        root.configOverride = { claudeVisible: false, codexVisible: false, grokVisible: false, kimiVisible: false, cursorVisible: false, opencodeVisible: false, commandcodeVisible: false };
 
         compare(root.compactDisplayConfig.order.length, 0);
 
@@ -102,7 +102,7 @@ TestCase {
         compare(root.sanitizedSettings.refreshIntervalMinutes, 5);
         compare(root.refreshTimerInterval, 5 * 60 * 1000);
         compare(root.compactDisplayMode, "icons+text");
-        compare(JSON.stringify(root.compactDisplayConfig.order), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor"]));
+        compare(JSON.stringify(root.compactDisplayConfig.order), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]));
 
         loader.destroy();
     }
