@@ -2,12 +2,12 @@
 
 **Source of truth:** `docs/specs/2026-07-10-kuota-design.md` (approved for implementation by the project owner on 2026-07-10)  
 **Plan status:** G0 passed; Milestone 1 foundation work ready to begin  
-**Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, and Cursor. Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
+**Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, Cursor, OpenCode, and CommandCode. Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
 
 ## Approved Decisions
 
 1. Kuota is a standalone KDE Plasma 6 widget that refreshes independently of Pi and reports authoritative provider data rather than estimating quota from local activity.
-2. Current supported providers are Claude, Codex, Grok, Kimi, and Cursor; additional providers, cross-machine aggregation, history charts, notifications, account management, a permanent service, and KDE Store publication are out of scope. (V1 originally froze at Claude/Umans/Codex; Grok and Kimi were added in 1.1.0; Umans was removed 2026-08-02; Cursor was added 2026-08-02.)
+2. Current supported providers are Claude, Codex, Grok, Kimi, Cursor, OpenCode, and CommandCode; additional providers, cross-machine aggregation, history charts, notifications, account management, a permanent service, and KDE Store publication are out of scope. (V1 originally froze at Claude/Umans/Codex; Grok and Kimi were added in 1.1.0; Umans was removed 2026-08-02; Cursor was added 2026-08-02; OpenCode and CommandCode were approved 2026-09-01 per `docs/specs/2026-09-01-opencode-provider-design.md` and `docs/specs/2026-09-01-commandcode-provider-design.md`.)
 3. The compact representation is one configurable horizontal KVitals-style line; the full popup and desktop representation share a responsive, CodexBar-inspired view that remains native to Plasma.
 4. Users can configure provider visibility/order, icons/text mode, labels, separators, font sizing, compact metric choices, reset countdown visibility, refresh interval, and caution/critical thresholds and colors.
 5. Every genuine provider field may be displayed. Missing fields are omitted, unlimited plans do not receive invented percentages, and visually symmetric cards never justify fabricated data.
@@ -706,3 +706,85 @@ Adversarial grill of the 1.1.0 spec amendment surfaced 6 candidate cracks. All 6
 **Counters:** reviews: 1 (`openai-codex/gpt-5.6-sol:high`, M13 round 1: 2 Major / 4 Minor) · oracle: 1 (`anthropic/claude-fable-5`, M13 scrutinize: per-finding verdict + actionable fix list) · fix-cycles: 1 (1 spacing-collapse try/test iteration, 1 icon-path hardening iteration) · direct-edits: 6 (3 commits × 2 sources-of-truth files per commit). User-visible change on upgrade (flagged in commit message and CHANGELOG): the panel's default icon→label / label→value gaps tighten from the prior ~6/5px to the documented 2/1px defaults; configured `0` now collapses as expected.
 
 **G-13 outcome: PASS.**
+
+## Milestone 14 (v1.3.0) — OpenCode + CommandCode providers
+
+**Outcome:** Two new V1 providers on the existing shared-auth.json pattern:
+`opencode` (hosted OpenCode Go plan — rolling 5h / weekly / monthly percent
+windows from `opencode.ai/zen/go/v1/usage`) and `commandcode` (five-hour +
+weekly windows, monthly credit facts, optional plan name from
+`api.commandcode.ai/alpha/billing/*`). Additive schema-v2 contract changes;
+no new QML files, no runtime deps, no auth writes.
+
+### Recon facts (2026-09-01)
+
+Full wire shapes and auth entry shapes: `docs/specs/2026-09-01-opencode-commandcode-recon.md`.
+
+- CommandCode (endpoints + plan map live-verified 2026-08-12 from pi-hud):
+  `GET https://api.commandcode.ai/alpha/billing/credits` →
+  `{ credits: { monthlyCredits, purchasedCredits, freeCredits, … },
+  windowLimits: { fiveHour: { used, cap, exceeded, resetAt(epochMs) },
+  weekly?: { … } } }`; optional `GET …/alpha/billing/subscriptions` →
+  `data.planId` → closed plan-name map. Auth: `auth.commandcode`
+  (`oauth`/`access` = API key; local shape verified) or `COMMANDCODE_API_KEY`.
+- OpenCode Go: `GET https://opencode.ai/zen/go/v1/usage` →
+  `{ usage: { rolling, weekly, monthly } }`, each `{ status: "ok", percent
+  (0..100, used share), resetsAt (offset ISO) }`. Auth: `auth["opencode-go"]`
+  (`api`/`key` — CLI shape, local field names/types verified; aliases:
+  `opencode` entry, `api_key`/`key` and `oauth`/`access` shapes) or
+  `OPENCODE_API_KEY`. Used by the OpenCode CLI itself — unofficial surface,
+  low breakage velocity.
+- No monthly *used* figure exists for CommandCode (caps only) → no monthly
+  window; credits are detail facts. OpenCode has no facts beyond windows →
+  no details namespace.
+
+### Decisions
+
+- Provider IDs `opencode` and `commandcode`; canonical order after addition:
+  `claude`, `codex`, `grok`, `kimi`, `cursor`, `opencode`, `commandcode`.
+- Both default-enabled like all V1 providers; both read-only consumers of
+  `~/.pi/agent/auth.json` (never write); env fallback only when no usable
+  file entry. No refresh, no curl fallback, no retry.
+- OpenCode windows: `rolling` ("5h", compact primary), `weekly`, `monthly` —
+  all three required for `ok`; `usedPercent = percent`, UTC `resetAt`, no
+  used/limit (wire has none).
+- CommandCode windows: `fiveHour` ("5h", compact primary; required,
+  `usedPercent = min(100, used/cap·100)` with true `used`/`limit` kept),
+  `weekly` optional (both halves present). Details facts: `monthlyCredits`,
+  `purchasedCredits`, `freeCredits`, `exceeded`, `weeklyExceeded`, `planName`
+  (closed map only).
+- 401/403 → `auth-needed`; everything else non-2xx / malformed / oversize /
+  timeout → `error`; an ok that recognizes nothing fails as malformed.
+
+### Vertical slices (each = test-first; run under synthetic HOME)
+
+- [ ] V14.1 — Contract: `PROVIDER_IDS` + discriminated union for both
+  providers; TS + QML validators; minimal fixtures; artifact-check count
+  update (→ 7); CLI/config canonical order + default-enabled (empty list
+  ⇒ seven disabled).
+- [ ] V14.2 — Auth modules: `opencode/auth.ts` (entry precedence
+  `opencode-go` → `opencode` → env; api/api_key/oauth shapes), 
+  `commandcode/auth.ts` (`commandcode` → env; oauth/access + api_key shapes);
+  value-free classifications; no network.
+- [ ] V14.3 — OpenCode fetch + usage + adapter + registry; fetch→parser
+  bridge test (wire-shape divergence lesson).
+- [ ] V14.4 — CommandCode fetch + usage (optional subscriptions ignored on
+  failure) + adapter + registry; fetch→parser bridge test.
+- [ ] V14.5 — Plasma: KNOWN_PROVIDERS/defaults/config schema/compact+full
+  models/command allowlist/QML validator mirror; no new .qml files; existing
+  `productionQmlFiles` isolation list unchanged.
+- [ ] V14.6 — Docs: CHANGELOG (Unreleased → 1.3.0 on release), README +
+  AGENTS provider tables, collector-contract details sections.
+- [ ] V14.7 — Gate: typecheck, `npm test`, `npm run test:qml`, validate:plasma,
+  build:artifact, full-suite under synthetic HOME; user-visible live smoke
+  with the real keys (recon gate: both endpoints parse as designed).
+
+**Notes for 1.3.0 execution:** mirror the Cursor provider commits for shape;
+follow the G11 lesson — bridge one real-shaped fetch fixture through each
+usage parser. Recon gate is step 1 of the implementation branch, not a docs
+step: one bounded call per provider with the real key, record only
+type-level outcomes.
+
+**Counters:** reviews: · fix-cycles: · oracle: · direct-edits: — filled in at
+gate close.
+
