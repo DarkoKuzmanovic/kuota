@@ -11,12 +11,14 @@ Kirigami.FormLayout {
     property alias cfg_grokVisible: grokVisibleCheck.checked
     property alias cfg_kimiVisible: kimiVisibleCheck.checked
     property alias cfg_cursorVisible: cursorVisibleCheck.checked
+    property alias cfg_opencodeVisible: opencodeVisibleCheck.checked
+    property alias cfg_commandcodeVisible: commandcodeVisibleCheck.checked
     property alias cfg_claudeWindow: claudeWindowCombo.currentValue
     property alias cfg_codexWindow: codexWindowCombo.currentValue
 
     // StringList has no 1:1 widget; the reorder Repeater below reads/writes
     // this plain array directly (matches the compact-model.js entries pattern).
-    property var cfg_providerOrder: ["claude", "codex", "grok", "kimi", "cursor"]
+    property var cfg_providerOrder: ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]
 
     function providerLabel(providerId) {
         switch (providerId) {
@@ -30,6 +32,10 @@ Kirigami.FormLayout {
             return qsTr("Kimi");
         case "cursor":
             return qsTr("Cursor");
+        case "opencode":
+            return qsTr("OpenCode");
+        case "commandcode":
+            return qsTr("CommandCode");
         default:
             return providerId;
         }
@@ -88,6 +94,20 @@ Kirigami.FormLayout {
         Accessible.name: qsTr("Cursor visible")
     }
 
+    Controls.CheckBox {
+        id: opencodeVisibleCheck
+        Kirigami.FormData.label: qsTr("OpenCode:")
+        text: qsTr("Show in widget")
+        Accessible.name: qsTr("OpenCode visible")
+    }
+
+    Controls.CheckBox {
+        id: commandcodeVisibleCheck
+        Kirigami.FormData.label: qsTr("CommandCode:")
+        text: qsTr("Show in widget")
+        Accessible.name: qsTr("CommandCode visible")
+    }
+
     Kirigami.Heading {
         Kirigami.FormData.isSection: true
         level: 4
@@ -103,7 +123,7 @@ Kirigami.FormLayout {
         // null" etc. during reorder). Each row instead looks up its own
         // provider id reactively via `index`, so reordering only re-evaluates
         // bindings in place — no delegate teardown.
-        model: 5
+        model: 7
 
         delegate: RowLayout {
             id: providerOrderRow

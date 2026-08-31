@@ -13,12 +13,14 @@ TestCase {
     }
 
     function test_exposesCanonicalProviderIdsInOrder() {
-        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 5);
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 7);
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[0], "claude");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[1], "codex");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[2], "grok");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[3], "kimi");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[4], "cursor");
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS[5], "opencode");
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS[6], "commandcode");
     }
 
     // --- Defaults / providers omitted ---------------------------------
@@ -59,11 +61,11 @@ TestCase {
     function test_buildsFullCanonicalSetInCanonicalOrder() {
         var result = CollectorCommand.buildCollectorCommand({
             collectorPath: samplePath,
-            enabledProviders: ["kimi", "codex", "claude", "grok", "cursor"],
+            enabledProviders: ["commandcode", "kimi", "codex", "claude", "grok", "cursor", "opencode"],
             sourceId: 3
         });
         compare(result.ok, true);
-        compare(result.value, "/usr/bin/node '" + samplePath + "' --enabled-providers=claude,codex,grok,kimi,cursor # 3");
+        compare(result.value, "/usr/bin/node '" + samplePath + "' --enabled-providers=claude,codex,grok,kimi,cursor,opencode,commandcode # 3");
     }
 
     function test_silentlySkipsUmansInProviderList() {

@@ -84,6 +84,43 @@ TestCase {
         compare(codex.thresholdLevel, "none");
     }
 
+    function test_opencodePrimaryWindowIsTheFirstRollingWindow() {
+        var snapshot = sampleSnapshot([Fixtures.validOpencodeProvider()]);
+        var opencode = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "opencode");
+        verify(opencode !== null);
+        compare(opencode.displayValue, "42%");
+        compare(opencode.thresholdLevel, "none");
+        compare(opencode.state, "ok");
+    }
+
+    function test_commandCodePrimaryWindowIsFiveHour() {
+        var snapshot = sampleSnapshot([Fixtures.validCommandCodeProvider()]);
+        var commandcode = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "commandcode");
+        verify(commandcode !== null);
+        compare(commandcode.displayValue, "35%");
+        compare(commandcode.thresholdLevel, "none");
+    }
+
+    function test_exceededCommandCodeWindowMapsToCritical() {
+        var snapshot = sampleSnapshot([
+            Fixtures.validCommandCodeProvider({
+                windows: [Fixtures.validWindow({ id: "fiveHour", label: "5h", usedPercent: 100, used: 150, limit: 100 })]
+            })
+        ]);
+        var commandcode = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "commandcode");
+        compare(commandcode.displayValue, "100%");
+        compare(commandcode.thresholdLevel, "critical");
+    }
+
+    function test_unavailableOpencodeShowsStatusNotPercent() {
+        var snapshot = sampleSnapshot([
+            Fixtures.validOpencodeProvider({ state: "auth-needed", status: "Login required", windows: undefined })
+        ]);
+        var opencode = providerEntry(CompactModel.buildCompactEntries(snapshot, defaultConfig()), "opencode");
+        compare(opencode.state, "auth-needed");
+        compare(opencode.displayValue, "Login required");
+    }
+
     function test_thresholdBoundary74_9IsNone() {
         var snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider({
@@ -275,7 +312,9 @@ TestCase {
             Fixtures.validCodexProvider({ id: "codex", state: "ok", windows: [Fixtures.validWindow({ usedPercent: 1 })] }),
             Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ usedPercent: 1 })] }),
             Fixtures.validKimiProvider({ windows: [Fixtures.validWindow({ usedPercent: 1 })] }),
-            Fixtures.validCursorProvider({ windows: [Fixtures.validWindow({ id: "plan", label: "Plan", usedPercent: 1 })] })
+            Fixtures.validCursorProvider({ windows: [Fixtures.validWindow({ id: "plan", label: "Plan", usedPercent: 1 })] }),
+            Fixtures.validOpencodeProvider({ windows: [Fixtures.validWindow({ id: "rolling", label: "5h", usedPercent: 1 })] }),
+            Fixtures.validCommandCodeProvider({ windows: [Fixtures.validWindow({ id: "fiveHour", label: "5h", usedPercent: 1 })] })
         ]);
         var entries = CompactModel.buildCompactEntries(snapshot, defaultConfig());
         compare(providerEntry(entries, "claude").label, "Claude");
@@ -283,6 +322,8 @@ TestCase {
         compare(providerEntry(entries, "grok").label, "Grok");
         compare(providerEntry(entries, "kimi").label, "Kimi");
         compare(providerEntry(entries, "cursor").label, "Cursor");
+        compare(providerEntry(entries, "opencode").label, "OpenCode");
+        compare(providerEntry(entries, "commandcode").label, "CommandCode");
     }
 
     function test_selectedWindowHonoredWhenPresent() {

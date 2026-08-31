@@ -86,6 +86,10 @@ FocusScope {
             return "utilities-terminal";
         case "cursor":
             return "input-keyboard";
+        case "opencode":
+            return "utilities-terminal";
+        case "commandcode":
+            return "run-build";
         default:
             return "network-server";
         }

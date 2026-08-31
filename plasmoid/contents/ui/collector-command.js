@@ -13,7 +13,7 @@
 // quoting alone already neutralizes shell metacharacters.
 
 var NODE_PATH = "/usr/bin/node";
-var CANONICAL_PROVIDER_IDS = Object.freeze(["claude", "codex", "grok", "kimi", "cursor"]);
+var CANONICAL_PROVIDER_IDS = Object.freeze(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
 var MAX_PATH_LENGTH = 4096;
 
 var COMMAND_BUILD_FAILURE = Object.freeze({
