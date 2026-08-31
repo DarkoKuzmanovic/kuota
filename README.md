@@ -1,8 +1,9 @@
 # Kuota
 
-A KDE Plasma 6 widget that keeps **Claude**, **Codex**, **Grok**, and **Kimi**
-account usage visible on the desktop — without estimating quota from local
-activity, and without requiring a running Pi coding-agent session.
+A KDE Plasma 6 widget that keeps **Claude**, **Codex**, **Grok**, **Kimi**,
+**Cursor**, **OpenCode**, and **CommandCode** account usage visible on the
+desktop — without estimating quota from local activity, and without requiring
+a running Pi coding-agent session.
 
 Kuota reads the same `~/.pi/agent/auth.json` credentials Pi uses, fetches
 authoritative usage from each provider, and shows compact panel metrics plus a
@@ -28,7 +29,7 @@ full popup/desktop detail view.
 - Node.js ≥ 20 and npm
 - `kpackagetool6` (and `qmllint` if you validate during development)
 - Provider credentials in `~/.pi/agent/auth.json` (or the documented env
-  fallbacks for Grok/Kimi) — same file Pi uses
+  fallbacks for Grok/Kimi/OpenCode/CommandCode) — same file Pi uses
 
 Optional: `zip` (creates a `.plasmoid` archive during artifact build).
 

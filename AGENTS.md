@@ -140,6 +140,8 @@ PLAN.md                Milestone/gate plan — normative for scope and sequencin
 | Grok | `cli-chat-proxy.grok.com/v1/billing` | `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` (oauth); `GROK_CLI_OAUTH_TOKEN` fallback |
 | Kimi | `api.kimi.com/coding/v1/usages` | `auth["kimi-coding"]` (oauth or api_key); `KIMI_API_KEY` fallback |
 | Cursor | `cursor.com/api/usage-summary` (unofficial dashboard) | Local `~/.config/Cursor/User/globalStorage/state.vscdb` (`cursorAuth/accessToken`); `CURSOR_SESSION_TOKEN` fallback. **Not** `auth.json`; session is never persisted by Kuota. Requires system `sqlite3` for local discovery. |
+| OpenCode | `opencode.ai/zen/go/v1/usage` (hosted OpenCode Go only, not Zen/other surfaces) | `auth["opencode-go"]` (cli-api `type` + `key`) first, `auth.opencode` alias second, `OPENCODE_API_KEY` env fallback |
+| CommandCode | `api.commandcode.ai/alpha/billing/credits` + optional `…/subscriptions` (plan name) | `auth.commandcode` (oauth-shaped: `type`, `access`/`refresh`, `expires`; `access` is the `user_…` session key) or `COMMANDCODE_API_KEY` env fallback |
 
 Claude is aggressively rate-limited: prefer a fresh shared pi-hud cache, keep a
 last-known-good cache, honor `Retry-After` and a minimum 429 backoff, retain
