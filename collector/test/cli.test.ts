@@ -686,7 +686,7 @@ test("CLI transport composes with parseCollectorConfig for canonical order and r
   const allDisabled = parseCollectorConfig(parseCliArgv(["--enabled-providers="]));
   assert.deepEqual(
     allDisabled.providers.map((provider) => provider.enabled),
-    [false, false, false, false, false],
+    [false, false, false, false, false, false, false],
   );
 
   for (const argv of [

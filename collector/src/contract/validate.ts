@@ -5,6 +5,7 @@ import {
   type ClaudeDetails,
   type CodexDetails,
   type CollectorDocument,
+  type CommandCodeDetails,
   type CursorDetails,
   type GrokDetails,
   type KimiDetails,
@@ -70,6 +71,14 @@ const CURSOR_DETAIL_KEYS = new Set([
   "autoPercentUsed",
   "apiPercentUsed",
   "totalPercentUsed",
+]);
+const COMMANDCODE_DETAIL_KEYS = new Set([
+  "monthlyCredits",
+  "purchasedCredits",
+  "freeCredits",
+  "planName",
+  "exceeded",
+  "weeklyExceeded",
 ]);
 const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -396,6 +405,22 @@ function parseProviderDetails(
     }
     return details === undefined ? undefined : { kimi: details };
   }
+  if (id === "opencode") {
+    // OpenCode records are windows-only by design (nothing usable on the wire).
+    addIssue(errors, `${path}.${id}`, "provider has no details namespace");
+    return undefined;
+  }
+  if (id === "commandcode") {
+    const details = parseCommandCodeDetails(
+      input.commandcode,
+      `${path}.commandcode`,
+      errors,
+    );
+    if (errors.length !== initialErrorCount && details === undefined) {
+      return undefined;
+    }
+    return details === undefined ? undefined : { commandcode: details };
+  }
   const details = parseCursorDetails(input.cursor, `${path}.cursor`, errors);
   if (errors.length !== initialErrorCount && details === undefined) {
     return undefined;
@@ -614,6 +639,69 @@ function parseCursorDetails(
   if (autoPercentUsed !== undefined) details.autoPercentUsed = autoPercentUsed;
   if (apiPercentUsed !== undefined) details.apiPercentUsed = apiPercentUsed;
   if (totalPercentUsed !== undefined) details.totalPercentUsed = totalPercentUsed;
+  return details;
+}
+
+function parseCommandCodeDetails(
+  input: unknown,
+  path: string,
+  errors: ValidationIssue[],
+): CommandCodeDetails | undefined {
+  if (!isRecord(input)) {
+    addIssue(errors, path, "expected an object");
+    return undefined;
+  }
+  const initialErrorCount = errors.length;
+  validateObjectKeys(input, path, COMMANDCODE_DETAIL_KEYS, errors);
+  const monthlyCredits = parseOptionalNonNegativeNumber(
+    input,
+    "monthlyCredits",
+    `${path}.monthlyCredits`,
+    errors,
+  );
+  const purchasedCredits = parseOptionalNonNegativeNumber(
+    input,
+    "purchasedCredits",
+    `${path}.purchasedCredits`,
+    errors,
+  );
+  const freeCredits = parseOptionalNonNegativeNumber(
+    input,
+    "freeCredits",
+    `${path}.freeCredits`,
+    errors,
+  );
+  const planName = parseOptionalSafeText(
+    input,
+    "planName",
+    `${path}.planName`,
+    50,
+    errors,
+  );
+  const exceeded = parseOptionalBoolean(input, "exceeded", `${path}.exceeded`, errors);
+  const weeklyExceeded = parseOptionalBoolean(
+    input,
+    "weeklyExceeded",
+    `${path}.weeklyExceeded`,
+    errors,
+  );
+  if (errors.length !== initialErrorCount) {
+    return undefined;
+  }
+  const details: {
+    monthlyCredits?: number;
+    purchasedCredits?: number;
+    freeCredits?: number;
+    planName?: string;
+    exceeded?: boolean;
+    weeklyExceeded?: boolean;
+  } = {};
+  if (monthlyCredits !== undefined) details.monthlyCredits = monthlyCredits;
+  if (purchasedCredits !== undefined) details.purchasedCredits = purchasedCredits;
+  if (freeCredits !== undefined) details.freeCredits = freeCredits;
+  if (planName !== undefined) details.planName = planName;
+  if (exceeded !== undefined) details.exceeded = exceeded;
+  if (weeklyExceeded !== undefined) details.weeklyExceeded = weeklyExceeded;
   return details;
 }
 
@@ -897,6 +985,9 @@ function hasRetainedData(
   }
   if ("kimi" in details) {
     return Object.keys(details.kimi).length > 0;
+  }
+  if ("commandcode" in details) {
+    return Object.keys(details.commandcode).length > 0;
   }
   return Object.keys(details.cursor).length > 0;
 }

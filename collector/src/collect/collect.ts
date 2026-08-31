@@ -296,6 +296,10 @@ async function collectAny(
       return collectOne(provider, options);
     case "cursor":
       return collectOne(provider, options);
+    case "opencode":
+      return collectOne(provider, options);
+    case "commandcode":
+      return collectOne(provider, options);
   }
 }
 

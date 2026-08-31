@@ -43,9 +43,12 @@ test("normalized fixture inventory is explicit", () => {
   assert.deepEqual(fixtureNames(), expected);
 });
 
-test("schema v2 identity includes cursor after kimi", () => {
+test("schema v2 identity includes opencode and commandcode after cursor", () => {
   assert.equal(SCHEMA_VERSION, 2);
-  assert.deepEqual([...PROVIDER_IDS], ["claude", "codex", "grok", "kimi", "cursor"]);
+  assert.deepEqual(
+    [...PROVIDER_IDS],
+    ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"],
+  );
   assert.equal((PROVIDER_IDS as readonly string[]).includes("umans"), false);
 });
 
@@ -139,6 +142,38 @@ const typedGrokStaleWithDetails: ProviderRecord = {
   lastSuccessAt: "2026-07-10T10:00:00.000Z",
   details: { grok: { monthlyUsed: 100 } },
 };
+const typedOpencodeRecord: ProviderRecord = {
+  id: "opencode",
+  state: "ok",
+  windows: [
+    { id: "rolling", label: "5h", usedPercent: 12 },
+    { id: "weekly", label: "Weekly", usedPercent: 40 },
+    { id: "monthly", label: "Monthly", usedPercent: 55 },
+  ],
+};
+const typedCommandCodeRecord: ProviderRecord = {
+  id: "commandcode",
+  state: "ok",
+  windows: [
+    { id: "fiveHour", label: "5h", usedPercent: 42, used: 420, limit: 1000 },
+  ],
+  details: {
+    commandcode: {
+      monthlyCredits: 200,
+      purchasedCredits: 50,
+      freeCredits: 10,
+      planName: "GOAT",
+      exceeded: false,
+    },
+  },
+};
+const typedOpencodeWithDetails: ProviderRecord = {
+  id: "opencode",
+  state: "ok",
+  windows: [{ id: "rolling", label: "5h", usedPercent: 1 }],
+  // @ts-expect-error opencode records have no details namespace
+  details: { opencode: { plan: "synthetic-plan" } },
+};
 // @ts-expect-error stale details must retain at least one detail field
 const typedGrokStaleWithEmptyDetails: ProviderRecord = {
   id: "grok",
@@ -157,6 +192,9 @@ void [
   typedCodexRecord,
   typedGrokRecord,
   typedKimiOkRecord,
+  typedOpencodeRecord,
+  typedCommandCodeRecord,
+  typedOpencodeWithDetails,
   typedStaleWithWindow,
   typedStaleWithDetails,
   typedGrokStaleWithDetails,
@@ -416,6 +454,98 @@ test("Cursor details validate optional safe text, counts, and percents", () => {
   assert.equal(malformedOnDemand.ok, false);
   assert.equal(malformedPercent.ok, false);
   assert.equal(unknownField.ok, false);
+});
+
+test("OpenCode records are windows-only and reject any details namespace", () => {
+  const valid = validateCollectorDocument(documentWith({
+    id: "opencode",
+    state: "ok",
+    windows: [
+      { id: "rolling", label: "5h", usedPercent: 12, resetAt: "2026-09-01T10:00:00.000Z" },
+      { id: "weekly", label: "Weekly", usedPercent: 40 },
+      { id: "monthly", label: "Monthly", usedPercent: 55 },
+    ],
+  }));
+  const noWindows = validateCollectorDocument(documentWith({ id: "opencode", state: "ok" }));
+  const withDetails = validateCollectorDocument(
+    documentWith({ id: "opencode", state: "ok", details: { opencode: { plan: "synthetic-plan" } } }),
+  );
+  const mismatchedDetails = validateCollectorDocument(
+    documentWith({ id: "opencode", state: "ok", details: { kimi: { concurrency: 1 } } }),
+  );
+  const staleWithWindows = validateCollectorDocument(
+    documentWith({
+      id: "opencode",
+      state: "stale",
+      lastSuccessAt: "2026-09-01T10:00:00.000Z",
+      windows: [{ id: "rolling", label: "5h", usedPercent: 12 }],
+    }),
+  );
+  const staleWithoutRetention = validateCollectorDocument(
+    documentWith({ id: "opencode", state: "stale", lastSuccessAt: "2026-09-01T10:00:00.000Z" }),
+  );
+  assert.equal(valid.ok, true);
+  assert.equal(noWindows.ok, true);
+  assert.equal(withDetails.ok, false);
+  assert.equal(mismatchedDetails.ok, false);
+  assert.equal(staleWithWindows.ok, true);
+  assert.equal(staleWithoutRetention.ok, false);
+});
+
+test("CommandCode details are optional, namespaced, and correlated", () => {
+  const valid = validateCollectorDocument(documentWith({
+    id: "commandcode",
+    state: "ok",
+    windows: [
+      { id: "fiveHour", label: "5h", usedPercent: 42, used: 420, limit: 1000, resetAt: "2026-09-01T10:00:00.000Z" },
+      { id: "weekly", label: "Weekly", usedPercent: 10, used: 30, limit: 300 },
+    ],
+    details: {
+      commandcode: {
+        monthlyCredits: 200,
+        purchasedCredits: 50,
+        freeCredits: 10,
+        planName: "GOAT",
+        exceeded: false,
+      },
+    },
+  }));
+  const minimal = validateCollectorDocument(documentWith({ id: "commandcode", state: "ok", details: { commandcode: {} } }));
+  const mismatched = validateCollectorDocument(
+    documentWith({ id: "commandcode", state: "ok", details: { cursor: { membershipType: "pro" } } }),
+  );
+  const negativeCredits = validateCollectorDocument(
+    documentWith({ id: "commandcode", state: "ok", details: { commandcode: { monthlyCredits: -1 } } }),
+  );
+  const nonBooleanExceeded = validateCollectorDocument(
+    documentWith({ id: "commandcode", state: "ok", details: { commandcode: { exceeded: "yes" } } }),
+  );
+  assert.equal(valid.ok, true);
+  assert.equal(minimal.ok, true);
+  assert.equal(mismatched.ok, false);
+  assert.equal(negativeCredits.ok, false);
+  assert.equal(nonBooleanExceeded.ok, false);
+});
+
+test("CommandCode stale records retain detail facts or windows", () => {
+  const staleWithDetails = validateCollectorDocument(
+    documentWith({
+      id: "commandcode",
+      state: "stale",
+      lastSuccessAt: "2026-09-01T10:00:00.000Z",
+      details: { commandcode: { planName: "GOAT" } },
+    }),
+  );
+  const staleEmptyDetails = validateCollectorDocument(
+    documentWith({
+      id: "commandcode",
+      state: "stale",
+      lastSuccessAt: "2026-09-01T10:00:00.000Z",
+      details: { commandcode: {} },
+    }),
+  );
+  assert.equal(staleWithDetails.ok, true);
+  assert.equal(staleEmptyDetails.ok, false);
 });
 
 test("provider details namespaces must match provider IDs", () => {
