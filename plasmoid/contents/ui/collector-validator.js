@@ -185,8 +185,9 @@ function parseProvider(input, state) {
             state.invalid = true;
         } else {
             windows = [];
+            var allowExceeded = id === "commandcode";
             for (var i = 0; i < input.windows.length; i++) {
-                var window = parseWindow(input.windows[i], state);
+                var window = parseWindow(input.windows[i], state, allowExceeded);
                 if (window !== undefined) {
                     windows.push(window);
                 }
@@ -228,7 +229,7 @@ function parseProvider(input, state) {
     return provider;
 }
 
-function parseWindow(input, state) {
+function parseWindow(input, state, allowExceeded) {
     if (!isRecord(input)) {
         state.invalid = true;
         return undefined;
@@ -247,7 +248,7 @@ function parseWindow(input, state) {
     var limit = parseOptionalCount(input, "limit", state);
     var resetAt = parseOptionalTimestamp(input, "resetAt", state);
 
-    if (used !== undefined && limit !== undefined && used > limit) {
+    if (!allowExceeded && used !== undefined && limit !== undefined && used > limit) {
         state.invalid = true;
     }
     if (limit === 0 && usedPercent !== undefined && usedPercent !== 0) {

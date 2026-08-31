@@ -22,7 +22,7 @@ test("defaults to all canonical providers with bounded internal defaults", () =>
   assertValueFree(() => parseCollectorConfig(null));
 });
 
-test("default config enables six registered providers and recognizes seven canonical ids", () => {
+test("default config enables seven registered providers and recognizes seven canonical ids", () => {
   assert.deepEqual(
     DEFAULT_COLLECTOR_CONFIG.providers.map((provider) => [provider.id, provider.enabled]),
     [
@@ -32,7 +32,7 @@ test("default config enables six registered providers and recognizes seven canon
       ["kimi", true],
       ["cursor", true],
       ["opencode", true],
-      ["commandcode", false],
+      ["commandcode", true],
     ],
   );
 });

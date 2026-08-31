@@ -220,11 +220,15 @@ function parseProvider(
       addIssue(errors, `${path}.windows`, "expected an array");
     } else {
       const parsedWindows: UsageWindow[] = [];
+      // CommandCode windows may legitimately exceed their cap (exceeded
+      // rolling windows); every other provider's used must stay ≤ limit.
+      const allowExceeded = id === "commandcode";
       for (const [index, windowValue] of input.windows.entries()) {
         const window = parseWindow(
           windowValue,
           `${path}.windows[${index}]`,
           errors,
+          allowExceeded,
         );
         if (window !== undefined) {
           parsedWindows.push(window);
@@ -287,6 +291,7 @@ function parseWindow(
   input: unknown,
   path: string,
   errors: ValidationIssue[],
+  allowExceeded: boolean,
 ): UsageWindow | undefined {
   if (!isRecord(input)) {
     addIssue(errors, path, "expected an object");
@@ -321,7 +326,7 @@ function parseWindow(
     errors,
   );
 
-  if (used !== undefined && limit !== undefined && used > limit) {
+  if (!allowExceeded && used !== undefined && limit !== undefined && used > limit) {
     addIssue(errors, `${path}.used`, "cannot exceed limit");
   }
   if (limit === 0 && usedPercent !== undefined && usedPercent !== 0) {
