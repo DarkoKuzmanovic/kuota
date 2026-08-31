@@ -13,6 +13,7 @@ import { createCodexAdapter } from "./codex/adapter.js";
 import { createGrokAdapter } from "./grok/adapter.js";
 import { createKimiAdapter } from "./kimi/adapter.js";
 import { createCursorAdapter } from "./cursor/adapter.js";
+import { createOpencodeAdapter } from "./opencode/adapter.js";
 
 export interface ConfiguredProvider {
   readonly id: string;
@@ -96,6 +97,7 @@ export const CODEX_ADAPTER = createCodexAdapter();
 export const GROK_ADAPTER = createGrokAdapter();
 export const KIMI_ADAPTER = createKimiAdapter();
 export const CURSOR_ADAPTER = createCursorAdapter();
+export const OPENCODE_ADAPTER = createOpencodeAdapter();
 
 /** Legacy name retained for collector test seams; all entries are real adapters. */
 export const PLACEHOLDER_ADAPTERS = [
@@ -104,6 +106,7 @@ export const PLACEHOLDER_ADAPTERS = [
   GROK_ADAPTER,
   KIMI_ADAPTER,
   CURSOR_ADAPTER,
+  OPENCODE_ADAPTER,
 ] as const satisfies readonly RegisteredProviderAdapter[];
 
 const CLAUDE_REGISTRATION = createProviderRegistration(CLAUDE_ADAPTER);
@@ -111,6 +114,7 @@ const CODEX_REGISTRATION = createProviderRegistration(CODEX_ADAPTER);
 const GROK_REGISTRATION = createProviderRegistration(GROK_ADAPTER);
 const KIMI_REGISTRATION = createProviderRegistration(KIMI_ADAPTER);
 const CURSOR_REGISTRATION = createProviderRegistration(CURSOR_ADAPTER);
+const OPENCODE_REGISTRATION = createProviderRegistration(OPENCODE_ADAPTER);
 
 export const PLACEHOLDER_PROVIDER_REGISTRATIONS = [
   CLAUDE_REGISTRATION,
@@ -118,6 +122,7 @@ export const PLACEHOLDER_PROVIDER_REGISTRATIONS = [
   GROK_REGISTRATION,
   KIMI_REGISTRATION,
   CURSOR_REGISTRATION,
+  OPENCODE_REGISTRATION,
 ] as const satisfies readonly ProviderRegistration[];
 
 export class ProviderRegistry {
