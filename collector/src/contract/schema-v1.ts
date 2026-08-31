@@ -1,6 +1,6 @@
 export const SCHEMA_VERSION = 2 as const;
 
-export const PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor"] as const;
+export const PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 export const PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"] as const;
@@ -53,18 +53,29 @@ export interface CursorDetails {
   readonly totalPercentUsed?: number;
 }
 
+export interface CommandCodeDetails {
+  readonly monthlyCredits?: number;
+  readonly purchasedCredits?: number;
+  readonly freeCredits?: number;
+  readonly planName?: string;
+  readonly exceeded?: boolean;
+  readonly weeklyExceeded?: boolean;
+}
+
 type ClaudeProviderDetails = { readonly claude: ClaudeDetails };
 type CodexProviderDetails = { readonly codex: CodexDetails };
 type GrokProviderDetails = { readonly grok: GrokDetails };
 type KimiProviderDetails = { readonly kimi: KimiDetails };
 type CursorProviderDetails = { readonly cursor: CursorDetails };
+type CommandCodeProviderDetails = { readonly commandcode: CommandCodeDetails };
 
 export type ProviderDetails =
   | ClaudeProviderDetails
   | CodexProviderDetails
   | GrokProviderDetails
   | KimiProviderDetails
-  | CursorProviderDetails;
+  | CursorProviderDetails
+  | CommandCodeProviderDetails;
 
 type NonEmptyClaudeDetails =
   | (ClaudeDetails & { readonly model: string })
@@ -104,13 +115,29 @@ type NonEmptyCursorDetails = {
   | { readonly apiPercentUsed: number }
   | { readonly totalPercentUsed: number }
 );
+type NonEmptyCommandCodeDetails = {
+  readonly monthlyCredits?: number;
+  readonly purchasedCredits?: number;
+  readonly freeCredits?: number;
+  readonly planName?: string;
+  readonly exceeded?: boolean;
+  readonly weeklyExceeded?: boolean;
+} & (
+  | { readonly monthlyCredits: number }
+  | { readonly purchasedCredits: number }
+  | { readonly freeCredits: number }
+  | { readonly planName: string }
+  | { readonly exceeded: boolean }
+  | { readonly weeklyExceeded: boolean }
+);
 
 type NonEmptyProviderDetails =
   | { readonly claude: NonEmptyClaudeDetails }
   | { readonly codex: NonEmptyCodexDetails }
   | { readonly grok: NonEmptyGrokDetails }
   | { readonly kimi: NonEmptyKimiDetails }
-  | { readonly cursor: NonEmptyCursorDetails };
+  | { readonly cursor: NonEmptyCursorDetails }
+  | { readonly commandcode: NonEmptyCommandCodeDetails };
 
 interface ProviderRecordFields {
   readonly status?: string;
@@ -166,12 +193,27 @@ export type CursorProviderRecord =
   | CurrentProviderRecord<"cursor", CursorProviderDetails>
   | StaleProviderRecord<"cursor", CursorProviderDetails, { readonly cursor: NonEmptyCursorDetails }>;
 
+/**
+ * OpenCode records carry windows only — the wire exposes no detail facts, so
+ * the provider deliberately has NO details namespace (the runtime validator
+ * rejects any details object on an opencode record).
+ */
+export type OpenCodeProviderRecord =
+  | CurrentProviderRecord<"opencode", never>
+  | StaleProviderRecord<"opencode", never, never>;
+
+export type CommandCodeProviderRecord =
+  | CurrentProviderRecord<"commandcode", CommandCodeProviderDetails>
+  | StaleProviderRecord<"commandcode", CommandCodeProviderDetails, { readonly commandcode: NonEmptyCommandCodeDetails }>;
+
 export type ProviderRecord =
   | ClaudeProviderRecord
   | CodexProviderRecord
   | GrokProviderRecord
   | KimiProviderRecord
-  | CursorProviderRecord;
+  | CursorProviderRecord
+  | OpenCodeProviderRecord
+  | CommandCodeProviderRecord;
 
 export type ProviderRecordFor<TId extends ProviderId> = Extract<
   ProviderRecord,
@@ -186,6 +228,8 @@ type _AssertCodex = _AssertProviderRecordFor<"codex">;
 type _AssertGrok = _AssertProviderRecordFor<"grok">;
 type _AssertKimi = _AssertProviderRecordFor<"kimi">;
 type _AssertCursor = _AssertProviderRecordFor<"cursor">;
+type _AssertOpencode = _AssertProviderRecordFor<"opencode">;
+type _AssertCommandcode = _AssertProviderRecordFor<"commandcode">;
 
 export interface CollectorDocument {
   readonly schemaVersion: typeof SCHEMA_VERSION;

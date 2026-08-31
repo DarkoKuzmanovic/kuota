@@ -13,7 +13,7 @@
 // from process output that must never be echoed back verbatim.
 
 var SCHEMA_VERSION = 2;
-var PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor"];
+var PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"];
 var PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"];
 var MAX_INPUT_LENGTH = 262144; // 256 KiB of QML string content.
 
@@ -40,6 +40,14 @@ var CURSOR_DETAIL_KEYS = [
     "autoPercentUsed",
     "apiPercentUsed",
     "totalPercentUsed"
+];
+var COMMANDCODE_DETAIL_KEYS = [
+    "monthlyCredits",
+    "purchasedCredits",
+    "freeCredits",
+    "planName",
+    "exceeded",
+    "weeklyExceeded"
 ];
 
 var UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
@@ -275,7 +283,14 @@ function parseProviderDetails(input, id, state) {
         : id === "codex" ? CODEX_DETAIL_KEYS
         : id === "grok" ? GROK_DETAIL_KEYS
         : id === "kimi" ? KIMI_DETAIL_KEYS
+        : id === "commandcode" ? COMMANDCODE_DETAIL_KEYS
+        : id === "opencode" ? null
         : CURSOR_DETAIL_KEYS;
+    if (detailKeys === null) {
+        // OpenCode records are windows-only by design (nothing usable on the wire).
+        state.invalid = true;
+        return undefined;
+    }
     var details = parseDetailFields(input[id], detailKeys, id, state);
     if (state.invalid !== startInvalid && details === undefined) {
         return undefined;
@@ -338,6 +353,13 @@ function parseDetailFields(input, allowedKeys, id, state) {
     } else if (id === "kimi") {
         assignIfDefined(details, "concurrency", parseOptionalCount(input, "concurrency", state));
         assignIfDefined(details, "concurrencyLimit", parseOptionalCount(input, "concurrencyLimit", state));
+    } else if (id === "commandcode") {
+        assignIfDefined(details, "monthlyCredits", parseOptionalNonNegativeNumber(input, "monthlyCredits", state));
+        assignIfDefined(details, "purchasedCredits", parseOptionalNonNegativeNumber(input, "purchasedCredits", state));
+        assignIfDefined(details, "freeCredits", parseOptionalNonNegativeNumber(input, "freeCredits", state));
+        assignIfDefined(details, "planName", parseOptionalSafeText(input, "planName", 50, state));
+        assignIfDefined(details, "exceeded", parseOptionalBoolean(input, "exceeded", state));
+        assignIfDefined(details, "weeklyExceeded", parseOptionalBoolean(input, "weeklyExceeded", state));
     } else {
         assignIfDefined(details, "membershipType", parseOptionalSafeText(input, "membershipType", 100, state));
         assignIfDefined(details, "onDemandUsed", parseOptionalCount(input, "onDemandUsed", state));
