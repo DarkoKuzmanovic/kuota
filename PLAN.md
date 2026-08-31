@@ -758,24 +758,24 @@ Full wire shapes and auth entry shapes: `docs/specs/2026-09-01-opencode-commandc
 
 ### Vertical slices (each = test-first; run under synthetic HOME)
 
-- [ ] V14.1 — Contract: `PROVIDER_IDS` + discriminated union for both
+- [x] V14.1 — Contract: `PROVIDER_IDS` + discriminated union for both
   providers; TS + QML validators; minimal fixtures; artifact-check count
   update (→ 7); CLI/config canonical order + default-enabled (empty list
   ⇒ seven disabled).
-- [ ] V14.2 — Auth modules: `opencode/auth.ts` (entry precedence
-  `opencode-go` → `opencode` → env; api/api_key/oauth shapes), 
+- [x] V14.2 — Auth modules: `opencode/auth.ts` (entry precedence
+  `opencode-go` → `opencode` → env; api/api_key/oauth shapes),
   `commandcode/auth.ts` (`commandcode` → env; oauth/access + api_key shapes);
   value-free classifications; no network.
-- [ ] V14.3 — OpenCode fetch + usage + adapter + registry; fetch→parser
+- [x] V14.3 — OpenCode fetch + usage + adapter + registry; fetch→parser
   bridge test (wire-shape divergence lesson).
-- [ ] V14.4 — CommandCode fetch + usage (optional subscriptions ignored on
+- [x] V14.4 — CommandCode fetch + usage (optional subscriptions ignored on
   failure) + adapter + registry; fetch→parser bridge test.
-- [ ] V14.5 — Plasma: KNOWN_PROVIDERS/defaults/config schema/compact+full
+- [x] V14.5 — Plasma: KNOWN_PROVIDERS/defaults/config schema/compact+full
   models/command allowlist/QML validator mirror; no new .qml files; existing
   `productionQmlFiles` isolation list unchanged.
-- [ ] V14.6 — Docs: CHANGELOG (Unreleased → 1.3.0 on release), README +
+- [x] V14.6 — Docs: CHANGELOG (Unreleased → 1.3.0 on release), README +
   AGENTS provider tables, collector-contract details sections.
-- [ ] V14.7 — Gate: typecheck, `npm test`, `npm run test:qml`, validate:plasma,
+- [x] V14.7 — Gate: typecheck, `npm test`, `npm run test:qml`, validate:plasma,
   build:artifact, full-suite under synthetic HOME; user-visible live smoke
   with the real keys (recon gate: both endpoints parse as designed).
 
@@ -785,6 +785,39 @@ usage parser. Recon gate is step 1 of the implementation branch, not a docs
 step: one bounded call per provider with the real key, record only
 type-level outcomes.
 
-**Counters:** reviews: · fix-cycles: · oracle: · direct-edits: — filled in at
-gate close.
+**G-14 outcome: PASS.**
+
+Gate Log evidence (2026-09-01, branch `feat/opencode-commandcode`):
+- `npm run typecheck` — 0 errors.
+- `npm test` — Node 579/579, 0 fail (V14.4: 577; +2 V14.7 live-wire regression tests).
+- `npm run test:qml` — 331/331, 0 fail (QML side: fixture helpers, canonical-7
+  allowlist, config defaults/sanitize, theming rows, full-rep tabs, compact
+  primary-window cases for opencode/commandcode).
+- `npm run validate:plasma` — exit 0 (metainfo + qmllint over all touched files).
+- `npm run build:artifact` — exit 0 (`kuota-v1.2.1.plasmoid`).
+- **Live recon smoke** (real keys, `--enabled-providers=opencode,commandcode`,
+  bounded single call each): CLI exit 0, zero stderr, stdout is exactly one
+  secret-free document that passes `validateCollectorDocument`.
+  - `opencode` → `ok`; windows `rolling`/`weekly`/`monthly`, all three present
+    with real `percent` values (0/11/40); no details namespace. As designed.
+  - `commandcode` → `ok`; windows `fiveHour` (required) + `weekly`, details bag
+    with credit facts + exceeded flags. As designed.
+  - **Live-wire divergence found by the smoke:** `windowLimits.weekly.used`
+    (and `credits.monthlyCredits`) arrive FRACTIONAL (credit consumption is
+    not integer). The v14.4 parser passed them through, and contract
+    validation rejected non-safe-integer `used`/`limit` → whole provider
+    record failed as `malformed-response` (provider rendered `error`, and any
+    `ok` that recognizes nothing must fail — the correct symptom). Fix in
+    `usageWindow`: `usedPercent` derives from the unrounded pair, `used`/
+    `limit` are rounded to safe integers; beyond-safe-integer counts are
+    INVALID. Two regression tests lock it (rounding + percent-from-raw,
+    safe-integer rejection). `details` credit counts accept non-integers
+    already (plain non-negative numbers) — unchanged.
+- **Secret-safety:** smoke produced zero stderr; only type-level outcomes were
+  recorded here; no credential values entered the repo, fixtures, or logs.
+
+**Counters:** reviews: 0 · fix-cycles: 4 (V14.4 plan-name/windows/validator
+  rework iterations; V14.7 live-wire fractional-count fix + 2 regression tests) ·
+  oracle: 0 · direct-edits: 9 commits (2 design docs on `main`, 7 feature
+  commits on `feat/opencode-commandcode`).
 
