@@ -14,10 +14,19 @@ var DISPLAY_MODES = Object.freeze({
     "icons+text": true
 });
 
-// Static known window IDs per provider (D4).
+// Static known window IDs per provider (D4, amended 2026-09-05: selectors for
+// every multi-window provider). Cursor exposes a single "plan" window and is
+// deliberately absent — a selector with one choice is a dead control. Kimi's
+// short window id is duration-derived (windowLabelFromMinutes), so its catalog
+// carries every stable id the adapter can emit; compact falls back to the
+// primary window when a selection is absent from the live record.
 var KNOWN_WINDOWS = Object.freeze({
     claude: Object.freeze(["session", "weekly-all", "weekly-oauth-apps"]),
-    codex: Object.freeze(["primary", "secondary"])
+    codex: Object.freeze(["primary", "secondary"]),
+    grok: Object.freeze(["week", "month"]),
+    kimi: Object.freeze(["week", "5h", "daily", "month"]),
+    opencode: Object.freeze(["rolling", "weekly", "monthly"]),
+    commandcode: Object.freeze(["fiveHour", "weekly"])
 });
 
 // Schema defaults — must stay in lockstep with plasmoid/contents/config/main.xml.
@@ -33,6 +42,10 @@ var DEFAULTS = Object.freeze({
     commandcodeVisible: true,
     claudeWindow: "",
     codexWindow: "",
+    grokWindow: "",
+    kimiWindow: "",
+    opencodeWindow: "",
+    commandcodeWindow: "",
     displayMode: "icons+text",
     separator: " · ",
     fontScale: 1.0,
@@ -65,6 +78,10 @@ function createDefaultSettings() {
         commandcodeVisible: DEFAULTS.commandcodeVisible,
         claudeWindow: DEFAULTS.claudeWindow,
         codexWindow: DEFAULTS.codexWindow,
+        grokWindow: DEFAULTS.grokWindow,
+        kimiWindow: DEFAULTS.kimiWindow,
+        opencodeWindow: DEFAULTS.opencodeWindow,
+        commandcodeWindow: DEFAULTS.commandcodeWindow,
         displayMode: DEFAULTS.displayMode,
         separator: DEFAULTS.separator,
         fontScale: DEFAULTS.fontScale,
@@ -113,6 +130,10 @@ function sanitize(rawConfig) {
     out.commandcodeVisible = sanitizeBool(rawConfig.commandcodeVisible, DEFAULTS.commandcodeVisible);
     out.claudeWindow = sanitizeWindowSelection("claude", rawConfig.claudeWindow);
     out.codexWindow = sanitizeWindowSelection("codex", rawConfig.codexWindow);
+    out.grokWindow = sanitizeWindowSelection("grok", rawConfig.grokWindow);
+    out.kimiWindow = sanitizeWindowSelection("kimi", rawConfig.kimiWindow);
+    out.opencodeWindow = sanitizeWindowSelection("opencode", rawConfig.opencodeWindow);
+    out.commandcodeWindow = sanitizeWindowSelection("commandcode", rawConfig.commandcodeWindow);
     out.displayMode = sanitizeDisplayMode(rawConfig.displayMode);
     out.separator = sanitizeString(rawConfig.separator, DEFAULTS.separator);
     out.fontScale = sanitizeFontScale(rawConfig.fontScale);
@@ -177,11 +198,16 @@ function assembleDisplayConfig(sanitized) {
     }
 
     var windowMap = {};
-    if (typeof settings.claudeWindow === "string" && settings.claudeWindow.length > 0) {
-        windowMap.claude = settings.claudeWindow;
-    }
-    if (typeof settings.codexWindow === "string" && settings.codexWindow.length > 0) {
-        windowMap.codex = settings.codexWindow;
+    // `<id>Window` naming is uniform across the catalog (claudeWindow, ...,
+    // commandcodeWindow); KNOWN_WINDOWS defines exactly the selectable set.
+    for (var providerKey in KNOWN_WINDOWS) {
+        if (!Object.prototype.hasOwnProperty.call(KNOWN_WINDOWS, providerKey)) {
+            continue;
+        }
+        var selection = settings[providerKey + "Window"];
+        if (typeof selection === "string" && selection.length > 0) {
+            windowMap[providerKey] = selection;
+        }
     }
 
     return {
@@ -211,14 +237,7 @@ function resolveWindow(providerId, sanitized, availableWindowIds) {
     }
 
     var settings = isRecord(sanitized) ? sanitized : createDefaultSettings();
-    var selected;
-    if (providerId === "claude") {
-        selected = settings.claudeWindow;
-    } else if (providerId === "codex") {
-        selected = settings.codexWindow;
-    } else {
-        return undefined;
-    }
+    var selected = settings[providerId + "Window"];
 
     if (typeof selected !== "string" || selected.length === 0) {
         return undefined;

@@ -1006,3 +1006,43 @@ remain separate decisions. Local selector commit `3c123bd` remains excluded.
 worker dispatches: 2 · independent review dispatches: 2 · review-driven
 correction cycles: 1 · original vertical RED→GREEN slices: 7 · oracle: 0 ·
 code/test change sets: 2 · parent gate-closure documentation change sets: 1.
+
+## Milestone 15 (unlabeled; rides the next release) — Window selectors for all providers
+
+**Outcome:** Every provider with more than one genuinely meaningful usage
+window gets a settings selector for which counter the compact panel displays;
+previously only Claude and Codex did, so Grok/Kimi/OpenCode/CommandCode always
+showed their primary window with no way to change it.
+**Spec:** `docs/specs/2026-09-05-window-selector-all-providers-design.md`
+(owner-approved in session 2026-09-05; amends D4).
+**Key deliverables:** four additive KConfigXT keys (`grokWindow`,
+`kimiWindow`, `opencodeWindow`, `commandcodeWindow`); extended
+`KNOWN_WINDOWS` catalog; provider-generic `assembleDisplayConfig`/
+`resolveWindow`; six combos in the config page (Cursor deliberately has no
+selector — single window, dead-control gate).
+**Boundary:** Pure Plasma-UI/config concern. No collector, contract, cache,
+credential, or provider-data changes; `main.qml` and `compact-model.js`
+already flow the `window` map generically.
+
+- [x] **M15.1 — Settings/UI: selectors for Grok/Kimi/OpenCode/CommandCode (test-first)**
+  - **Files:** `plasmoid/contents/config/main.xml`,
+    `plasmoid/contents/ui/config-model.js`,
+    `plasmoid/contents/ui/configProviders.qml`,
+    `tests/qml/tst_config_model.qml`, `tests/qml/tst_config_providers.qml`
+    (new), `tests/qml/tst_compact_model.qml`, `tests/qml/tst_main_wiring.qml`
+  - **Acceptance:** RED-first confirmed (10 failures pre-implementation:
+    defaults, garbage/catalog sanitize, window-map assembly, resolveWindow
+    catalogs, config-page combos, main.qml flow); compact regression proves the
+    selected window drives displayValue AND threshold level for Grok and
+    CommandCode, and falls back to primary when the selection is absent live
+    (5h-only CommandCode accounts). Kimi catalog carries all four
+    duration-derived short ids.
+  - **Evidence (2026-09-05, branch `feat/per-provider-window-selectors`):**
+    RED 335/345 (10 targeted failures) → GREEN `npm run test:qml` 345/345;
+    `npm test` 579/579; `npm run typecheck` exit 0;
+    `npm run validate:plasma` exit 0 (metainfo + qmllint incl.
+    configProviders.qml).
+
+**Counters:** reviews: 0 · fix-cycles: 1 (test-authoring sort-order fix in
+`test_knownWindowsKeysMatchSelectableProviderKeys` — test bug, not production) ·
+oracle: 0 · direct-edits: 1 commit (plus this spec doc).

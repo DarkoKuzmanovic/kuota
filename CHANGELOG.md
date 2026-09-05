@@ -29,6 +29,14 @@ left unread on disk (see **Removed** under [Unreleased]).
   dashboard `usage-summary` endpoint. Auth: local Cursor `state.vscdb` session
   first, else `CURSOR_SESSION_TOKEN`. Not an official individual API — may break
   without notice (see design + recon docs).
+- **Per-provider window selectors for all providers.** Settings → Providers →
+  "Usage window" now offers a selector for Grok (7d/30d), Kimi (Week/5h/Daily/
+  Month), OpenCode (5h/Weekly/Monthly), and CommandCode (5h/Weekly), matching
+  the existing Claude and Codex controls. Each defaults to "Default" (the
+  primary window), and a selection absent from the live account falls back to
+  it. Cursor shows a single window, so it has no selector. Additive config keys
+  `grokWindow`, `kimiWindow`, `opencodeWindow`, `commandcodeWindow`
+  (spec: `docs/specs/2026-09-05-window-selector-all-providers-design.md`).
 
 ### Fixed
 

@@ -342,6 +342,50 @@ TestCase {
         compare(claude.thresholdLevel, "caution");
     }
 
+    // Selection is provider-generic (spec 2026-09-05): regression coverage for
+    // the providers that gained selectors after M9.
+    function test_selectedWindowHonoredForGrokAndCommandCode() {
+        var snapshot = sampleSnapshot([
+            Fixtures.validGrokProvider({
+                windows: [
+                    Fixtures.validWindow({ id: "week", label: "7d", usedPercent: 20 }),
+                    Fixtures.validWindow({ id: "month", label: "30d", usedPercent: 91 })
+                ]
+            }),
+            Fixtures.validCommandCodeProvider({
+                windows: [
+                    Fixtures.validWindow({ id: "fiveHour", label: "5h", usedPercent: 80 }),
+                    Fixtures.validWindow({ id: "weekly", label: "Weekly", usedPercent: 12 })
+                ]
+            })
+        ]);
+        var config = defaultConfig({ window: { grok: "month", commandcode: "weekly" } });
+        var entries = CompactModel.buildCompactEntries(snapshot, config);
+
+        var grok = providerEntry(entries, "grok");
+        verify(grok !== null);
+        compare(grok.displayValue, "91%");
+        compare(grok.thresholdLevel, "critical");
+
+        var commandcode = providerEntry(entries, "commandcode");
+        verify(commandcode !== null);
+        compare(commandcode.displayValue, "12%");
+        compare(commandcode.thresholdLevel, "none");
+    }
+
+    function test_selectedWindowFallsBackToPrimaryWhenAbsentForLaterProviders() {
+        // 5-hour-only CommandCode accounts never carry the weekly window.
+        var snapshot = sampleSnapshot([
+            Fixtures.validCommandCodeProvider({
+                windows: [Fixtures.validWindow({ id: "fiveHour", label: "5h", usedPercent: 66 })]
+            })
+        ]);
+        var config = defaultConfig({ window: { commandcode: "weekly" } });
+        var commandcode = providerEntry(CompactModel.buildCompactEntries(snapshot, config), "commandcode");
+        verify(commandcode !== null);
+        compare(commandcode.displayValue, "66%");
+    }
+
     function test_selectedWindowFallsBackToPrimaryWhenAbsent() {
         var snapshot = sampleSnapshot([
             Fixtures.validClaudeProvider({

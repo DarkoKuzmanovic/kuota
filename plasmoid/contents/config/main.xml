@@ -55,6 +55,22 @@
       <label>Selected Codex usage window ID for the compact line. Empty uses the primary window.</label>
       <default></default>
     </entry>
+    <entry name="grokWindow" type="String">
+      <label>Selected Grok usage window ID for the compact line. Empty uses the primary window.</label>
+      <default></default>
+    </entry>
+    <entry name="kimiWindow" type="String">
+      <label>Selected Kimi usage window ID for the compact line. Empty uses the primary window.</label>
+      <default></default>
+    </entry>
+    <entry name="opencodeWindow" type="String">
+      <label>Selected OpenCode usage window ID for the compact line. Empty uses the primary window.</label>
+      <default></default>
+    </entry>
+    <entry name="commandcodeWindow" type="String">
+      <label>Selected CommandCode usage window ID for the compact line. Empty uses the primary window.</label>
+      <default></default>
+    </entry>
     <entry name="displayMode" type="String">
       <label>Compact representation mode: icons, text, or icons+text.</label>
       <default>icons+text</default>

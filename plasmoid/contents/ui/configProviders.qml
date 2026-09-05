@@ -15,6 +15,10 @@ Kirigami.FormLayout {
     property alias cfg_commandcodeVisible: commandcodeVisibleCheck.checked
     property alias cfg_claudeWindow: claudeWindowCombo.currentValue
     property alias cfg_codexWindow: codexWindowCombo.currentValue
+    property alias cfg_grokWindow: grokWindowCombo.currentValue
+    property alias cfg_kimiWindow: kimiWindowCombo.currentValue
+    property alias cfg_opencodeWindow: opencodeWindowCombo.currentValue
+    property alias cfg_commandcodeWindow: commandcodeWindowCombo.currentValue
 
     // StringList has no 1:1 widget; the reorder Repeater below reads/writes
     // this plain array directly (matches the compact-model.js entries pattern).
@@ -160,8 +164,14 @@ Kirigami.FormLayout {
         text: qsTr("Usage window")
     }
 
+    // One selector per provider with more than one genuinely meaningful usage
+    // window (D4, amended 2026-09-05). Cursor shows a single "plan" window and
+    // deliberately has no combo: a control that cannot change anything is a
+    // dead control. Catalog values must match KNOWN_WINDOWS in
+    // config-model.js; "Default" (empty) defers to the primary window.
     Controls.ComboBox {
         id: claudeWindowCombo
+        objectName: "claudeWindowCombo"
         Kirigami.FormData.label: qsTr("Claude:")
         Accessible.name: qsTr("Claude usage window")
         textRole: "text"
@@ -176,6 +186,7 @@ Kirigami.FormLayout {
 
     Controls.ComboBox {
         id: codexWindowCombo
+        objectName: "codexWindowCombo"
         Kirigami.FormData.label: qsTr("Codex:")
         Accessible.name: qsTr("Codex usage window")
         textRole: "text"
@@ -184,6 +195,68 @@ Kirigami.FormLayout {
             { text: qsTr("Default"), value: "" },
             { text: qsTr("Primary"), value: "primary" },
             { text: qsTr("Secondary"), value: "secondary" }
+        ]
+    }
+
+    Controls.ComboBox {
+        id: grokWindowCombo
+        objectName: "grokWindowCombo"
+        Kirigami.FormData.label: qsTr("Grok:")
+        Accessible.name: qsTr("Grok usage window")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: qsTr("Default"), value: "" },
+            { text: qsTr("7d"), value: "week" },
+            { text: qsTr("30d"), value: "month" }
+        ]
+    }
+
+    Controls.ComboBox {
+        id: kimiWindowCombo
+        objectName: "kimiWindowCombo"
+        Kirigami.FormData.label: qsTr("Kimi:")
+        Accessible.name: qsTr("Kimi usage window")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: qsTr("Default"), value: "" },
+            { text: qsTr("Week"), value: "week" },
+            // Kimi's short window is duration-derived; ids cover every label
+            // the collector can emit. Ones the account lacks fall back to the
+            // primary window.
+            { text: qsTr("5h"), value: "5h" },
+            { text: qsTr("Daily"), value: "daily" },
+            { text: qsTr("Month"), value: "month" }
+        ]
+    }
+
+    Controls.ComboBox {
+        id: opencodeWindowCombo
+        objectName: "opencodeWindowCombo"
+        Kirigami.FormData.label: qsTr("OpenCode:")
+        Accessible.name: qsTr("OpenCode usage window")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: qsTr("Default"), value: "" },
+            { text: qsTr("5h"), value: "rolling" },
+            { text: qsTr("Weekly"), value: "weekly" },
+            { text: qsTr("Monthly"), value: "monthly" }
+        ]
+    }
+
+    Controls.ComboBox {
+        id: commandcodeWindowCombo
+        objectName: "commandcodeWindowCombo"
+        Kirigami.FormData.label: qsTr("CommandCode:")
+        Accessible.name: qsTr("CommandCode usage window")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: qsTr("Default"), value: "" },
+            { text: qsTr("5h"), value: "fiveHour" },
+            { text: qsTr("Weekly"), value: "weekly" }
         ]
     }
 }
