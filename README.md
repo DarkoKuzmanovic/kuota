@@ -55,7 +55,7 @@ release step. See the [roadmap](ROADMAP.md) for candidate work, not promises.
 | npm and Git | Needed to build from source. TypeScript is a pinned development dependency. |
 | `kpackagetool6` | Installs the package as `Plasma/Applet`. |
 | `flock` from util-linux | Collector locking uses **`/usr/bin/flock`**. |
-| `zip` | Required to produce the archive consumed by the supplied install/update scripts. The builder can also leave an unpacked directory. |
+| `zip` | Required; a missing tool or failed archive build is an error, not an unpacked-only success. |
 | curl | Used when Codex's normal HTTP request needs the fallback transport. |
 | `sqlite3` | Needed at **`/usr/bin/sqlite3`** for local Cursor session discovery; not needed when a usable environment fallback is used. |
 
@@ -71,36 +71,29 @@ cd kuota
 npm ci --ignore-scripts
 ```
 
-Build explicitly in a disposable home with an empty environment:
+Install the checked-out source:
 
 ```bash
-(
-  set -eu
-  umask 077
-  build_home=$(mktemp -d)
-  trap 'rm -rf "$build_home"' EXIT
-  mkdir -p "$build_home/.cache"
-  command -v zip >/dev/null
-  env -i PATH="$PATH" HOME="$build_home" LANG=C.UTF-8 \
-    npm_config_cache="$build_home/.npm" npm run build:artifact
-  version=$(node -p "require('./package.json').version")
-  test -s "dist/artifact/kuota-v${version}.plasmoid"
-  scripts/install.sh
-)
+scripts/install.sh
 ```
 
-**Why the isolated build?** The current artifact checker executes the packaged
-collector. Without isolation, it can discover your real credentials, call
-providers, and exercise Codex token refresh. Building a widget should not do
-that; the [review](docs/reviews/2026-09-08-project-review.md) tracks making the
-checker safe by default. The wrapper above supplies neither your home nor
-provider environment variables to the checker.
+Both install and update rebuild from source every time, even when the version
+has not changed. They require a freshly produced, nonempty archive before
+calling the package tool. To build without installing, run
+`npm run build:artifact`.
+
+The artifact checker runs the packaged collector in its own private temporary
+HOME/cache with an allowlisted environment. It does not pass your credentials,
+XDG paths, provider variables, or Node preload options to the collector. Each
+invocation has a two-second deadline and a 64 KiB output bound; temporary
+resources are removed on success or failure. These are offline checks, not a
+live-account smoke test. See the [approved reliability amendment](docs/specs/2026-09-08-review-p1-fixes-design.md).
 
 The build produces:
 
 ```text
 dist/artifact/kuota-v1.2.1/           unpacked Plasma package
-dist/artifact/kuota-v1.2.1.plasmoid  installable archive, when zip succeeds
+dist/artifact/kuota-v1.2.1.plasmoid  verified installable archive
 ```
 
 The installer installs or upgrades the package for your user. Open Plasma's
@@ -111,14 +104,11 @@ panel summary to open the detail view.
 
 1. Pull the desired source revision: `git pull --ff-only`.
 2. Run `npm ci --ignore-scripts`.
-3. **Repeat the isolated build block above**, replacing its final
-   `scripts/install.sh` command with `scripts/update.sh`.
+3. Run `scripts/update.sh` (always rebuilds before upgrading).
 4. Remove/re-add the widget or log out and back in to load the new code.
 
-Do not rely on `scripts/update.sh` alone after a pull: it currently reuses an
-existing same-version archive rather than checking whether the source changed.
-Rebuilding explicitly avoids that stale-artifact path. New configuration keys
-also require reloading the widget instance.
+Build, check, and zip failures stop installation; previous same-version archives
+are not reused. New configuration keys require reloading the widget instance.
 
 ### Uninstalling
 
@@ -185,17 +175,37 @@ a subset; connecting that capability to a clear UI control is proposed work.
 |---|---|
 | Widget missing or old code still shown | Confirm installation used `-t Plasma/Applet`, rebuild the archive, then reload the widget or log out/in. |
 | `auth-needed` | Check the correct credential source for that provider and sign in again. Do not paste the auth file into a bug report. |
-| Cursor login appears stale | Confirm local Cursor login and `sqlite3`. A known reader issue can miss a refreshed credential still in SQLite's WAL; see the review. |
+| Cursor login appears stale | Confirm local Cursor login and `/usr/bin/sqlite3`. Kuota reads committed WAL updates; check DB/WAL/SHM access as described below. |
 | `stale` | Last successful data is retained. Check its timestamp; Claude may be in rate-limit backoff. Repeated Refresh clicks do not override that backoff. |
 | `error` | A provider may be unreachable or have changed its response; also check fixed runtime paths and the trusted local cache directory. Other providers can still update. |
 | Settings seem ignored | Reload after adding new config keys. Invalid values are sanitized to safe defaults; “Icons only” intentionally keeps the usage value. |
-| Build has no `.plasmoid` file | Install `zip` and rebuild. The supplied installer expects an archive even when the builder left an unpacked directory. |
+| Build has no `.plasmoid` file | Install `zip` and resolve any compiler/checker/zip failure, then rebuild. An unpacked directory alone is not a successful build. |
 | Shell Node works but widget fails | Check `/usr/bin/node`; the bridge does not resolve your interactive shell's Node version manager. |
+
+### Cursor local database access
+
+Kuota opens `~/.config/Cursor/User/globalStorage/state.vscdb` (then the lowercase
+`cursor` candidate) with SQLite's `-readonly` mode, without asserting that the
+database is immutable. This includes committed updates in an open WAL. Kuota
+does not copy, checkpoint, update, or persist the database or session token.
+
+WAL access can require readable `-wal`/`-shm` sidecars and SQLite read-lock
+coordination. SHM lock bookkeeping is not promised to remain byte-identical;
+missing sidecars in a non-writable directory or unreadable files may prevent
+a safe read. Ordinary missing, busy, unreadable, or malformed local state still
+allows `CURSOR_SESSION_TOKEN` fallback. Cancellation, a two-second sqlite child
+deadline, or more than 64 KiB on either output stream stops discovery and does
+not proceed to another candidate, environment fallback, or provider request.
+Failures remain value-free. Do not attach databases, sidecars, or tokens to
+bug reports. Synthetic WAL tests cover freshness; a real-account re-login smoke
+is a separate, explicitly approved check.
 
 ## Development
 
 The project uses strict TypeScript, Node's built-in test runner, and Qt Quick
-Test. There are **no runtime npm dependencies**.
+Test. There are **no runtime npm dependencies**. Cursor's synthetic SQLite
+integration tests additionally require `/usr/bin/sqlite3` and `/usr/bin/python3`
+(Python 3 with its standard-library `sqlite3` module).
 
 | Command | Purpose |
 |---|---|
@@ -207,7 +217,9 @@ Test. There are **no runtime npm dependencies**.
 | `npm run build:artifact` | Build/package the widget and run the artifact checker. |
 
 Run verification sequentially in a dedicated checkout with a disposable
-`HOME` and no provider environment variables, as in the build wrapper above.
+`HOME` and an explicit minimal environment (not just a different HOME). The
+artifact checker enforces its own isolation, but that is not a sandbox for
+arbitrary test code or npm tooling.
 Never run suites that share `dist/` concurrently. Remove generated `dist/`
 between gates when investigating stale-output failures. The QML suite is
 headless; it is not a substitute for a real panel/desktop smoke test.
