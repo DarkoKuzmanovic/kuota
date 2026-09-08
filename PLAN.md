@@ -948,3 +948,61 @@ DB/WAL byte-equality and sidecar assertions are unchanged. Parent owns the final
 gate log, independent re-review, and publication decision; worker results and
 exact final gate counts are recorded outside source in
 `../evidence/fixture-fix/result.json`.
+
+### G-P1 parent verification and review closure — 2026-09-09
+
+**Gate: PASS for code review and PR publication, not deployment or release.**
+Implementation commit: `0f2b164b09ca61629236f3b1dcb6a67a68eb56b4`;
+reviewed tree: `9df9be973935dea3a8252295c4f157dbf0ebeb38`.
+This closure entry is a separate documentation-only commit; the reviewed
+implementation tree is unchanged.
+
+Parent reran all gates sequentially in the dedicated worktree, with a private
+synthetic HOME/cache and an allowlisted environment. The installed parent
+runtime is **Node 24.15.0**; the separate minimum-runtime run used the official
+**Node 20.0.0** Linux archive, checksum-verified against Node's published sums.
+Worker Node 26 results are separate evidence, not the parent's runtime identity.
+
+| Gate | Node 24.15.0 | Node 20.0.0 |
+| --- | --- | --- |
+| `npm ci --ignore-scripts --no-audit --no-fund` | exit 0 | exit 0 |
+| `npm run typecheck` | exit 0 | exit 0 |
+| `npm test` | 627 pass / 0 fail / 0 cancelled / 0 skipped | 627 pass / 0 fail / 0 cancelled / 0 skipped |
+| `npm run test:qml` | 331 pass / 0 fail / 0 skipped | 331 pass / 0 fail / 0 skipped |
+| `npm run validate:plasma` | exit 0 | exit 0 |
+| `npm run build:artifact` | exit 0 | exit 0 |
+
+The Node count includes one automatically discovered helper-module entry;
+the fixture correction adds four real regression tests, not five. Both artifact
+runs produced `kuota-v1.2.1.plasmoid`. Parent also checked archive integrity and
+packaged-CLI syntax, and replayed the four issue regression files over the
+pre-fix implementation: each failed behaviorally. Twenty focused repetitions
+of Cursor child-lifecycle tests on Node 20 yielded **220 pass / 0 fail**.
+
+Independent full-range review initially failed on the WAL test-writer fixture,
+with no identified production security/correctness blocker. Parent reproduced
+the early-exit hang. A separate targeted worker corrected fixture ownership;
+its final regression tests were RED against the original staged fixture. Final
+independent re-review **passed** the exact tree above: no security concerns,
+logic errors, or remaining suggestions. The re-review inspected the corrected
+control flow and RED/GREEN evidence; the full suite reruns were performed by
+the parent. Production collector, scripts, and package manifest were unchanged
+between the two review cycles.
+
+Local evidence root: `../evidence/` beside this dedicated source worktree:
+`parent-correction/gates.json`, `parent-final-node20/gates.json`,
+`parent-red-base/results.json`, `parent-lifecycle-repeat/results.json`,
+`fixture-fix/red-recheck.log`, and `review-final/verdict.json`. These are local
+execution artifacts, not bundled project files or hosted CI results.
+
+**Remaining boundary:** #2's real Cursor re-login smoke stays open pending
+separate owner approval. No real account/provider request, user database,
+package installation, Plasma restart, or release was exercised. The public
+repository has no Actions workflows; no hosted CI result or spending is claimed.
+Docs PR #10 is merged. The code PR may be published, but merging it and deploying
+remain separate decisions. Local selector commit `3c123bd` remains excluded.
+
+**Final G-P1 counters (supersede the preliminary entries):** implementation/fix
+worker dispatches: 2 · independent review dispatches: 2 · review-driven
+correction cycles: 1 · original vertical RED→GREEN slices: 7 · oracle: 0 ·
+code/test change sets: 2 · parent gate-closure documentation change sets: 1.
