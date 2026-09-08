@@ -1,140 +1,271 @@
 # Kuota
 
-A KDE Plasma 6 widget that keeps **Claude**, **Codex**, **Grok**, **Kimi**,
-**Cursor**, **OpenCode**, and **CommandCode** account usage visible on the
-desktop — without estimating quota from local activity, and without requiring
-a running Pi coding-agent session.
+**AI account usage in your KDE Plasma panel.**
 
-Kuota reads the same `~/.pi/agent/auth.json` credentials Pi uses, fetches
-authoritative usage from each provider, and shows compact panel metrics plus a
-full popup/desktop detail view.
+Kuota shows the usage windows, reset times, and account limits reported by
+**Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, and CommandCode**. Keep a
+compact summary in your panel and open the detail view when you need the full
+picture. The same detail view works as a desktop widget.
 
-**Version:** 1.2.1 · **License:** MIT · **Package ID:** `io.github.darkokuzmanovic.kuota`
+No running Pi session, permanent collector service, or runtime npm dependencies.
+Kuota reads existing credentials locally; it does not estimate account quota
+from your prompts, token logs, or local activity.
 
-## Features
+[Installation](#installation) · [Providers and credentials](#providers-and-credentials) ·
+[Troubleshooting](#troubleshooting) · [Development](#development) ·
+[Review and next steps](docs/reviews/2026-09-08-project-review.md)
 
-- Compact panel line for enabled providers (icons, text, or both), with
-  caution/critical threshold colors
-- Full view with provider switcher, usage windows, progress bars, reset
-  countdown, and provider-specific facts
-- Configurable visibility, order, fonts/spacing, thresholds, and refresh
-  interval
-- Short-lived Node collector: concurrent fetches, last-known-good cache,
-  Claude rate-limit backoff, Codex OAuth refresh
-- Credentials never cross into QML — only normalized, secret-free JSON
+## What it does
+
+- **Panel summary:** provider icons, labels, usage values, and configurable
+  caution/critical colors. “Icons only” hides the label, **not** the usage value.
+- **Detail view:** provider tabs, genuine usage windows, progress bars, reset
+  countdowns, last-successful update time, and provider-specific facts.
+- **Appearance settings:** provider visibility/order, font family/scale,
+  separators, spacing, custom icons, accents, text color, and opacity.
+- **Independent refresh:** a short-lived Node collector fetches providers
+  concurrently. Automatic refresh defaults to five minutes; the settings
+  sanitizer enforces a five-minute minimum. Manual refresh is also available.
+- **Failure handling:** last-known-good usage survives transient failures and
+  is marked stale. Claude honors rate-limit backoff; Codex supports a bounded
+  OAuth refresh and a curl fallback.
+
+Missing fields stay missing. An unlimited plan does not get an invented
+percentage; a provider without monthly usage does not get a fabricated monthly
+bar.
+
+## Project status
+
+The source is public on [GitHub](https://github.com/DarkoKuzmanovic/kuota).
+Package metadata currently says **1.2.1**; `main` also contains changes under
+**Unreleased** in the [changelog](CHANGELOG.md), including Cursor, OpenCode,
+and CommandCode. A source checkout is therefore not equivalent to the historical
+1.2.1 feature set.
+
+There are no GitHub release assets or tags as of this documentation review.
+Install from source below. KDE Store publication is a separate, uncompleted
+release step. See the [roadmap](ROADMAP.md) for candidate work, not promises.
 
 ## Requirements
 
-- Linux with KDE Plasma 6 (API minimum 6.0)
-- Node.js ≥ 20 and npm
-- `kpackagetool6` (and `qmllint` if you validate during development)
-- Provider credentials in `~/.pi/agent/auth.json` (or the documented env
-  fallbacks for Grok/Kimi/OpenCode/CommandCode) — same file Pi uses
+| Requirement | Notes |
+|---|---|
+| Linux with KDE Plasma 6 | Package declares Plasma API minimum 6.0; not a GNOME, macOS, or Windows widget. |
+| Node.js ≥20 | The Plasma bridge invokes **`/usr/bin/node`**. A shell-only nvm/asdf installation is not sufficient. |
+| npm and Git | Needed to build from source. TypeScript is a pinned development dependency. |
+| `kpackagetool6` | Installs the package as `Plasma/Applet`. |
+| `flock` from util-linux | Collector locking uses **`/usr/bin/flock`**. |
+| `zip` | Required to produce the archive consumed by the supplied install/update scripts. The builder can also leave an unpacked directory. |
+| curl | Used when Codex's normal HTTP request needs the fallback transport. |
+| `sqlite3` | Needed at **`/usr/bin/sqlite3`** for local Cursor session discovery; not needed when a usable environment fallback is used. |
 
-Optional: `zip` (creates a `.plasmoid` archive during artifact build).
+For development, also install Qt 6's `qmllint`, Qt Quick Test, Kirigami, and the
+Plasma QML modules. The current QML runner expects
+`/usr/lib/qt6/bin/qmltestrunner`; distro paths may differ.
 
-## Install
-
-From the repository root:
-
-```bash
-scripts/install.sh
-```
-
-This builds the package if needed, then installs (or upgrades) it with
-`kpackagetool6`. Add **Kuota** to a panel or the desktop via Plasma’s
-**Add Widgets** dialog.
-
-Update after pulling changes:
+## Installation
 
 ```bash
-scripts/update.sh
+git clone https://github.com/DarkoKuzmanovic/kuota.git
+cd kuota
+npm ci --ignore-scripts
 ```
 
-Then restart Plasma (`plasmashell --replace &`) or re-add the widget so the
-new code loads.
+Build explicitly in a disposable home with an empty environment:
 
-Uninstall:
+```bash
+(
+  set -eu
+  umask 077
+  build_home=$(mktemp -d)
+  trap 'rm -rf "$build_home"' EXIT
+  mkdir -p "$build_home/.cache"
+  command -v zip >/dev/null
+  env -i PATH="$PATH" HOME="$build_home" LANG=C.UTF-8 \
+    npm_config_cache="$build_home/.npm" npm run build:artifact
+  version=$(node -p "require('./package.json').version")
+  test -s "dist/artifact/kuota-v${version}.plasmoid"
+  scripts/install.sh
+)
+```
+
+**Why the isolated build?** The current artifact checker executes the packaged
+collector. Without isolation, it can discover your real credentials, call
+providers, and exercise Codex token refresh. Building a widget should not do
+that; the [review](docs/reviews/2026-09-08-project-review.md) tracks making the
+checker safe by default. The wrapper above supplies neither your home nor
+provider environment variables to the checker.
+
+The build produces:
+
+```text
+dist/artifact/kuota-v1.2.1/           unpacked Plasma package
+dist/artifact/kuota-v1.2.1.plasmoid  installable archive, when zip succeeds
+```
+
+The installer installs or upgrades the package for your user. Open Plasma's
+**Add Widgets** dialog and add **Kuota** to a panel or the desktop. Click the
+panel summary to open the detail view.
+
+### Updating
+
+1. Pull the desired source revision: `git pull --ff-only`.
+2. Run `npm ci --ignore-scripts`.
+3. **Repeat the isolated build block above**, replacing its final
+   `scripts/install.sh` command with `scripts/update.sh`.
+4. Remove/re-add the widget or log out and back in to load the new code.
+
+Do not rely on `scripts/update.sh` alone after a pull: it currently reuses an
+existing same-version archive rather than checking whether the source changed.
+Rebuilding explicitly avoids that stale-artifact path. New configuration keys
+also require reloading the widget instance.
+
+### Uninstalling
 
 ```bash
 scripts/uninstall.sh
 ```
 
-Uninstall removes the widget package and `~/.cache/kuota/` only. It never
-touches `~/.pi/`, `auth.json`, or Plasma global config.
+This removes the package `io.github.darkokuzmanovic.kuota` and
+`~/.cache/kuota/`. It does not delete Pi credentials or edit Plasma's global
+configuration.
 
-## Credentials
+## Providers and credentials
 
-| Provider | Auth discovery |
-|---|---|
-| Claude | `auth.anthropic` (OAuth) |
-| Codex | `auth["openai-codex"]` (OAuth + `accountId`; Kuota may refresh the token once) |
-| Grok | `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]`, or `GROK_CLI_OAUTH_TOKEN` |
-| Kimi | `auth["kimi-coding"]`, or `KIMI_API_KEY` |
-| Cursor | Local Cursor `state.vscdb` session (`cursorAuth/accessToken` via `sqlite3`), or `CURSOR_SESSION_TOKEN` |
+In the table below, **`auth` means the root JSON object** in
+`~/.pi/agent/auth.json`, not an extra `auth` wrapper. Kuota does not provide a
+login UI. Use the appropriate client to sign in; never put tokens in widget
+settings, command arguments, issues, or screenshots.
 
-Kuota does not provide account login UI. Sign in with Pi (or set the env
-fallbacks) first. For Cursor, sign into the Cursor desktop app locally, or
-export a session cookie value to `CURSOR_SESSION_TOKEN` — never commit it.
+| Provider | Data available when returned by the provider | Credential discovery |
+|---|---|---|
+| **Claude** | Session/weekly utilization, reset times, model-specific windows and extra-usage facts. | `auth.anthropic`, OAuth. Prefers a fresh compatible pi-hud cache before a live fetch. |
+| **Codex** | Primary/secondary usage windows, resets, plan/credit facts. | `auth["openai-codex"]`, OAuth access plus account ID; refresh metadata enables one refresh attempt. |
+| **Grok** | Monthly credits and an optional weekly window. | `auth.xai`, `auth["xai-auth"]`, or `auth["grok-cli"]`; `GROK_CLI_OAUTH_TOKEN` fallback. |
+| **Kimi** | Weekly and short-window usage, resets, concurrency facts. | `auth["kimi-coding"]`, OAuth or API key; `KIMI_API_KEY` fallback. |
+| **Cursor** | Included-plan spend share, billing reset, membership and on-demand usage facts. | Local Cursor `state.vscdb` session first, then `CURSOR_SESSION_TOKEN`. Does **not** use Pi's auth file. |
+| **OpenCode Go** | Hosted Go plan: rolling 5-hour, weekly, and monthly percentages with resets. Not arbitrary OpenCode/Zen/API spend. | `auth["opencode-go"]`, then `auth.opencode`; `OPENCODE_API_KEY` fallback. Supports `api`/`api_key` + `key`, or `oauth` + `access`. |
+| **CommandCode** | Five-hour and optional weekly windows; monthly/purchased/free credit facts and optional plan name. | `auth.commandcode`: OAuth-shaped `access` or `api_key` + `key`; `COMMANDCODE_API_KEY` fallback. |
+
+**Provider limits matter:** CommandCode exposes monthly credit allowances, not a
+monthly-used total; Kuota therefore has no monthly utilization window for it.
+Cursor uses an unofficial dashboard endpoint. These are client/account-facing
+surfaces, not a guarantee of a stable public API, and account plans can expose
+different fields.
+
+**Fallbacks are not overrides.** File/local credentials generally take
+precedence. Unsafe files, malformed JSON, or malformed supported credential
+entries can fail closed instead of using the environment fallback. A variable
+exported in a terminal is not automatically inherited by the already-running
+Plasma session; do not put secrets in a launcher command to work around that.
+
+Only **Codex** may write refreshed credentials back to the shared auth file,
+using an atomic, permission-preserving merge. Other providers are read-only
+credential consumers.
+
+## Configuration
+
+Right-click Kuota and open its configuration dialog:
+
+- **Providers:** visibility/order and Claude/Codex compact usage-window choices
+  in the published source.
+- **Appearance:** display mode, font scale, separator, icon/label/value spacing,
+  and countdown visibility.
+- **Thresholds:** refresh interval and caution/critical utilization levels.
+- **Theming:** optional fonts, icons, text colors, accents, and opacity. Native
+  Plasma styling remains the default.
+
+“Show in widget” currently affects presentation, **not collection**: hidden
+providers can still be queried. The standalone collector can explicitly select
+a subset; connecting that capability to a clear UI control is proposed work.
 
 ## Troubleshooting
 
-- **Widget missing after install** — restart Plasma
-  (`plasmashell --replace &`) or remove and re-add the widget.
-- **`auth-needed`** — no usable credential for that provider in
-  `~/.pi/agent/auth.json` (or the matching env fallback). For Cursor:
-  sign into the Cursor app so `state.vscdb` contains a session, install
-  `sqlite3`, or set `CURSOR_SESSION_TOKEN`.
-- **`error` / stale** — usually transient network or rate limiting. Last
-  known-good data is retained and marked stale until the next successful
-  refresh. Claude honors `Retry-After` with a minimum backoff.
-- **Settings look ignored** — restart Plasma or re-add the widget. Invalid
-  values fall back to safe defaults at a single sanitize boundary.
-- **Provider API drift** — adapters live under `collector/src/providers/`.
-  Cursor uses an **unofficial** dashboard endpoint (`usage-summary`); breakage
-  may surface as `auth-needed` or `error` without notice.
+| Symptom | Check |
+|---|---|
+| Widget missing or old code still shown | Confirm installation used `-t Plasma/Applet`, rebuild the archive, then reload the widget or log out/in. |
+| `auth-needed` | Check the correct credential source for that provider and sign in again. Do not paste the auth file into a bug report. |
+| Cursor login appears stale | Confirm local Cursor login and `sqlite3`. A known reader issue can miss a refreshed credential still in SQLite's WAL; see the review. |
+| `stale` | Last successful data is retained. Check its timestamp; Claude may be in rate-limit backoff. Repeated Refresh clicks do not override that backoff. |
+| `error` | A provider may be unreachable or have changed its response; also check fixed runtime paths and the trusted local cache directory. Other providers can still update. |
+| Settings seem ignored | Reload after adding new config keys. Invalid values are sanitized to safe defaults; “Icons only” intentionally keeps the usage value. |
+| Build has no `.plasmoid` file | Install `zip` and rebuild. The supplied installer expects an archive even when the builder left an unpacked directory. |
+| Shell Node works but widget fails | Check `/usr/bin/node`; the bridge does not resolve your interactive shell's Node version manager. |
 
 ## Development
 
+The project uses strict TypeScript, Node's built-in test runner, and Qt Quick
+Test. There are **no runtime npm dependencies**.
+
+| Command | Purpose |
+|---|---|
+| `npm run typecheck` | Check TypeScript without emitting files. |
+| `npm test` | Compile and run collector, filesystem, lifecycle, and secret-safety tests. |
+| `npm run test:qml` | Run the offscreen Qt 6 UI/model/bridge suites. |
+| `npm run validate:plasma` | Check package metainfo and lint QML/JS. |
+| `npm run build:collector` | Build the runnable collector under `dist/collector/`. |
+| `npm run build:artifact` | Build/package the widget and run the artifact checker. |
+
+Run verification sequentially in a dedicated checkout with a disposable
+`HOME` and no provider environment variables, as in the build wrapper above.
+Never run suites that share `dist/` concurrently. Remove generated `dist/`
+between gates when investigating stale-output failures. The QML suite is
+headless; it is not a substitute for a real panel/desktop smoke test.
+
+The collector accepts no arguments (all providers) or one allowlisted
+`--enabled-providers=<csv>` argument. **No credential arguments are accepted.**
+For a no-provider serialization check inside an isolated verification home:
+
 ```bash
-npm run typecheck
-npm test                 # Node collector tests (synthetic HOME recommended)
-npm run test:qml         # Qt 6 QML tests
-npm run build:collector
-npm run validate:plasma
-npm run build:artifact   # → dist/artifact/kuota-v1.2.1.plasmoid (if zip is available)
+node dist/collector/cli.js --enabled-providers=
 ```
 
-Layout:
+A normal successful invocation emits exactly one newline-terminated schema-v2
+JSON document. Provider failures are records inside that document, not permission
+to emit raw responses or secrets.
 
-| Path | Role |
-|---|---|
-| `plasmoid/` | Plasma package (QML UI, config) |
-| `collector/src/` | TypeScript collector, contract, providers |
-| `collector/test/` | Collector unit tests |
-| `tests/` | Fixtures, security policy, QML tests |
-| `scripts/` | Build, install/update/uninstall, QML runner |
-| `docs/` | Specs and architecture contracts |
-| `dist/` | Generated output (gitignored) |
+```text
+plasmoid/           QML views, settings, and isolated collector bridge
+collector/src/      Provider adapters, normalization, auth/cache I/O, redaction
+collector/test/     Node collector tests
+tests/              Synthetic fixtures, QML tests, security/lifecycle checks
+scripts/            Build and local lifecycle commands
+docs/               Architecture, approved specs, and review findings
+dist/               Generated output; ignored by Git
+```
 
-## Security
+Read [AGENTS.md](AGENTS.md) and [PLAN.md](PLAN.md) before contributing.
+Product-visible changes require an approved design amendment. Add tests before
+changing provider behavior or security-sensitive persistence, and use synthetic
+fixtures rather than recorded credentials or raw account responses.
 
-- QML is presentation-only. Only `CollectorBridge.qml` may import the Plasma
-  executable engine; an automated isolation test enforces that.
-- The collector owns credential I/O. Only Codex token refresh writes
-  `auth.json`, via an atomic, permission-preserving merge.
-- Stdout is exactly one schema-v2 JSON document per run. Diagnostics are
-  redacted and never echo secrets, account IDs, or raw responses.
-- Caches under `~/.cache/kuota/` hold usage results only, never credentials.
+## Architecture and security
 
-## Documentation
+```text
+Plasma views ↔ isolated CollectorBridge ↔ short-lived Node collector ↔ providers
+                   normalized, validated JSON only
+```
 
-- [`docs/architecture/overview.md`](docs/architecture/overview.md) — layers and data flow
-- [`docs/architecture/collector-contract.md`](docs/architecture/collector-contract.md) — schema v2 contract
-- [`docs/specs/2026-07-10-kuota-design.md`](docs/specs/2026-07-10-kuota-design.md) — product specification
-- [`CHANGELOG.md`](CHANGELOG.md) — release notes
-- [`tests/fixtures/README.md`](tests/fixtures/README.md) — fixture / redaction policy
+The collector owns all credentials and provider I/O. QML validates the complete
+snapshot before replacing its current data. Cross-process locking protects
+collection; cache writes use restrictive permissions; shared Codex auth updates
+preserve unrelated entries and file mode. Redaction and module-isolation tests
+protect these boundaries.
+
+This is a local desktop integration, not a sandbox or an independent security
+audit. Keep auth files private. Before sharing diagnostics, remove account
+identifiers, tokens, environment values, and raw provider responses.
+
+## Further reading
+
+- [Architecture overview](docs/architecture/overview.md)
+- [Collector JSON contract](docs/architecture/collector-contract.md)
+- [Approved design and amendments](docs/specs/2026-07-10-kuota-design.md)
+- [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md)
+- [Project review and prioritized recommendations](docs/reviews/2026-09-08-project-review.md)
+- [Synthetic fixture policy](tests/fixtures/README.md)
+- [GitHub issues](https://github.com/DarkoKuzmanovic/kuota/issues)
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Not affiliated with or endorsed by the listed providers.
