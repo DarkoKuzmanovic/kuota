@@ -1,7 +1,7 @@
 # Kuota Project Plan
 
 **Source of truth:** `docs/specs/2026-07-10-kuota-design.md` (approved for implementation by the project owner on 2026-07-10)  
-**Plan status:** G0 passed; Milestone 1 foundation work ready to begin  
+**Plan status:** G-14 passed; public source includes unreleased provider work. See the Gate Log and documentation/review checkpoint below.
 **Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, Cursor, OpenCode, and CommandCode. Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
 
 ## Approved Decisions
@@ -821,3 +821,33 @@ Gate Log evidence (2026-09-01, branch `feat/opencode-commandcode`):
   oracle: 0 · direct-edits: 9 commits (2 design docs on `main`, 7 feature
   commits on `feat/opencode-commandcode`).
 
+## Documentation/review checkpoint — 2026-09-08
+
+**Approval source:** Owner request in chat to review/deslopify Kuota, improve
+README documentation, check GitHub publication, and create priority issues.
+This approves review/documentation/issue publication, not product changes or
+a desktop deployment. The repository was already public.
+
+**Scope:** README, roadmap, architecture overview, correction of the OpenCode
+no-details contract sentence, this status/checkpoint, and
+`docs/reviews/2026-09-08-project-review.md`. Documentation branch starts at
+public `26e1b38`; the existing local `3c123bd` selector commit is excluded.
+No production source or historical scope approval is changed.
+
+**Evidence:** Sequential isolated-HOME/environment gates on the public-code
+documentation branch: `npm test` 579 passed / 0 failed;
+`npm run test:qml` 331 passed / 0 failed; typecheck, validate:plasma, and
+build:artifact exit 0. Local reviewed `3c123bd` separately passed 579 Node and
+345 QML tests. The README's isolated build command was executed successfully;
+no real widget install or live-account smoke was performed. Synthetic probes
+confirmed updater archive/version defects, Cursor WAL staleness and missing
+child cancellation; a 12-case shared-JSON-guard parity probe agreed without
+invoking getters. Two independent read-only review workstreams informed the
+parent's verified findings. GitHub issues #1–#9 were created and read back.
+
+**Outcome:** Review proposals are tracked, not implemented. Fix safety/lifecycle
+issues before a versioned artifact release; keep spec/test-first gates for each
+future implementation slice. No hosted CI workload was created.
+
+**Counters (this checkpoint only):** reviews: 2 · fix-cycles: 0 product-code
+cycles · oracle: 0 · direct-edits: 1 documentation change set.
