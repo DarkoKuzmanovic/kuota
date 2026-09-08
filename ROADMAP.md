@@ -1,49 +1,51 @@
-# Kuota Roadmap
+# Kuota roadmap
 
-Status: active
+This is a list of product directions, not an execution plan or permission to
+implement them. [PLAN.md](PLAN.md) records milestone gates;
+[approved specifications](docs/specs/2026-07-10-kuota-design.md) define behavior.
 
-Kuota is a standalone KDE Plasma 6 widget that reports authoritative Claude,
-Codex, Grok, and Kimi account usage on the desktop. Releases are discrete; this file
-holds one-line version goals only. Tactical execution state lives in `PLAN.md`.
-A roadmap entry is a candidate, not authorization — starting a Planned version
-still requires the normal spec → grill → scope checkpoint → confirmation flow.
+## Implemented in the public source
 
-## Released
+- KDE Plasma 6 panel and desktop views, appearance settings, and a standalone,
+  short-lived Node collector.
+- Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, and CommandCode adapters.
+- Concurrent collection, last-known-good data, Claude backoff, Codex OAuth
+  refresh, strict snapshot validation, and credential-safety tests.
 
-- **1.0.0** (product label "V1") — shipped locally 2026-07-18 (merged to main;
-  not yet published). Approved 3-provider V1 (Claude, Umans, Codex; Umans
-  removed 2026-08-02): Plasma 6 widget, bundled short-lived Node collector,
-  compact + full representations, configuration layer, local install/update/uninstall
-  scripts. KDE Store publication is a separate explicitly approved step, not part
-  of this version.
+Package metadata remains **1.2.1**. Newer functionality is recorded under
+**Unreleased** in [CHANGELOG.md](CHANGELOG.md). Public source availability does
+not mean that a corresponding tagged/package release has been published.
 
-## Current
+## Recommended next
 
-(none — 1.0.0 shipped; see Released)
+1. **Make the existing product dependable to build and update.** Isolate
+   artifact checks from real accounts, fix same-version artifact reuse, and
+   harden Cursor's local credential reader.
+2. **Reduce maintenance duplication.** Establish provider/config consistency
+   checks, share genuinely identical transport primitives, and remove obsolete
+   scaffolding without weakening boundary validation.
+3. **Make failures understandable.** Add safe local diagnostics, freshness and
+   retry information, and deliberate control over which providers are polled.
+4. **Add decision support, not more decoration.** Consider a headroom overview
+   and opt-in usage/reset notifications based only on real provider windows.
 
-## Planned
+The [project review](docs/reviews/2026-09-08-project-review.md) ranks these
+suggestions, links the scoped issues, and distinguishes measured defects from
+feature candidates. Creating an issue does not approve a product change.
 
-- **1.1.0** — Add Grok + Kimi providers. Amends owner-approved Decision #2 (which
-  froze V1 at Claude/Umans/Codex); re-opens the design spec provider table, the
-  collector contract `ProviderId` union and `details.{grok,kimi}` namespaces,
-  registry canonical order, QML compact/full model allowlists, config UI, and
-  docs. Recon complete (pi-hud, live-verified 2026-07-17): Kimi via
-  `auth["kimi-coding"]` / `KIMI_API_KEY` → `api.kimi.com/coding/v1/usages`
-  (Bearer token, weekly + short windows + concurrency; numeric fields arrive as
-  strings); Grok via `auth.xai`/`xai-auth`/`grok-cli` / `GROK_CLI_OAUTH_TOKEN`
-  → `cli-chat-proxy.grok.com/v1/billing` (Bearer + `x-xai-token-auth:
-  xai-grok-cli` header; monthly credits required, optional weekly window).
-  Reuse endpoint/credential-discovery facts only — route through Kuota's own
-  hardened `collector/src/io/` + `security/redact.ts`; do not copy pi-hud's
-  looser `Record<string, any>` / direct-readwrite access patterns.
+## Release readiness
 
-- **1.2.0** — Appearance customization (KVitals-style). Per-provider icons
-  (freedesktop name, KDE picker, `isMask` monochrome), font family override
-  (Plasma default otherwise, orthogonal to existing V1 `fontScale`), colors
-  (opt-in global custom text color + per-provider accent), and opacity (label +
-  separator, independently). All new keys default to reproducing 1.0.0 output
-  so upgrade is a visual no-op unless the user opts in. Pure Plasma-UI concern —
-  no collector, bridge, credential, or provider-data changes. Spec:
-  `docs/specs/2026-07-22-theming-customization-design.md`. Planned after 1.1.0 so
-  per-provider accent/icon covers all providers present at ship time; provider-list-
-  agnostic if sequencing changes.
+Before publishing a versioned GitHub artifact: reconcile package metadata and
+the changelog, run isolated Node/QML/type/package gates, and perform an
+owner-approved real panel/desktop smoke test. Do not represent source-only or
+offscreen validation as a live release check.
+
+KDE Store publication remains a separate owner-approved step.
+
+## Deliberately deferred
+
+Cross-machine aggregation, long-term usage history, account login/management,
+a permanent service, and additional providers need separate design approval.
+Do not add a daemon or database merely to support a small panel widget. History
+or forecasts, if ever approved, must be explicitly distinguished from
+provider-reported quota.
