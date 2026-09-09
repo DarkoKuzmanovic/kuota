@@ -851,3 +851,158 @@ future implementation slice. No hosted CI workload was created.
 
 **Counters (this checkpoint only):** reviews: 2 · fix-cycles: 0 product-code
 cycles · oracle: 0 · direct-edits: 1 documentation change set.
+
+## G-P1 — Review reliability fixes #1–#4 (2026-09-09)
+
+**Approval/spec:** Owner chat approval recorded before implementation in
+`docs/specs/2026-09-08-review-p1-fixes-design.md`; implementation is based on
+`b2a6087` / public-main `3ce14f2`, excluding the unrelated selector commit.
+
+**Worker outcome:** Implementation complete; parent independent review and
+publication are still pending. Changes are uncommitted. No QML, contract,
+provider endpoint/payload, credential writer, or runtime dependency changed.
+
+- **#1:** Checker-owned private HOME/cache and allowlisted CLI environment;
+  bounded SIGKILL/reaped children; canonical/subset/empty/credential-argv checks
+  retained. Tests observe production packaged CLI children, unchanged synthetic
+  parent auth/cache canaries, zero mocked provider transport, and cleanup on
+  success, failure, timeout, and stdout/stderr overflow.
+- **#4:** Shared source-build helper always rebuilds and requires a nonempty
+  archive; JSON version parsing is formatting-independent. Packager owns the
+  compiler step so stale archives are removed before compiler/checker/zip
+  failure. Fake-tool tests cover fresh QML/collector source, call order,
+  compact/reindented JSON, spaces/CDPATH, install→upgrade fallback, and failures.
+  Existing uninstall/blast-radius assertions remain unchanged; the new helper
+  has an additional protected-path/mutation-boundary test.
+- **#2:** Production `sqlite3 -readonly` sees committed updates from an open,
+  uncheckpointed synthetic WAL, including special-character filenames. DB/WAL
+  bytes are unchanged by the read. Tests cover busy/unreadable/malformed/missing
+  DBs, unreadable WAL, missing SHM in a read-only directory, and readable
+  read-only sidecars. SHM internal lock bookkeeping is not a byte-invariance
+  claim.
+- **#3:** Collection signal reaches auth and the actual sqlite child owner.
+  Fixed defaults (no injectable limit API): 2 seconds and 64 KiB per stream in
+  bytes. Abort/deadline/overflow kills and reaps, discards partial output,
+  removes listeners/timers, and prevents further discovery/env/fetch. Real
+  controlled subprocess tests verify exit, pre/mid-abort, default adapter
+  wiring, timeout, overflow/multibyte output, spawn failure, close/abort race,
+  ordinary success, and independent successful Kimi adapter completion.
+
+**Test-first evidence:** Logs are outside the source tree under
+`../evidence/worker/`. Each production slice followed an observed failing test:
+
+| Slice | RED pass/fail | GREEN pass/fail | Log prefix |
+|---|---|---|---|
+| #1 isolation/bounds | 0/3 | 3/0 | `issue1-` |
+| #4 source lifecycle | 1/7 | 8/0 | `issue4-lifecycle-` |
+| #4 packaging failure | 9/5 | 14/0 | `issue4-packager-` |
+| #2 live WAL/path | 1/2 | 3/0 | `issue2-` |
+| #3 child ownership/signal | 1/9 | 10/0 | `issue3-` |
+| #4 compiler failure cleanup | 13/2 | 15/0 | `issue4-compiler-` |
+| #3 child listener cleanup | 2/9 | 11/0 | `issue3-listeners-` |
+
+Expanded focused regressions: **74 passed / 0 failed**. Final sequential
+private-HOME/allowlisted-env runner (`python ../run-gates.py worker-final`):
+**622 Node passed / 0 failed; 331 QML passed / 0 failed**; dependencies,
+typecheck, Plasma validation, artifact build/check all exit 0. Full logs and
+`gates.json`: `../evidence/worker-final/`. `git diff --check` is clean.
+No meaningful existing test was weakened or removed.
+
+**Verification limits:** Synthetic fixtures only; no real Cursor re-login,
+provider request, token refresh, credential/cache access, desktop install,
+Plasma restart, commit, push, or release. Live-account re-login remains an
+unapproved follow-up, not a completed acceptance claim. System SQLite and the
+current installed Node runtime were exercised; a distro/Node-version matrix
+and real Plasma package installation were not. The artifact checker isolates
+its collector children, not arbitrary npm tooling or a malicious parent Node
+preload. The initial #1 RED harness needed explicit cleanup of two synthetic
+hung children; they were killed, and the regression harness now also has a
+child-local failsafe. Final ownership tests require production cleanup without
+the failsafe.
+
+**Counters (G-P1 only):** worker dispatches: 1 · reviews: 0 (parent pending) ·
+fix-cycles: 7 vertical RED→GREEN slices · oracle: 0 · direct-edits: 1 bounded
+implementation/test/documentation change set · publication: pending.
+
+### G-P1 targeted review correction — WAL fixture ownership
+
+One additional targeted worker correction (one fix-cycle / one direct-edit set)
+addresses the independently reproduced test-fixture startup/cleanup blocker only;
+production sources and the previously staged implementation remain untouched.
+Both WAL loops now share a small single-owner fixture helper: exact `ready\n`
+readiness, spawn/early-close failure, a two-second startup deadline, non-rejecting
+close observation, and bounded SIGKILL/reap teardown. Directory removal runs even
+when inspection or permission restoration fails; only existing files have modes
+restored. The synthetic Python writer uses `/usr/bin/python3`, matching README.
+No concurrent lifecycle API, dependency, real database, or provider access added.
+
+Four normal subprocess regression tests replace only spawn in the actual WAL
+fixture loops: missing executable, exit 7 before readiness, silent never-ready
+writer, and inspection failure with a writer that ignores stdin. RED evidence:
+`../evidence/fixture-fix/red-final.log` (0/4); ENOENT produced unhandled rejections
+and leftover directories, not a claimed hang. The other three probes reached
+their independent failsafe. Probe fallback cleanup kills/reaps synthetic writers
+and removes scratch even on RED. GREEN checks all seven writers per probe are
+closed, directories removed, and no unhandled rejection/failsafe occurred.
+DB/WAL byte-equality and sidecar assertions are unchanged. Parent owns the final
+gate log, independent re-review, and publication decision; worker results and
+exact final gate counts are recorded outside source in
+`../evidence/fixture-fix/result.json`.
+
+### G-P1 parent verification and review closure — 2026-09-09
+
+**Gate: PASS for code review and PR publication, not deployment or release.**
+Implementation commit: `0f2b164b09ca61629236f3b1dcb6a67a68eb56b4`;
+reviewed tree: `9df9be973935dea3a8252295c4f157dbf0ebeb38`.
+This closure entry is a separate documentation-only commit; the reviewed
+implementation tree is unchanged.
+
+Parent reran all gates sequentially in the dedicated worktree, with a private
+synthetic HOME/cache and an allowlisted environment. The installed parent
+runtime is **Node 24.15.0**; the separate minimum-runtime run used the official
+**Node 20.0.0** Linux archive, checksum-verified against Node's published sums.
+Worker Node 26 results are separate evidence, not the parent's runtime identity.
+
+| Gate | Node 24.15.0 | Node 20.0.0 |
+| --- | --- | --- |
+| `npm ci --ignore-scripts --no-audit --no-fund` | exit 0 | exit 0 |
+| `npm run typecheck` | exit 0 | exit 0 |
+| `npm test` | 627 pass / 0 fail / 0 cancelled / 0 skipped | 627 pass / 0 fail / 0 cancelled / 0 skipped |
+| `npm run test:qml` | 331 pass / 0 fail / 0 skipped | 331 pass / 0 fail / 0 skipped |
+| `npm run validate:plasma` | exit 0 | exit 0 |
+| `npm run build:artifact` | exit 0 | exit 0 |
+
+The Node count includes one automatically discovered helper-module entry;
+the fixture correction adds four real regression tests, not five. Both artifact
+runs produced `kuota-v1.2.1.plasmoid`. Parent also checked archive integrity and
+packaged-CLI syntax, and replayed the four issue regression files over the
+pre-fix implementation: each failed behaviorally. Twenty focused repetitions
+of Cursor child-lifecycle tests on Node 20 yielded **220 pass / 0 fail**.
+
+Independent full-range review initially failed on the WAL test-writer fixture,
+with no identified production security/correctness blocker. Parent reproduced
+the early-exit hang. A separate targeted worker corrected fixture ownership;
+its final regression tests were RED against the original staged fixture. Final
+independent re-review **passed** the exact tree above: no security concerns,
+logic errors, or remaining suggestions. The re-review inspected the corrected
+control flow and RED/GREEN evidence; the full suite reruns were performed by
+the parent. Production collector, scripts, and package manifest were unchanged
+between the two review cycles.
+
+Local evidence root: `../evidence/` beside this dedicated source worktree:
+`parent-correction/gates.json`, `parent-final-node20/gates.json`,
+`parent-red-base/results.json`, `parent-lifecycle-repeat/results.json`,
+`fixture-fix/red-recheck.log`, and `review-final/verdict.json`. These are local
+execution artifacts, not bundled project files or hosted CI results.
+
+**Remaining boundary:** #2's real Cursor re-login smoke stays open pending
+separate owner approval. No real account/provider request, user database,
+package installation, Plasma restart, or release was exercised. The public
+repository has no Actions workflows; no hosted CI result or spending is claimed.
+Docs PR #10 is merged. The code PR may be published, but merging it and deploying
+remain separate decisions. Local selector commit `3c123bd` remains excluded.
+
+**Final G-P1 counters (supersede the preliminary entries):** implementation/fix
+worker dispatches: 2 · independent review dispatches: 2 · review-driven
+correction cycles: 1 · original vertical RED→GREEN slices: 7 · oracle: 0 ·
+code/test change sets: 2 · parent gate-closure documentation change sets: 1.

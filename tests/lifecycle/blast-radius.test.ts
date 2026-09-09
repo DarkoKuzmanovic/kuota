@@ -71,6 +71,20 @@ function findRepoRoot(): string {
 }
 
 describe('lifecycle script blast radius', () => {
+  test('shared build helper only removes the selected build archive', () => {
+    const content = readScript('build-source.sh');
+    assert.equal(spawnSync('sh', ['-n', scriptPath('build-source.sh')]).status, 0);
+    for (const pattern of FORBIDDEN_SUBSTRINGS) {
+      assert.equal(content.toLowerCase().includes(pattern.toLowerCase()), false, 'helper must not reference credentials or protected paths');
+    }
+    assert.ok(content.includes('artifact="dist/artifact/kuota-v${version}.plasmoid"'));
+    for (const line of content.split('\n')) {
+      if (line.trim().startsWith('#')) continue;
+      if (/\b(rm|cp|mv|touch|mkdir|install)\b/.test(line)) {
+        assert.equal(line.trim(), 'rm -f -- "$artifact"');
+      }
+    }
+  });
   for (const script of SCRIPTS) {
     test(`${script} is POSIX sh and passes sh -n`, () => {
       const content = readScript(script);

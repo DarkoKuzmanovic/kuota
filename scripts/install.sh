@@ -12,23 +12,7 @@ root_dir=$(cd "$(dirname "$0")/.." >/dev/null && pwd)
 cd "$root_dir"
 
 package_id="io.github.darkokuzmanovic.kuota"
-# Derive the artifact name from package.json so a version bump can't silently
-# install a stale artifact (the version string appears nowhere else in this
-# script). Use node for the read rather than grep+cut: a strict regex like
-# `grep '^  "version":'` assumes exactly two leading spaces and silently
-# returns empty if package.json is reformatted (column-0 keys, tabs, or a
-# different indent), causing the install path to diverge from the just-built
-# filename and producing a cryptic "Plugin %1 is not installed" from
-# kpackagetool6 — easier to fail loud via node than to debug from a
-# substring search. node is already required by `npm run build:artifact`
-# which this script invokes, so no new dependency is introduced.
-version=$(node -p "require('./package.json').version")
-artifact="dist/artifact/kuota-v${version}.plasmoid"
-
-if [ ! -f "$artifact" ]; then
-    printf "Artifact missing; building...\n"
-    npm run build:artifact
-fi
+. "$root_dir/scripts/build-source.sh"
 
 # Install with the explicit package type. Without -t, kpackagetool6 installs
 # to kpackage/generic/, but Plasma loads plasmoids from plasma/plasmoids/ —

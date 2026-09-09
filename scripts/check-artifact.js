@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,13 +30,23 @@ function runCli(args) {
   if (!existsSync(artifactCli)) {
     fail('packaged CLI is missing');
   }
-  const result = spawnSync(process.execPath, [artifactCli, ...args], {
-    encoding: 'utf8',
-  });
-  if (result.error !== undefined) {
-    fail('packaged CLI could not be started');
+  const home = mkdtempSync(join(tmpdir(), 'kuota-artifact-check-'));
+  try {
+    mkdirSync(join(home, '.cache'), { mode: 0o700 });
+    const result = spawnSync(process.execPath, [artifactCli, ...args], {
+      encoding: 'utf8',
+      env: { HOME: home, PATH: '/usr/bin:/bin', LANG: 'C.UTF-8' },
+      timeout: 2000,
+      maxBuffer: 64 * 1024,
+      killSignal: 'SIGKILL',
+    });
+    if (result.error !== undefined) {
+      fail('packaged CLI could not complete within resource limits');
+    }
+    return result;
+  } finally {
+    rmSync(home, { recursive: true, force: true });
   }
-  return result;
 }
 
 function checkNormalInvocation() {

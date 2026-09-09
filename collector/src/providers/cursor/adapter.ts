@@ -14,7 +14,7 @@ import {
 } from "../types.js";
 
 export interface CursorAdapterDependencies extends Readonly<Record<string, unknown>> {
-  readonly readAuth?: () => Promise<CursorAuthResult>;
+  readonly readAuth?: (signal: AbortSignal) => Promise<CursorAuthResult>;
   readonly fetchUsage?: (options: { readonly credential: Extract<CursorAuthResult, { readonly state: "available" }> ["credential"]; readonly signal: AbortSignal }) => Promise<CursorFetchResult>;
   readonly parseUsage?: (payload: unknown, observedAt: string) => CursorUsageParseResult;
   readonly now?: () => number;
@@ -37,15 +37,17 @@ export function createCursorAdapter(
   dependencies: CursorAdapterDependencies = {},
 ): ProviderAdapter<"cursor", CursorAdapterDependencies> {
   const now = dependencies.now ?? Date.now;
-  const readAuth = dependencies.readAuth ?? (() =>
-    readCursorAuth({ homeDirectory: homedir(), environment: process.env }));
+  const readAuth = dependencies.readAuth ?? ((signal: AbortSignal) =>
+    readCursorAuth({ homeDirectory: homedir(), environment: process.env, signal }));
   const fetchUsage = dependencies.fetchUsage ?? ((options: { readonly credential: Extract<CursorAuthResult, { readonly state: "available" }> ["credential"]; readonly signal: AbortSignal }) => fetchCursorUsage(options));
   const parseUsage = dependencies.parseUsage ?? parseCursorUsageResponse;
   return {
     id: "cursor",
     async collect(context: ProviderAdapterContext<CursorAdapterDependencies>): Promise<ProviderNormalizedResult<"cursor">> {
       try {
-        const auth = await readAuth();
+        if (context.signal.aborted) return unavailable();
+        const auth = await readAuth(context.signal);
+        if (context.signal.aborted) return unavailable();
         if (auth.state === "auth-needed") return authNeeded();
         if (auth.state !== "available") return unavailable();
         const fetched = await fetchUsage({ credential: auth.credential, signal: context.signal });

@@ -32,6 +32,16 @@ left unread on disk (see **Removed** under [Unreleased]).
 
 ### Fixed
 
+- **Offline artifact verification (#1).** Packaged CLI checks use private
+  HOME/cache directories, an allowlisted environment, and bounded subprocesses.
+- **Cursor local authentication (#2–#3).** Read-only SQLite discovery sees live
+  committed WAL updates, passes collection cancellation to the child owner,
+  and terminates/reaps children on abort, a two-second deadline, or per-stream
+  output above 64 KiB. Ordinary local failures retain environment fallback;
+  cancellation/resource limits do not restart discovery or fetch.
+- **Fresh source installation/update (#4).** Always rebuild; derive paths from
+  JSON regardless of formatting. Compiler, checker, zip, missing/empty archive
+  failures stop before installation and remove stale archive output.
 - **Cursor plan percent.** Primary `Plan` window now uses `totalPercentUsed`
   (dashboard spend share) instead of request-count `used`/`limit`, which
   disagreed with the Spending page (e.g. ~55% vs ~4%).

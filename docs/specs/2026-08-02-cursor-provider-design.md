@@ -38,6 +38,13 @@ Canonical order after addition: `claude`, `codex`, `grok`, `kimi`, `cursor`.
 
 ## §1 Auth discovery
 
+**Supersession:** The approved [2026-09-08 review P1 amendment](2026-09-08-review-p1-fixes-design.md)
+replaces the immutable-reader choice below with WAL-aware `-readonly` SQLite
+access and bounded, cancellable child ownership (2 seconds, 64 KiB per stream).
+DB/WAL contents remain read-only; SQLite sidecar/read-lock coordination is
+allowed. Ordinary local failures retain env fallback; cancellation/resource
+limits stop further discovery and fetch. The original wording below is historical.
+
 **Module:** `collector/src/providers/cursor/auth.ts`
 
 **Precedence (first usable wins):**
