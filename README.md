@@ -37,10 +37,8 @@ bar.
 ## Project status
 
 The source is public on [GitHub](https://github.com/DarkoKuzmanovic/kuota).
-Package metadata currently says **1.2.1**; `main` also contains changes under
-**Unreleased** in the [changelog](CHANGELOG.md), including Cursor, OpenCode,
-and CommandCode. A source checkout is therefore not equivalent to the historical
-1.2.1 feature set.
+Package metadata currently says **1.3.0** (released 2026-09-01); the
+[changelog](CHANGELOG.md) tracks the full history back to 1.0.0.
 
 There are no GitHub release assets or tags as of this documentation review.
 Install from source below. KDE Store publication is a separate, uncompleted
@@ -92,8 +90,8 @@ live-account smoke test. See the [approved reliability amendment](docs/specs/202
 The build produces:
 
 ```text
-dist/artifact/kuota-v1.2.1/           unpacked Plasma package
-dist/artifact/kuota-v1.2.1.plasmoid  verified installable archive
+dist/artifact/kuota-v1.3.0/           unpacked Plasma package
+dist/artifact/kuota-v1.3.0.plasmoid  verified installable archive
 ```
 
 The installer installs or upgrades the package for your user. Open Plasma's

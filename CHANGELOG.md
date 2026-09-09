@@ -9,9 +9,11 @@ Config keys are a stable, additive-only contract (D7): later versions add keys
 but never rename or remove them within the compatibility window, so settings
 survive updates. Umans-only config keys (`umansVisible`, `umansAccentColor`,
 `umansCustomIcon`) are an approved exception — removed from the schema and
-left unread on disk (see **Removed** under [Unreleased]).
+left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
+
+## [1.3.0] - 2026-09-01
 
 ### Added
 
