@@ -11,6 +11,8 @@ No running Pi session, permanent collector service, or runtime npm dependencies.
 Kuota reads existing credentials locally; it does not estimate account quota
 from your prompts, token logs, or local activity.
 
+![Kuota app screenshot](docs/assets/kuota-app.png)
+
 [Installation](#installation) · [Providers and credentials](#providers-and-credentials) ·
 [Troubleshooting](#troubleshooting) · [Development](#development) ·
 [Review and next steps](docs/reviews/2026-09-08-project-review.md)
