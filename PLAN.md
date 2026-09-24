@@ -1046,3 +1046,37 @@ already flow the `window` map generically.
 **Counters:** reviews: 0 · fix-cycles: 1 (test-authoring sort-order fix in
 `test_knownWindowsKeysMatchSelectableProviderKeys` — test bug, not production) ·
 oracle: 0 · direct-edits: 1 commit (plus this spec doc).
+
+## Milestone 16 (hotfix; rides the next release) — Claude usage-shape drift + Claude Code credentials
+
+**Trigger (2026-09-25):** The owner reported Claude stuck on `Stale data`. The last
+successful fetch was 2026-09-21. The Pi `auth.anthropic` token had also expired
+(2026-09-24 16:02Z), but a shape-only live probe with a valid token showed the
+real blocker: HTTP 200 with a new `seven_day_breakdown` object, which the parser
+treated as a model window and rejected as `malformed-response` for the whole
+payload.
+
+**Scope change — owner-approved in session 2026-09-25; amends M2.1:** M2.1 said
+"no env or Claude Code fallback". Approved: Claude credentials now come from
+Claude Code's `~/.claude/.credentials.json` `claudeAiOauth` first, with Pi's
+`auth.anthropic` as fallback. Both are read-only and neither token is refreshed.
+Refreshing would rotate the owning tool's refresh token and log that tool out.
+The owner chose "Claude Code first, Pi fallback" over "Claude Code only" and a
+configurable source.
+
+- [x] **M16.1 — Parser: skip non-window `seven_day_*` siblings (test-first)**
+  - A dynamic `seven_day_*` value with no metric key (`utilization`/`percent`/
+    `resets_at`) is skipped; a window-shaped malformed value still rejects;
+    fixed base keys (`five_hour`, `seven_day`) stay strict.
+  - **Evidence:** RED 627/628 (the new test) → GREEN 628/628; live bisect
+    confirmed `seven_day_breakdown` was the only rejecting key.
+- [x] **M16.2 — Auth chain: Claude Code first, Pi fallback (test-first)**
+  - `readClaudeCodeAuth` reads only `accessToken`/`expiresAt`/`scopes` (never
+    `refreshToken` or `mcpOAuth`) through the no-follow JSON reader, and requires
+    `user:profile` when scopes are declared. `readPiClaudeAuth` is the unchanged
+    Pi reader (renamed). `readClaudeAuth` chains them: the first available
+    credential wins; otherwise auth-needed beats error. The adapter is unchanged.
+  - **Evidence:** `rm -rf dist && npm test` 638/638; `npm run typecheck` exit 0.
+
+**Counters:** reviews: 0 (independent review pending) · fix-cycles: 0 ·
+oracle: 1 (advisor, pre-implementation approach check) · direct-edits: 1.

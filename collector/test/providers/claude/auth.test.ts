@@ -10,8 +10,8 @@ import { scanForSecrets } from "../../../src/security/redact.js";
 
 import {
   CLAUDE_AUTH_STATUS_TEXT,
-  readClaudeAuth,
-  resolveClaudeAuthPath,
+  readPiClaudeAuth,
+  resolvePiClaudeAuthPath,
   type ClaudeAuthResult,
 } from "../../../src/providers/claude/auth.js";
 
@@ -28,7 +28,7 @@ async function classify(value: unknown, options: {
   readonly now?: number;
   readonly authPath?: string;
 } = {}): Promise<ClaudeAuthResult> {
-  const result = await readClaudeAuth({
+  const result = await readPiClaudeAuth({
     homeDirectory: HOME,
     authPath: options.authPath,
     readJsonFile: readerReturning(value),
@@ -38,10 +38,10 @@ async function classify(value: unknown, options: {
 }
 
 test("resolves the default auth path from injected home without reading live auth", async () => {
-  assert.equal(resolveClaudeAuthPath(HOME), AUTH_PATH);
+  assert.equal(resolvePiClaudeAuthPath(HOME), AUTH_PATH);
 
   const requested: string[] = [];
-  const result = await readClaudeAuth({
+  const result = await readPiClaudeAuth({
     homeDirectory: HOME,
     readJsonFile: async (path) => {
       requested.push(path);
@@ -215,7 +215,7 @@ test("maps every JsonFileError category and native failures to value-free errors
   ] as const;
 
   for (const [kind, reason] of cases) {
-    const result = await readClaudeAuth({
+    const result = await readPiClaudeAuth({
       authPath: AUTH_PATH,
       readJsonFile: async () => {
         throw new JsonFileError(kind);
@@ -228,7 +228,7 @@ test("maps every JsonFileError category and native failures to value-free errors
     });
   }
 
-  const nativeFailure = await readClaudeAuth({
+  const nativeFailure = await readPiClaudeAuth({
     authPath: AUTH_PATH,
     readJsonFile: async () => {
       throw new Error(`${AUTH_PATH}:${SYNTHETIC_ACCESS}`);
@@ -273,7 +273,7 @@ test("maps hostile reader failures to a constant without inspecting unsafe value
     "hostile-reader-failure",
   ];
   for (const thrown of hostileValues) {
-    const result = await readClaudeAuth({
+    const result = await readPiClaudeAuth({
       authPath: AUTH_PATH,
       readJsonFile: async () => {
         throw thrown;
@@ -299,7 +299,7 @@ test("refuses a symlink auth file through the safe no-follow JSON reader", async
     );
     await symlink(target, link);
 
-    const result = await readClaudeAuth({
+    const result = await readPiClaudeAuth({
       authPath: link,
       readJsonFile: (path) => readJsonFile(path, { fs: nodeFileSystem }),
     });
@@ -313,7 +313,7 @@ test("refuses a symlink auth file through the safe no-follow JSON reader", async
   }
 });
 
-test("keeps tokens out of safe result surfaces and never uses env or Claude Code fallback", async () => {
+test("keeps tokens out of safe result surfaces and the Pi reader never uses env or Claude Code", async () => {
   const envKeys = ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_TOKEN"] as const;
   const previous = new Map<string, string | undefined>();
   for (const key of envKeys) {
@@ -322,7 +322,7 @@ test("keeps tokens out of safe result surfaces and never uses env or Claude Code
   }
 
   try {
-    const result = await readClaudeAuth({
+    const result = await readPiClaudeAuth({
       homeDirectory: HOME,
       readJsonFile: async (path) => {
         assert.equal(path, AUTH_PATH);
@@ -371,7 +371,7 @@ test("keeps tokens out of safe result surfaces and never uses env or Claude Code
 test("uses an injected exact auth path instead of consulting another home or fallback", async () => {
   const exactPath = "/synthetic-exact/auth.json";
   const requested: string[] = [];
-  const result = await readClaudeAuth({
+  const result = await readPiClaudeAuth({
     homeDirectory: "/synthetic-other-home",
     authPath: exactPath,
     readJsonFile: async (path) => {
@@ -395,7 +395,7 @@ test("does not mutate the parsed auth document while classifying it", async () =
   };
   const before = JSON.stringify(document);
   let readCount = 0;
-  const result = await readClaudeAuth({
+  const result = await readPiClaudeAuth({
     authPath: AUTH_PATH,
     readJsonFile: async () => {
       readCount += 1;

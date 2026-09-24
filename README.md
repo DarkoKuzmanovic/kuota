@@ -129,7 +129,7 @@ settings, command arguments, issues, or screenshots.
 
 | Provider | Data available when returned by the provider | Credential discovery |
 |---|---|---|
-| **Claude** | Session/weekly utilization, reset times, model-specific windows and extra-usage facts. | `auth.anthropic`, OAuth. Prefers a fresh compatible pi-hud cache before a live fetch. |
+| **Claude** | Session/weekly utilization, reset times, model-specific windows and extra-usage facts. | Claude Code's `~/.claude/.credentials.json` (`claudeAiOauth`, needs `user:profile` scope) first, then Pi's `auth.anthropic` (OAuth). Read-only: Kuota never refreshes either token. Uses a fresh Kuota-owned cache before a live fetch. |
 | **Codex** | Primary/secondary usage windows, resets, plan/credit facts. | `auth["openai-codex"]`, OAuth access plus account ID; refresh metadata enables one refresh attempt. |
 | **Grok** | Monthly credits and an optional weekly window. | `auth.xai`, `auth["xai-auth"]`, or `auth["grok-cli"]`; `GROK_CLI_OAUTH_TOKEN` fallback. |
 | **Kimi** | Weekly and short-window usage, resets, concurrency facts. | `auth["kimi-coding"]`, OAuth or API key; `KIMI_API_KEY` fallback. |

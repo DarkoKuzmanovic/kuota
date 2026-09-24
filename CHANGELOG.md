@@ -13,6 +13,19 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Claude stuck on stale data.** Anthropic's usage response now includes a
+  `seven_day_breakdown` report that Kuota misread as a malformed model window,
+  rejecting every live response. Non-window `seven_day_*` entries are now
+  skipped; malformed real windows still reject.
+
+### Changed
+
+- **Claude credentials.** Kuota now reads Claude Code's
+  `~/.claude/.credentials.json` first and falls back to Pi's `auth.anthropic`.
+  Both are read-only; Kuota never refreshes either token.
+
 ## [1.3.0] - 2026-09-01
 
 ### Added
