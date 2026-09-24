@@ -113,19 +113,18 @@ The contract is versioned so UI and collector changes can fail clearly rather th
 
 ### Claude
 
-Source: `https://api.anthropic.com/api/oauth/usage` using the existing Anthropic OAuth entry in `~/.pi/agent/auth.json`.
+Source: `https://api.anthropic.com/api/oauth/usage`. Credentials come from Claude Code's `~/.claude/.credentials.json` `claudeAiOauth` entry first, then the Anthropic OAuth entry in `~/.pi/agent/auth.json`. Both are read-only and never refreshed. The first locally valid credential wins; a server rejection of it does not retry with the other source. This source order was updated with owner approval on 2026-09-25 (PLAN M16); previously only the Pi entry was read.
 
 Known data includes short and weekly utilization windows and their reset timestamps, plus any model-specific windows genuinely returned by the current response.
 
 Claude's endpoint is aggressively rate-limited. Kuota therefore:
 
-- reads a fresh shared pi-hud cache when available;
-- maintains its own last-known-good cache;
+- maintains its own last-known-good cache (the earlier plan to read pi-hud's private cache was dropped in PLAN M2.2);
 - performs an independent live fetch when no fresh cache exists;
 - honors `Retry-After` and a minimum backoff after HTTP 429;
 - retains stale values during temporary failures.
 
-This preserves independent operation without needlessly colliding with pi-hud.
+This preserves independent operation without needlessly hammering the endpoint.
 
 ### Codex
 

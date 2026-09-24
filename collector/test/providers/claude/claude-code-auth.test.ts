@@ -249,3 +249,45 @@ test("chain reports auth-needed when neither source is usable and any needs sign
     },
   );
 });
+
+test("chain honors exact per-source path overrides", async () => {
+  const ccExact = "/synthetic-exact/cc.json";
+  const piExact = "/synthetic-exact/pi.json";
+  const requested: string[] = [];
+  const result = await readClaudeAuth({
+    homeDirectory: "/synthetic-other-home",
+    claudeCodeCredentialsPath: ccExact,
+    piAuthPath: piExact,
+    readJsonFile: async (path) => {
+      requested.push(path);
+      return path === piExact ? { anthropic: { type: "oauth", access: PI_ACCESS } } : undefined;
+    },
+    now: () => NOW,
+  });
+  assert.deepEqual(requested, [ccExact, piExact]);
+  assert.equal(result.state, "available");
+});
+
+test("chain returns the Claude Code sign-in reason when Pi errors", async () => {
+  const { result } = chain({
+    [CC_PATH]: ccDocument({ accessToken: CC_ACCESS, expiresAt: NOW - 1 }),
+    [PI_PATH]: ["synthetic"],
+  });
+  assert.deepEqual(await result, authNeeded("expired"));
+});
+
+test("chain falls back to a non-expiring Pi credential when the clock fails for Claude Code", async () => {
+  const result = await readClaudeAuth({
+    homeDirectory: HOME,
+    readJsonFile: async (path) =>
+      path === CC_PATH
+        ? ccDocument({ accessToken: CC_ACCESS, expiresAt: NOW + 1 })
+        : { anthropic: { type: "oauth", access: PI_ACCESS } },
+    now: () => Number.NaN,
+  });
+  assert.deepEqual(result, {
+    state: "available",
+    status: CLAUDE_AUTH_STATUS_TEXT.available,
+    credential: { access: PI_ACCESS },
+  });
+});

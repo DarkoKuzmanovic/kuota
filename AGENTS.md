@@ -133,7 +133,7 @@ PLAN.md                Milestone/gate plan — normative for scope and sequencin
 
 ## Providers (V1 scope)
 
-| Provider | Source | Auth in `~/.pi/agent/auth.json` |
+| Provider | Source | Credential source |
 |---|---|---|
 | Claude | `api.anthropic.com/api/oauth/usage` | Claude Code `~/.claude/.credentials.json` `claudeAiOauth` first (read-only; never refreshed — refreshing would rotate Claude Code's refresh token), then `auth.anthropic` (oauth) |
 | Codex | `chatgpt.com/backend-api/codex/usage` | `auth["openai-codex"]` (oauth, +accountId, refresh, expires) |

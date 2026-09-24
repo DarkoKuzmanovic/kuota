@@ -240,8 +240,8 @@ function classifyPiCredential(entry: unknown, now: ClaudeAuthClock): ClaudeAuthR
 }
 
 /**
- * Reads only `accessToken`, `expiresAt`, and `scopes`; the refresh token and MCP
- * credentials in the same file are never read into a value.
+ * Extracts only `accessToken`, `expiresAt`, and `scopes`; the refresh token and MCP
+ * credentials in the same file are never extracted or copied.
  */
 function classifyClaudeCodeCredential(entry: unknown, now: ClaudeAuthClock): ClaudeAuthResult {
   try {

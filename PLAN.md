@@ -1071,12 +1071,26 @@ configurable source.
   - **Evidence:** RED 627/628 (the new test) → GREEN 628/628; live bisect
     confirmed `seven_day_breakdown` was the only rejecting key.
 - [x] **M16.2 — Auth chain: Claude Code first, Pi fallback (test-first)**
-  - `readClaudeCodeAuth` reads only `accessToken`/`expiresAt`/`scopes` (never
-    `refreshToken` or `mcpOAuth`) through the no-follow JSON reader, and requires
+  - `readClaudeCodeAuth` extracts only `accessToken`/`expiresAt`/`scopes` (never
+    extracts or copies `refreshToken` or `mcpOAuth`) through the no-follow JSON reader, and requires
     `user:profile` when scopes are declared. `readPiClaudeAuth` is the unchanged
     Pi reader (renamed). `readClaudeAuth` chains them: the first available
     credential wins; otherwise auth-needed beats error. The adapter is unchanged.
+  - **Known limits (accepted):** the first *locally* valid credential wins, so a
+    server rejection (e.g. a revoked Claude Code token) does not retry with Pi.
+    The Kuota cache is not keyed by credential source; if the two tools are
+    signed into different accounts, a source switch can briefly show the other
+    account's cached record (≤5 min TTL, or as stale). Under M16.1, a
+    `seven_day_*` model window whose schema drifts to a non-metric shape is now
+    dropped silently instead of failing the whole payload. This is deliberate
+    (partial failure beats total failure) but hides that drift.
   - **Evidence:** `rm -rf dist && npm test` 638/638; `npm run typecheck` exit 0.
 
-**Counters:** reviews: 0 (independent review pending) · fix-cycles: 0 ·
-oracle: 1 (advisor, pre-implementation approach check) · direct-edits: 1.
+- **Independent review (2026-09-25):** APPROVED WITH FIXES — 0 Blocker / 0
+  Major / 4 Minor / 4 Nit. Fix round applied: spec amended (source order +
+  stale pi-hud cache line), AGENTS table header, known limits documented, chain
+  override/precedence/clock tests and base-key strictness tests added,
+  redundant check and doc-comment wording fixed. Deferred: none.
+
+**Counters:** reviews: 1 · fix-cycles: 1 · oracle: 1 (advisor, pre-implementation
+approach check) · direct-edits: 2.

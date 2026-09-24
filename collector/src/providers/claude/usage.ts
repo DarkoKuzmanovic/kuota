@@ -352,7 +352,7 @@ function parseExtraUsage(value: unknown): ExtraUsage | undefined {
   return { details };
 }
 
-function isMetricShaped(value: unknown): boolean {
+function isMetricShaped(value: unknown): value is PlainRecord {
   return (
     isPlainRecord(value) &&
     (hasOwn(value, "utilization") || hasOwn(value, "percent") || hasOwn(value, "resets_at"))
@@ -360,7 +360,7 @@ function isMetricShaped(value: unknown): boolean {
 }
 
 function parseMetricWindow(value: unknown): MetricWindow | undefined {
-  if (!isPlainRecord(value) || !isMetricShaped(value)) return undefined;
+  if (!isMetricShaped(value)) return undefined;
 
   const utilization = parsePresentPercent(value, "utilization");
   const percent = parsePresentPercent(value, "percent");

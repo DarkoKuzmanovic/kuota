@@ -737,6 +737,9 @@ test("skips non-window seven-day siblings such as the usage breakdown", () => {
   assertFailure({ five_hour: { utilization: 10 }, seven_day_breakdown: { resets_at: "garbage" } });
   // Base windows stay strict: a non-window value under a known base key rejects.
   assertFailure({ five_hour: { rows: [] }, seven_day: { utilization: 20 } });
+  assertFailure({ five_hour: { utilization: 10 }, seven_day: { rows: [] } });
+  // `seven_day_oauth_apps` shares the dynamic prefix but is a base window: it must stay strict.
+  assertFailure({ five_hour: { utilization: 10 }, seven_day_oauth_apps: { rows: [] } });
 });
 
 test("widens disabled_reason to safe provider text while rejecting secret-shaped content", () => {
