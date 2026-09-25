@@ -1,7 +1,7 @@
 # Agent Instructions — Kuota
 
-Kuota is a standalone KDE Plasma 6 widget that keeps Claude, Codex, Grok, and
-Kimi account usage visible on the desktop without requiring a running Pi session. It
+Kuota is a standalone KDE Plasma 6 widget that keeps Claude, Codex, Grok, Kimi,
+Cursor, OpenCode, and CommandCode account usage visible on the desktop without requiring a running Pi session. It
 reports authoritative provider data — it does **not** estimate quota from local
 activity.
 
@@ -70,7 +70,8 @@ These are hard rules. Violating any of them is a stop condition, not a fix.
 Schema v2 is small and versioned. The UI renders common provider state without
 knowing provider-native formats. Full shape: `docs/architecture/collector-contract.md`.
 
-- Provider IDs: `claude`, `codex`, `grok`, `kimi`, `cursor`.
+- Provider IDs: `claude`, `codex`, `grok`, `kimi`, `cursor`, `opencode`,
+  `commandcode`.
 - States: `ok`, `stale`, `auth-needed`, `error`. `stale` is last-known-good with
   retained real data (≥1 window or a non-empty details object) — not an empty
   failure marker.
@@ -93,7 +94,8 @@ knowing provider-native formats. Full shape: `docs/architecture/collector-contra
   computed in QML from reset timestamps.
 - Provider-specific payloads are namespaced under their provider record
   (`details.claude` / `details.codex` / `details.grok` /
-  `details.kimi` / `details.cursor`). The TS `ProviderRecord`
+  `details.kimi` / `details.cursor` / `details.commandcode`; OpenCode has no
+  details namespace). The TS `ProviderRecord`
   is a discriminated union enforcing that correlation; runtime validation
   enforces the same.
 - Test-first slices for every provider adapter and all security-sensitive auth
@@ -111,7 +113,7 @@ knowing provider-native formats. Full shape: `docs/architecture/collector-contra
 | `npm test` | Clean test output, compile tests, run Node test runner. |
 | `npm run build:collector` | Clean collector output, emit runnable JS to `dist/`. |
 | `npm run validate:plasma` | `kpackagetool6 --appstream-metainfo` + `qmllint`. |
-| `npm run build:artifact` | Build collector, then package `dist/artifact/kuota-v0.1.0.plasmoid`. |
+| `npm run build:artifact` | Build collector, then package `dist/artifact/kuota-v<package.json version>.plasmoid`. |
 
 Test and collector builds clean only their own ignored output directory before
 emit, so stale compiled files can't survive source deletion and create
@@ -131,27 +133,28 @@ dist/                  Generated output (gitignored)
 PLAN.md                Milestone/gate plan — normative for scope and sequencing
 ```
 
-## Providers (V1 scope)
+## Providers
 
 | Provider | Source | Credential source |
 |---|---|---|
 | Claude | `api.anthropic.com/api/oauth/usage` | Claude Code `~/.claude/.credentials.json` `claudeAiOauth` first (read-only; never refreshed — refreshing would rotate Claude Code's refresh token), then `auth.anthropic` (oauth) |
-| Codex | `chatgpt.com/backend-api/codex/usage` | `auth["openai-codex"]` (oauth, +accountId, refresh, expires) |
+| Codex | `chatgpt.com/backend-api/wham/usage` | `auth["openai-codex"]` (oauth, +accountId, refresh, expires) |
 | Grok | `cli-chat-proxy.grok.com/v1/billing` | `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` (oauth); `GROK_CLI_OAUTH_TOKEN` fallback |
 | Kimi | `api.kimi.com/coding/v1/usages` | `auth["kimi-coding"]` (oauth or api_key); `KIMI_API_KEY` fallback |
 | Cursor | `cursor.com/api/usage-summary` (unofficial dashboard) | Local `~/.config/Cursor/User/globalStorage/state.vscdb` (`cursorAuth/accessToken`); `CURSOR_SESSION_TOKEN` fallback. **Not** `auth.json`; session is never persisted by Kuota. Requires system `sqlite3` for local discovery. |
 | OpenCode | `opencode.ai/zen/go/v1/usage` (hosted OpenCode Go only, not Zen/other surfaces) | `auth["opencode-go"]` (cli-api `type` + `key`) first, `auth.opencode` alias second, `OPENCODE_API_KEY` env fallback |
 | CommandCode | `api.commandcode.ai/alpha/billing/credits` + optional `…/subscriptions` (plan name) | `auth.commandcode` (oauth-shaped: `type`, `access`/`refresh`, `expires`; `access` is the `user_…` session key) or `COMMANDCODE_API_KEY` env fallback |
 
-Claude is aggressively rate-limited: prefer a fresh shared pi-hud cache, keep a
-last-known-good cache, honor `Retry-After` and a minimum 429 backoff, retain
+Claude is aggressively rate-limited: keep Kuota's own last-known-good cache
+(`~/.cache/kuota/claude.json`; the pi-hud shared cache is never read), honor `Retry-After` and a minimum 429 backoff, retain
 stale on failure. Codex uses normal HTTP first, falls back to stdin-configured
 curl on Cloudflare/TLS rejection, refreshes an expired OAuth token once, and
 persists refreshed auth atomically.
 
 Additional providers, cross-machine aggregation, history charts, notifications,
 account login/management, a permanent service, and KDE Store publication are
-**out of scope for V1**.
+**out of scope** unless the owner approves a spec and a PLAN.md milestone first.
+Deferred candidates (e.g. Meta Muse Code) are listed in PLAN.md *Deferred providers*.
 
 ## Workflow
 

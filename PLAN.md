@@ -1,7 +1,7 @@
 # Kuota Project Plan
 
 **Source of truth:** `docs/specs/2026-07-10-kuota-design.md` (approved for implementation by the project owner on 2026-07-10)  
-**Plan status:** G-14 passed; public source includes unreleased provider work. See the Gate Log and documentation/review checkpoint below.
+**Plan status (2026-09-25):** v1.3.0 released 2026-09-09 (M14 OpenCode + CommandCode, M15 window selectors, Cursor, Umans removal). M16 Claude hotfix merged to `main`, unreleased. Meta Muse Code deferred (see *Deferred providers*). Current state: *Handoff Block*.
 **Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, Cursor, OpenCode, and CommandCode. Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
 
 ## Approved Decisions
@@ -17,9 +17,9 @@
 9. Refreshes never overlap. Enabled providers are fetched concurrently with bounded timeouts, and one provider failure does not prevent successful provider records from updating.
 10. Collector output is one versioned normalized JSON document. QML validates the entire response before replacing its snapshot; malformed output is rejected without mixing old and new state.
 11. Last-known-good data survives transient failures and is marked stale. Supported provider states are `ok`, `stale`, `auth-needed`, and `error`.
-12. Claude prefers a fresh shared pi-hud cache, keeps its own safe cache, fetches live only when needed, honors `Retry-After` and minimum 429 backoff, and retains stale data on failure.
+12. Claude keeps its own safe cache (the pi-hud shared cache was dropped in M2.2; amended M16: Claude Code credentials first, Pi fallback), fetches live only when needed, honors `Retry-After` and minimum 429 backoff, and retains stale data on failure.
 13. Codex uses normal HTTP first, may fall back to curl through stdin configuration for Cloudflare/TLS rejection, refreshes an expired OAuth token once, and persists refreshed auth via latest-read atomic permission-preserving merge.
-14. Umans reports rolling-window requests, optional limits, reset/window data, concurrency, and optional concurrency limits; unlimited request plans show counts and timing only.
+14. *(Superseded 2026-08-02: Umans removed, see `docs/specs/2026-08-02-remove-umans-provider-design.md`.)* Umans reports rolling-window requests, optional limits, reset/window data, concurrency, and optional concurrency limits; unlimited request plans show counts and timing only.
 15. `~/.pi/agent/auth.json` is sensitive shared state. Caches contain usage only; temporary/cache writes use restrictive permissions; logs, fixtures, status text, stdout, and stderr contain no secrets or account identifiers.
 16. Plasma theme colors, sizing, typography, focus behavior, keyboard navigation, accessible labels, and light/dark legibility are release requirements.
 17. Local install/update/uninstall scripts, tests and secret-free fixtures, README, architecture notes, and a package artifact are V1 deliverables.
@@ -470,12 +470,12 @@
 7. **Resolved (2026-07-12):** Codex curl fallback is eligible only after native HTTP returns 401 or 403. Redirects classify as auth-needed without curl; abort, network, timeout, 429, 5xx, and malformed responses terminate without curl. Curl is invoked only as `curl --config -` with bounded execution and credentials supplied through stdin.
 8. **Resolved (2026-07-12):** A latest-read Codex auth merge requires the current Codex type, account ID, access token, and initiating refresh token to match before replacement; it preserves unrelated entries, unknown Codex fields, and mode, refuses identity/concurrency changes, and treats an already-equivalent refreshed entry as idempotent success.
 9. **Resolved (2026-07-12, owner-approved scope correction):** Replace the stale `https://chatgpt.com/backend-api/codex/usage` assumption with `https://chatgpt.com/backend-api/wham/usage`. Current OpenAI Codex backend-client source uses the `/wham/usage` ChatGPT path, corroborated by current captured payloads; the design spec was updated before M3.3.
-10. Which compact metric is the default for each provider, and which alternatives are user-selectable?
-11. What default caution/critical thresholds apply when a metric is a remaining percentage versus a used percentage or count?
+10. **Resolved (D-G6, 2026-07-18):** Compact metric defaults. See the D-G6 resolutions under Milestone 10.
+11. **Resolved (D-G6, 2026-07-18):** Thresholds apply to raw utilization. See D-G6 under Milestone 10.
 12. **Resolved (owner-approved 2026-07-13):** Multiple instances share one whole-collector normalized LKG envelope at `~/.cache/kuota/collector.json` and one whole-collection kernel advisory lock at `~/.cache/kuota/collector.lock`. M5 uses util-linux `/usr/bin/flock` through a bounded no-shell helper protocol for strict crash-releasing exclusion; active contention makes no live calls and returns cached stale data or safe errors. A pure secret-free configuration parser is added in M5, while production transport is deferred to the M6 bridge decision.
 13. **Resolved (verified 2026-07-14):** The target machine provides `kpackagetool6`, `plasmawindowed`, `plasmoidviewer`, `qmllint`, `qmlformat`, and Qt 6 `/usr/lib/qt6/bin/qmltestrunner`. `/usr/bin/qmltestrunner` is Qt 5 and must not be used for Plasma 6 tests. Keep collector tests under Node’s test runner.
-14. Are provider/account identifiers allowed internally in memory if fully excluded from normalized output, logs, fixtures, settings, and caches, or must they be minimized further?
-15. What artifact format/name/versioning convention is required for later KDE Store suitability?
+14. **Resolved (D-G6, 2026-07-18):** In-memory only, never persisted or emitted. See D-G6 under Milestone 10.
+15. **Deferred (out of V1):** What artifact format/name/versioning convention is required for later KDE Store suitability?
 
 ## Gate Log
 
@@ -509,21 +509,28 @@
 | M10.4-dialog | Live config-dialog smoke (D-G4 #1) | PASS | 2026-07-18. Interactive dialog (could not be verified headlessly). Appearance: Display mode change (icons+text → icons) persisted on reopen, compact panel reacted. Providers: unchecking Umans dropped the compact entry on Apply; recheck restored it. Thresholds: the M10.2 write-path guard fired correctly — attempting Caution ≥ Critical auto-adjusted the pair (Critical bumped to Caution+1) and showed the neutral-text warning "Caution must stay lower than critical. Adjusting values to keep the pair valid."; invalid pair could not be persisted. All three pages behaved as designed. |
 | G10 | Release candidate, local smoke test, and artifact verified | PASS | M10.1–M10.4 complete. Final gate 2026-07-18: typecheck 0, Node 462/0 (15 suites, incl. lifecycle blast-radius), Qt6 QML 266/0, validate:plasma 0 (qmllint clean), build:artifact 0 (`dist/artifact/kuota-v0.1.0.plasmoid`, 111 KB). Live collector smoke (D-G3): all 3 providers ok against real `~/.pi/agent/auth.json`, stderr empty, stdout secret-free. Live config-dialog smoke (D-G4 #1): Appearance/Providers/Thresholds all behaved; M10.2 threshold write-path guard confirmed. One combined `reviewer` `lane:deep` (dispatch 4/5): APPROVED WITH FIXES (no blockers); 2 should-fixes (fontScale clamp floor 1.0→0.5; README Security-boundaries G1-era freshness gap) + 1 nit (threshold boundary edge) self-verified per the one-judgment-fix-cycle rule. Open Q15 deferred (KDE-Store naming, out of V1). KDE Store publication remains blocked pending separate approval. |
 | G11 | Grok + Kimi adapters verified | PASS | M11.1–M11.4 complete. Final gate 2026-07-22: typecheck 0, Node 506/506 (15 suites), Qt 6 QML 268/268, validate:plasma 0, build:artifact 0, secret-scan clean (no credential surface added), git diff --check clean. Fresh `reviewer` `lane:deep` (run 1): BLOCKED on B1 — Grok usage parser normalized an invented flat shape while the fetch layer + live-verified pi-hud recon source prove the real wire shape (`config.monthlyLimit.val` / `config.used.val` / `config.billingPeriodEnd`; weekly raw `creditUsagePercent` gated on `currentPeriod.type`); each layer tested against mutually-incompatible fixtures with no fetch→usage integration test. Fix: parser rewritten to the real shape + dataless-monthly guard (recognized-nothing monthly → malformed, never a dataless ok record) + new integration test piping `fetchGrokUsage` output through `parseGrokUsageResponse` (now a standing rule for this provider pattern). Kimi nit fixed in the same round (concurrency only emitted when `parallel.details` is a real array; absent → omitted, never inferred 0; +2 focused tests). Re-review (run 2): **APPROVED-with-findings**, no Blocker/Should-fix — B1 resolved, verification independently reproduced 504/504 (506/506 after the nit tests). README + AGENTS reconciled to 5 providers. |
+| G-T | Appearance customization (1.2.0) | PASS | 2026-07-22. See Milestone 12 G-T evidence; includes the 1.1.0 QML-validator hotfix `fae5032`. |
+| G-13 | Compact layout UX batch (1.2.1) | PASS | 2026-07-22. See Milestone 13 exit-gate evidence. |
+| — | Umans removal + Cursor provider (2026-08-02) | Not gated in PLAN.md | Tracked only in `docs/specs/2026-08-02-*` and commits `3e7856b`…`b1cf7c1`; shipped in v1.3.0. No milestone, counters, or gate row were recorded at the time. |
+| G-14 | OpenCode + CommandCode (1.3.0) | PASS | 2026-09-01. See Milestone 14 gate evidence. |
+| G-P1 | Review reliability fixes #1, #3, #4 | PASS (code review) | 2026-09-09. PR #11 merged; issues #1/#3/#4 closed. #2 (live Cursor WAL re-login smoke) stays open. See G-P1 closure. |
+| M15 | Window selectors for all providers | Evidence only, no independent review | 2026-09-05. See Milestone 15; shipped in v1.3.0 (`a94fb1f`, release `913962b`). |
+| M16 | Claude shape drift + Claude Code credentials | PASS | 2026-09-25. Independent review APPROVED WITH FIXES, fix round applied; `rm -rf dist && npm test` 641/641, typecheck 0; live panel confirmed by owner. Merged to `main` (`f92507b`), unreleased. |
 
 ## Handoff Block
 
-- **Current gate:** G11 — PASS (1.1.0 Grok + Kimi providers complete and merged to `main` 2026-07-22, `c97c755`; owner-approved post-merge).
-- **Next action:** None for 1.1.0 (shipped on `main`; `crew/m11-grok-kimi` retained, not deleted). Next version candidate is 1.2.0 (theming/customization — spec approved, M12 structured). Two carried decisions remain candidate-deferred (l10n system choice; Q15 KDE-Store naming). No remote is configured, so there is no PR/release step pending.
-- **Resolved blocker (2026-07-12):** The failures were model/provider stream failures that the watchdog correctly contained, but the fallback classifier did not treat watchdog aborts or MiniMax's missing-usage `input_tokens` TypeError as retryable. `pi-subagents` now classifies those two narrow failures for configured model fallback; recon falls back to Luna and worker falls back to Terra. Typecheck, 380 extension tests, Biome, and a fresh-process foreground no-op delegation pass.
-- **Completed M6 entry prerequisite (2026-07-13):** Durable real-process lock tests now cover crash, startup cleanup, symlink/untrusted helper, exact argv/environment, descriptor/artifact cleanup, and stubborn-holder forced-timeout cleanup. The discovered orphan defect was fixed at the flock boundary with `-F`; independent full gate is 440/440 green.
-- **Required inputs before execution:** Use only synthetic auth/cache/fetch seams; never log or echo tokens, headers, bodies, account identifiers, native errors, or credential-file contents.
-- **Executor rules:** Work milestone-by-milestone; follow task dependencies; write tests first where required; keep secrets out of all artifacts; stop on contract/security ambiguity rather than guessing.
-- **Review protocol:** G6 completed with one fresh deep combined review. Its single Blocker was a shared-HOME test-isolation defect, corrected directly because the outcome had reached its 5/5 dispatch ceiling; focused stress, three full-suite runs, and the final complete gate are green. No repeat review.
+*Refreshed 2026-09-25. It replaces the G11-era block; earlier handoff notes are historical, and the Gate Log is the evidence of record.*
+
+- **Released:** v1.3.0 (`913962b`, 2026-09-09). Seven providers: Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode.
+- **On `main`, unreleased:** M16 Claude hotfix (`5571900`, `f055da1`, `f92507b`), listed under CHANGELOG `[Unreleased]`. Installed locally from `dist/artifact/kuota-v1.3.0.plasmoid`. Cutting a release (e.g. 1.3.1) needs separate owner approval.
+- **Open GitHub issues:** #2 [P1] live Cursor WAL re-login smoke (code fix merged in PR #11; the owner-approved live smoke is pending), plus #5–#9 (P2/P3 enhancements, not started).
+- **Deferred:** Meta Muse Code provider (see *Deferred providers*); l10n/KI18n catalog choice; Q15 KDE-Store artifact naming.
+- **Remote:** `origin` = `github.com/DarkoKuzmanovic/kuota` (public). Push, PR, release, and KDE Store publication each need explicit owner approval.
+- **Executor rules:** Work milestone-by-milestone. Write tests first. Keep secrets out of all artifacts. Run gates sequentially under a synthetic `HOME`. Stop on contract/security ambiguity rather than guessing.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
 - **Stop conditions:** Credential exposure, auth-file truncation/mode change, overlapping refresh, malformed snapshot acceptance, unbounded provider call, or any pressure to publish without separate approval.
-- **Completion definition:** G0–G10 pass, all milestone exit gates are satisfied, live smoke tests are recorded, a reproducible artifact is produced, and KDE Store publication remains explicitly unperformed.
 
-## Handoff — 2026-07-22
+## Handoff — 2026-07-22 (historical; superseded by the Handoff Block above)
 
 **Done:** 1.0.0 (V1) shipped locally and merged to main 2026-07-18. Milestones 1–10 complete: all gates G0–G10 PASS, 3-provider collector (Claude/Umans/Codex) verified against real `~/.pi/agent/auth.json` (D-G3), live config-dialog smoke clean (D-G4 #1), reproducible artifact `dist/artifact/kuota-v0.1.0.plasmoid`. Historical M6-era handoff notes (previously here) are superseded by the Gate Log, which is the evidence of record.
 
@@ -549,9 +556,9 @@
 
 **Depends on:** Milestones 1–10 (V1 shipped). Reuses the proven M4 Umans adapter pattern (auth → one bounded fetch → normalize → register, no persistence).
 
-**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 3
+**Counters:** reviews: 2 (G11 run 1 BLOCKED, run 2 APPROVED; corrected 2026-09-25 from the stale 0) · fix-cycles: 1 (B1 + Kimi nit round) · oracle: 0 · direct-edits: 3
 
-**Run metrics:** started-at: 2026-07-22 · first-worker-at: 2026-07-22 · dispatches: 1 · review-bundles: 0 · review-dispatches: 0 · worker-retries: 0 · oracle: 0 · completed-outcomes: 0 · child-runtime-minutes: 0
+**Run metrics (as of the first dispatch; not updated afterwards):** started-at: 2026-07-22 · first-worker-at: 2026-07-22 · dispatches: 1 · review-bundles: 0 · review-dispatches: 0 · worker-retries: 0 · oracle: 0 · completed-outcomes: 0 · child-runtime-minutes: 0
 
 ### Recon facts (live-verified 2026-07-17, from pi-hud)
 
@@ -1002,12 +1009,14 @@ repository has no Actions workflows; no hosted CI result or spending is claimed.
 Docs PR #10 is merged. The code PR may be published, but merging it and deploying
 remain separate decisions. Local selector commit `3c123bd` remains excluded.
 
+**Follow-up (2026-09-25):** PR #11 merged 2026-09-08 (`47fc011`) and closed issues #1/#3/#4. The selector work landed separately as M15 (`a94fb1f`). Issue #2's live smoke is still open.
+
 **Final G-P1 counters (supersede the preliminary entries):** implementation/fix
 worker dispatches: 2 · independent review dispatches: 2 · review-driven
 correction cycles: 1 · original vertical RED→GREEN slices: 7 · oracle: 0 ·
 code/test change sets: 2 · parent gate-closure documentation change sets: 1.
 
-## Milestone 15 (unlabeled; rides the next release) — Window selectors for all providers
+## Milestone 15 (shipped in v1.3.0) — Window selectors for all providers
 
 **Outcome:** Every provider with more than one genuinely meaningful usage
 window gets a settings selector for which counter the compact panel displays;
@@ -1085,6 +1094,7 @@ configurable source.
     dropped silently instead of failing the whole payload. This is deliberate
     (partial failure beats total failure) but hides that drift.
   - **Evidence:** `rm -rf dist && npm test` 638/638; `npm run typecheck` exit 0.
+    After the review fix round: 641/641.
 
 - **Independent review (2026-09-25):** APPROVED WITH FIXES — 0 Blocker / 0
   Major / 4 Minor / 4 Nit. Fix round applied: spec amended (source order +
@@ -1094,3 +1104,30 @@ configurable source.
 
 **Counters:** reviews: 1 · fix-cycles: 1 · oracle: 1 (advisor, pre-implementation
 approach check) · direct-edits: 2.
+
+**Close-out (2026-09-25):** Merged to `main` with owner approval; worktree and branch removed. The owner confirmed on the live panel that Claude no longer shows stale data. Release pending separate approval.
+
+## Deferred providers
+
+### Meta Muse Code — deferred 2026-09-25 (owner decision)
+
+**Request:** Add Muse (Meta Muse Code) to Kuota and pi-hud.
+**Decision:** Do not implement. Revisit when Meta ships a read-only usage/quota endpoint.
+
+**Findings (2026-09-25; shape-only probes, no credential values recorded):**
+- The Model API (`https://api.meta.ai/v1`) documents no usage, billing, or quota endpoint.
+  Read-only `GET /v1/models` and `GET /v1/status` return 200 with no `x-ratelimit-*` or usage headers.
+  Rate-limit headers appear only on paid model calls, so polling them would spend tokens. They are also per-minute, not quota.
+- The Muse Code TUI `/usage` data ("Current X% / Weekly X% used · Resets …") comes from
+  `POST https://api.meta.ai/muse-code/key`. That call **mints a new ~24h Model API key** on every
+  invocation (pi's `meta` OAuth refresh uses it). Polling it would mutate credentials on every refresh,
+  which is a Kuota stop condition. Installing the Muse Code CLI would not change this; it uses the same call.
+- The `dev.meta.ai/usage` dashboard shows pay-as-you-go Model API spend/tokens, not the Muse Code
+  Current/Weekly quota. It is server-rendered behind a Meta browser session: the only client fetches are
+  `/api/auth/me`, `/monitoring`, and `/api/falco`. Scraping it would need the Meta account session cookie.
+  That is fragile, and the credential scope is too broad. `/billing` rendered no readable content.
+- pi stores `auth.meta = {type:"oauth", refresh, access, expires}`. The identity token (`refresh`) is not renewable.
+
+**Revisit trigger:** A documented read-only endpoint (or response headers on a free call) that returns
+the Current/Weekly windows. It must be authenticated with the stored Muse credential and must not mint keys.
+Sources: dev.meta.ai/docs (overview, pricing-rate-limits, muse-code/auth); quota-axi#277; AgEnD#851.
