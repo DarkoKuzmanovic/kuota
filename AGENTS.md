@@ -1,7 +1,7 @@
 # Agent Instructions — Kuota
 
 Kuota is a standalone KDE Plasma 6 widget that keeps Claude, Codex, Grok, Kimi,
-Cursor, OpenCode, and CommandCode account usage visible on the desktop without requiring a running Pi session. It
+Cursor, OpenCode, and CommandCode account usage visible on the desktop without requiring Pi or any other agent harness. It
 reports authoritative provider data — it does **not** estimate quota from local
 activity.
 
@@ -40,11 +40,17 @@ settings, command arguments, stdout, stderr, logs, or caches.
 
 These are hard rules. Violating any of them is a stop condition, not a fix.
 
-- `~/.pi/agent/auth.json` is sensitive shared state. Reads are local and never
-  copied into the project. Only Codex token refresh writes back, and it must be
-  a latest-read, atomic, permission-preserving merge that keeps unrelated
-  entries and the existing file mode.
-- Collector stdout is **exactly one JSON document per invocation** — nothing else.
+- Kuota never reads or writes `~/.pi/agent/auth.json` (M17). Its own logins
+  live in `$XDG_CONFIG_HOME/kuota/credentials.json` (dir 0700, file forced to
+  0600 on every write), written only by `kuota login/logout` and by refresh of
+  Kuota's own Codex/Grok/Kimi entries — always a latest-read, atomic merge that
+  keeps unrelated entries. Other tools' logins (Claude Code, Codex CLI, Cursor)
+  are read-only and are never refreshed: refreshing would rotate their tokens.
+- API keys are never accepted as argv. `login` reads them hidden from the TTY or
+  from piped stdin.
+- Collector stdout in collection mode is **exactly one JSON document per
+  invocation** — nothing else. (`login|logout|status` are human-facing, never
+  launched by the widget, and still never print a secret.)
   Stderr carries only redacted diagnostics. Diagnostics never include the
   rejected raw value, authorization headers, tokens, refresh tokens, account
   IDs, or curl configuration.
@@ -137,13 +143,13 @@ PLAN.md                Milestone/gate plan — normative for scope and sequencin
 
 | Provider | Source | Credential source |
 |---|---|---|
-| Claude | `api.anthropic.com/api/oauth/usage` | Claude Code `~/.claude/.credentials.json` `claudeAiOauth` first (read-only; never refreshed — refreshing would rotate Claude Code's refresh token), then `auth.anthropic` (oauth) |
-| Codex | `chatgpt.com/backend-api/wham/usage` | `auth["openai-codex"]` (oauth, +accountId, refresh, expires) |
-| Grok | `cli-chat-proxy.grok.com/v1/billing` | `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` (oauth); `GROK_CLI_OAUTH_TOKEN` fallback |
-| Kimi | `api.kimi.com/coding/v1/usages` | `auth["kimi-coding"]` (oauth or api_key); `KIMI_API_KEY` fallback |
+| Claude | `api.anthropic.com/api/oauth/usage` | Claude Code `~/.claude/.credentials.json` `claudeAiOauth` only (read-only; never refreshed — refreshing would rotate Claude Code's refresh token). No Kuota Claude login (ToS risk). |
+| Codex | `chatgpt.com/backend-api/wham/usage` | store `codex` (oauth, +accountId, refresh, expires; `kuota login codex` device flow), then Codex CLI `~/.codex/auth.json` `tokens.access_token`+`account_id` read-only, no refresh |
+| Grok | `cli-chat-proxy.grok.com/v1/billing` | store `grok` (oauth; device flow; refreshed on expiry); `GROK_CLI_OAUTH_TOKEN` fallback |
+| Kimi | `api.kimi.com/coding/v1/usages` | store `kimi` (oauth device flow, refreshed on expiry, or api_key); `KIMI_API_KEY` fallback |
 | Cursor | `cursor.com/api/usage-summary` (unofficial dashboard) | Local `~/.config/Cursor/User/globalStorage/state.vscdb` (`cursorAuth/accessToken`); `CURSOR_SESSION_TOKEN` fallback. **Not** `auth.json`; session is never persisted by Kuota. Requires system `sqlite3` for local discovery. |
-| OpenCode | `opencode.ai/zen/go/v1/usage` (hosted OpenCode Go only, not Zen/other surfaces) | `auth["opencode-go"]` (cli-api `type` + `key`) first, `auth.opencode` alias second, `OPENCODE_API_KEY` env fallback |
-| CommandCode | `api.commandcode.ai/alpha/billing/credits` + optional `…/subscriptions` (plan name) | `auth.commandcode` (oauth-shaped: `type`, `access`/`refresh`, `expires`; `access` is the `user_…` session key) or `COMMANDCODE_API_KEY` env fallback |
+| OpenCode | `opencode.ai/zen/go/v1/usage` (hosted OpenCode Go only, not Zen/other surfaces) | store `opencode` (`api_key` + `key`), `OPENCODE_API_KEY` env fallback |
+| CommandCode | `api.commandcode.ai/alpha/billing/credits` + optional `…/subscriptions` (plan name) | store `commandcode` (`api_key` + `key`; the `user_…` key) or `COMMANDCODE_API_KEY` env fallback |
 
 Claude is aggressively rate-limited: keep Kuota's own last-known-good cache
 (`~/.cache/kuota/claude.json`; the pi-hud shared cache is never read), honor `Retry-After` and a minimum 429 backoff, retain

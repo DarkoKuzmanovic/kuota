@@ -1,11 +1,12 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 import {
   JsonFileError,
   readJsonFile,
   type JsonFileErrorKind,
 } from "../../io/json-file.js";
+import { resolveKuotaCredentialsPath } from "../../credentials/store.js";
 
 /** Constant safe text for mapping Codex credential state later. */
 export const CODEX_AUTH_STATUS_TEXT = {
@@ -86,8 +87,11 @@ export type CodexAuthClock = () => number;
 export interface CodexAuthOptions {
   /** Used only when authPath is omitted; no filesystem lookup occurs here. */
   readonly homeDirectory?: string;
-  /** Exact path override, useful for isolated callers and tests. */
+  /** Exact Kuota store path override, useful for isolated callers and tests. */
   readonly authPath?: string;
+  /** Exact Codex CLI auth path override; defaults to $CODEX_HOME/auth.json or ~/.codex/auth.json. */
+  readonly codexCliAuthPath?: string;
+  readonly environment?: Readonly<Record<string, string | undefined>>;
   /** Defaults to the safe no-follow JSON reader. */
   readonly readJsonFile?: CodexAuthReader;
   /** Epoch milliseconds used for OAuth expiry classification. */
@@ -276,19 +280,78 @@ function classifyCredential(entry: unknown, now: CodexAuthClock): CodexAuthResul
   }
 }
 
-export function resolveCodexAuthPath(homeDirectory: string): string {
-  return join(homeDirectory, ".pi", "agent", "auth.json");
+export function resolveCodexAuthPath(
+  homeDirectory: string,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): string {
+  return resolveKuotaCredentialsPath(homeDirectory, environment);
 }
 
-/** Reads and classifies only the openai-codex entry from Pi's auth file. */
+export function resolveCodexCliAuthPath(
+  homeDirectory: string,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): string {
+  const codexHome = environment.CODEX_HOME;
+  return codexHome !== undefined && codexHome.length > 0 && isAbsolute(codexHome)
+    ? join(codexHome, "auth.json")
+    : join(homeDirectory, ".codex", "auth.json");
+}
+
+/**
+ * Codex CLI login, read-only: `tokens.access_token` + `tokens.account_id`.
+ * No refresh token is ever extracted, so Kuota can never rotate Codex CLI's
+ * token chain; an expired CLI token surfaces as auth-needed via the usage call.
+ */
+function classifyCodexCliDocument(document: unknown): CodexOAuthCredential | undefined {
+  try {
+    if (!isPlainRecord(document)) return undefined;
+    const tokens = ownValue(document, "tokens");
+    if (tokens === MISSING || !isPlainRecord(tokens)) return undefined;
+    const access = ownValue(tokens, "access_token");
+    const accountId = ownValue(tokens, "account_id");
+    if (!isNonEmptyString(access) || !isNonEmptyString(accountId)) return undefined;
+    return { access, accountId };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Reads Kuota's own `codex` entry first; when the store or entry is absent,
+ * adopts an available Codex CLI credential read-only. Spec:
+ * docs/specs/2026-10-02-standalone-credentials-design.md.
+ */
 export async function readCodexAuth(
   options: CodexAuthOptions = {},
 ): Promise<CodexAuthResult> {
-  const path =
-    options.authPath ??
-    resolveCodexAuthPath(options.homeDirectory ?? homedir());
+  const home = options.homeDirectory ?? homedir();
+  const environment = options.environment ?? process.env;
+  const path = options.authPath ?? resolveCodexAuthPath(home, environment);
   const read = options.readJsonFile ?? ((filePath: string) => readJsonFile(filePath));
 
+  const own = await readOwnCodexAuth(path, read, options.now ?? Date.now);
+  if (own.state !== "auth-needed" || (own.reason !== "missing-file" && own.reason !== "missing-entry")) {
+    return own;
+  }
+
+  let cli: CodexOAuthCredential | undefined;
+  try {
+    cli = classifyCodexCliDocument(
+      await read(options.codexCliAuthPath ?? resolveCodexCliAuthPath(home, environment)),
+    );
+  } catch {
+    cli = undefined;
+  }
+  return cli === undefined
+    ? own
+    : { state: "available", status: CODEX_AUTH_STATUS_TEXT.available, credential: cli };
+}
+
+async function readOwnCodexAuth(
+  path: string,
+  read: CodexAuthReader,
+  now: CodexAuthClock,
+): Promise<CodexAuthResult> {
   let document: unknown;
   try {
     document = await read(path);
@@ -301,10 +364,10 @@ export async function readCodexAuth(
   try {
     if (!isPlainRecord(document)) return errorResult("auth-file-not-object");
 
-    const codex = ownValue(document, "openai-codex");
+    const codex = ownValue(document, "codex");
     if (codex === MISSING) return authNeeded("missing-entry");
 
-    return classifyCredential(codex, options.now ?? Date.now);
+    return classifyCredential(codex, now);
   } catch {
     return errorResult("auth-file-not-object");
   }

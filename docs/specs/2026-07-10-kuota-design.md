@@ -184,6 +184,8 @@ Kuota treats `~/.pi/agent/auth.json` as sensitive shared state.
 - Logs and test fixtures redact authorization headers, tokens, refresh tokens, and account identifiers.
 - The widget does not provide login or account-management controls in v1.
 
+> **M17 amendment (2026-10-02)** — Kuota no longer reads or writes `~/.pi/agent/auth.json`. It keeps its own credential store and offers `login`/`logout`/`status` CLI commands, with read-only fallbacks to Claude Code, Codex CLI, Cursor and env vars. See [`2026-10-02-standalone-credentials-design.md`](2026-10-02-standalone-credentials-design.md); where it conflicts with this section and the provider sources above, the amendment wins.
+
 ## Configuration
 
 The first release exposes:
@@ -275,7 +277,7 @@ Publishing to the KDE Store is a separate, explicitly approved release step.
 - cross-machine aggregation;
 - long-term historical charts;
 - notifications;
-- account login or account management;
+- account login or account management (superseded by the M17 amendment: CLI login for Kuota's own credentials);
 - a permanent background service;
 - KDE Store publication.
 

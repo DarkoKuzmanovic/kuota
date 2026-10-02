@@ -1,15 +1,18 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
 
 import {
   JsonFileError,
   readJsonFile,
   type JsonFileErrorKind,
 } from "../../io/json-file.js";
+import { refreshFields, resolveKuotaCredentialsPath } from "../../credentials/store.js";
 
 export interface KimiOAuthCredential {
   readonly kind: "oauth";
   readonly value: string;
+  /** Present only for Kuota-store logins. */
+  readonly refresh?: string;
+  readonly expires?: number;
 }
 
 export interface KimiApiKeyCredential {
@@ -71,7 +74,7 @@ function classifyEntry(entry: unknown): KimiAuthResult {
   if (type === "oauth") {
     const access = ownValue(entry, "access");
     return nonEmptyString(access)
-      ? { state: "available", credential: { kind: "oauth", value: access } }
+      ? { state: "available", credential: { kind: "oauth", value: access, ...refreshFields(entry) } }
       : { state: "auth-needed", reason: "malformed-entry" };
   }
   if (type === "api_key") {
@@ -100,11 +103,14 @@ function environmentCredential(environment: Readonly<Record<string, string | und
     : undefined;
 }
 
-export function resolveKimiAuthPath(homeDirectory: string): string {
-  return join(homeDirectory, ".pi", "agent", "auth.json");
+export function resolveKimiAuthPath(
+  homeDirectory: string,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): string {
+  return resolveKuotaCredentialsPath(homeDirectory, environment);
 }
 
-/** Reads only auth["kimi-coding"] and never exposes a rejected credential in its outcome. */
+/** Reads only Kuota's `kimi` store entry and never exposes a rejected credential in its outcome. */
 export async function readKimiAuth(options: KimiAuthOptions = {}): Promise<KimiAuthResult> {
   const path = options.authPath ?? resolveKimiAuthPath(options.homeDirectory ?? homedir());
   const read = options.readJsonFile ?? ((filePath: string) => readJsonFile(filePath));
@@ -116,7 +122,7 @@ export async function readKimiAuth(options: KimiAuthOptions = {}): Promise<KimiA
   }
   if (document === undefined) return environmentCredential(options.environment) ?? { state: "auth-needed", reason: "missing-file" };
   if (!isPlainRecord(document)) return { state: "error", reason: "auth-file-not-object" };
-  const result = classifyEntry(ownValue(document, "kimi-coding"));
+  const result = classifyEntry(ownValue(document, "kimi"));
   if (result.state === "available") return result;
   if (result.reason === "missing-entry" || result.reason === "unsupported-entry") {
     return environmentCredential(options.environment) ?? result;

@@ -36,6 +36,13 @@ for (const behavior of ['normal', 'hang', 'overflow', 'stderr-overflow', 'failed
       const auth = join(parentHome, '.pi/agent/auth.json');
       const authCanary = JSON.stringify({ anthropic: { type: 'oauth', access: 'synthetic-anthropic' }, 'openai-codex': { type: 'oauth', access: 'synthetic-codex', refresh: 'synthetic-refresh', expires: 0, accountId: 'synthetic-account' } });
       writeFileSync(auth, authCanary);
+      // Spec 2026-10-02-standalone-credentials-design.md risk 4: Kuota store + Codex CLI canaries.
+      const ownCanaries = [join(parentHome, 'kuota/credentials.json'), join(parentHome, '.config/kuota/credentials.json'), join(parentHome, '.codex/auth.json')];
+      const ownCanary = JSON.stringify({ codex: { type: 'oauth', access: 'synthetic-own-codex', refresh: 'synthetic-own-refresh', expires: 0, accountId: 'synthetic-account' }, tokens: { access_token: 'synthetic-cli', account_id: 'synthetic-account' } });
+      for (const path of ownCanaries) {
+        mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+        writeFileSync(path, ownCanary, { mode: 0o600 });
+      }
       const cache = join(parentHome, '.cache/canary');
       writeFileSync(cache, 'unchanged');
       const trace = join(root, 'trace');
@@ -72,6 +79,7 @@ for (const behavior of ['normal', 'hang', 'overflow', 'stderr-overflow', 'failed
       }
       assert.equal(readFileSync(auth, 'utf8') === authCanary, true, 'parent auth unchanged');
       assert.equal(readFileSync(cache, 'utf8'), 'unchanged');
+      for (const path of ownCanaries) assert.equal(readFileSync(path, 'utf8'), ownCanary, 'parent Kuota/Codex CLI credentials unchanged');
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 }

@@ -1107,6 +1107,40 @@ approach check) · direct-edits: 2.
 
 **Close-out (2026-09-25):** Merged to `main` with owner approval; worktree and branch removed. The owner confirmed on the live panel that Claude no longer shows stale data. Release pending separate approval.
 
+## Milestone 17 — Standalone credentials (drop Pi auth, `kuota login`)
+
+**Trigger (2026-10-02):** Codex shows "Authentication required". Pi 0.99.0 renamed
+`openai-codex` to "Sign in with ChatGPT" on `openai`, and that token can't call the
+usage endpoint. The owner approved making Kuota independent of Pi, with a public
+release in mind.
+
+**Spec:** [`docs/specs/2026-10-02-standalone-credentials-design.md`](docs/specs/2026-10-02-standalone-credentials-design.md)
+(approval sources recorded in its header). Interim workaround: in Pi, `/login` →
+"OpenAI Codex (legacy)".
+
+Vertical slices, test-first, synthetic HOME + XDG, sequential gates:
+
+Owner chose device-code sign-in for Codex (browser PKCE only if the account blocks it).
+Worktree `.worktrees/feat-m17-standalone-credentials` (branch `feat/m17-standalone-credentials`, base `35f9059`); baseline 641/641.
+
+- [x] **M17.1 — Credential store:** `credentials/store.ts` — flat `{<id>: entry}` file, XDG path, reuses the trusted-parent 0700 dir helper and latest-read `updateJsonFile` with forced 0600. RED was missing-module (no behavioral RED possible for a new module) → GREEN 648.
+- [x] **M17.2 — Codex:** store `codex` entry → Codex CLI `~/.codex/auth.json` (`$CODEX_HOME`) read-only, only `access_token`+`account_id` extracted (no refresh token ⇒ never refreshed). `persist.ts` targets the store (`codex` key, 0600). Codex CLI fallback tests added.
+- [x] **M17.3 — API-key providers:** OpenCode/CommandCode/Kimi read store then env; Pi entry names no longer read (tests assert Pi keys are ignored).
+- [x] **M17.4 — Grok + Kimi OAuth refresh:** `refresh-store-oauth.ts` refreshes expired store logins via the bounded Codex refresh (new form-encoded client option) and persists through `persist.ts` (`entryKey`). Behavioral RED (adapters lacked the seam) → GREEN.
+- [x] **M17.5 — Claude:** Pi fallback removed; `readClaudeAuth` = Claude Code only. Behavioral RED 638/639 → GREEN. Pi-shaped auth tests replaced by whole-file failure-mapping tests on the Claude Code reader.
+- [x] **M17.6 — CLI:** `login|logout|status` in `login/command.ts`; dispatched from `cli.ts` before collection-mode argv parsing. Implemented before its tests (honest: no RED); two mutation checks run afterwards — argv-key refusal (caught) and https-only verification URI (initially survived → test strengthened → caught).
+- [x] **M17.7 — UI + docs:** auth-needed message names the fix per provider (`full-model.js`, closed allowlist). QML RED 3 failed → GREEN 346. README, AGENTS.md, overview, main-spec pointers, artifact-isolation canaries (Kuota store + Codex CLI) updated.
+- [x] **Gate G-17 — PASSED 2026-10-02:** full gate set ✅ · independent review ✅ · owner live check ✅ ("All good now", after installing the build and signing in). Released as **2.0.0** (breaking: Pi credentials no longer read).
+
+**G-17 evidence (isolated env, Node v26.7.0, sequential, `dist/` cleaned between):** `npm run typecheck` exit 0 · `npm test` 657/657 · `npm run test:qml` Totals 346 passed / 0 failed · `npm run validate:plasma` exit 0 · `npm run build:artifact` → `kuota-v1.3.0.plasmoid`. Packaged-CLI smoke in a synthetic HOME: `status` lists no values; argv key → exit 2, nothing written; piped key → store dir 0700 / file 0600; `--enabled-providers=codex,claude` → one JSON document, both auth-needed; `logout` → `{}`. Agent-observed live: packaged collector with the real HOME and **no Kuota store** → Codex `ok` (primary window) via the read-only Codex CLI fallback.
+
+**Next:** M18 — widget sign-in buttons driving the same flows (spec required first).
+
+- **Independent review (2026-10-02, read-only subagent):** APPROVED WITH FIXES — 0 Blocker / 1 Major / 4 Minor / 2 Nit. Verified safe: no secret reaches stdout/stderr/QML/argv/caches; Codex CLI fallback can never be refreshed or written; store write path; device-flow handling; QML hints. Fix round: Major `AbortSignal.any` (needs Node ≥20.3 vs engines `>=20`) → manual AbortController timeout; login responses now stream with a 64 KiB cap; oversized piped stdin no longer resolves silently; `--api-key` accepted for all key providers; persist type moved below imports; spec notes that a malformed Kuota `codex` entry deliberately shadows the Codex CLI fallback; added scanner test over all login/status output, malformed-store status, oversized response. Deferred: a `main()` argv-dispatch test (`main` reads `process.argv`; covered by the packaged-CLI smoke instead).
+- **After fixes:** typecheck exit 0 · `npm test` 661/661 · QML 346/346 · `validate:plasma` exit 0 · `build:artifact` exit 0.
+
+**Counters:** reviews: 1 · fix-cycles: 1 · oracle: 0 · direct-edits: 8.
+
 ## Deferred providers
 
 ### Meta Muse Code — deferred 2026-09-25 (owner decision)

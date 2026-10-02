@@ -7,7 +7,7 @@ Kuota shows the usage windows, reset times, and account limits reported by
 compact summary in your panel and open the detail view when you need the full
 picture. The same detail view works as a desktop widget.
 
-No running Pi session, permanent collector service, or runtime npm dependencies.
+No Pi installation, permanent collector service, or runtime npm dependencies.
 Kuota reads existing credentials locally; it does not estimate account quota
 from your prompts, token logs, or local activity.
 
@@ -39,7 +39,7 @@ bar.
 ## Project status
 
 The source is public on [GitHub](https://github.com/DarkoKuzmanovic/kuota).
-Package metadata currently says **1.3.0** (released 2026-09-01); the
+Package metadata currently says **2.0.0** (released 2026-10-02); the
 [changelog](CHANGELOG.md) tracks the full history back to 1.0.0.
 
 There are no GitHub release assets or tags as of this documentation review.
@@ -92,8 +92,8 @@ live-account smoke test. See the [approved reliability amendment](docs/specs/202
 The build produces:
 
 ```text
-dist/artifact/kuota-v1.3.0/           unpacked Plasma package
-dist/artifact/kuota-v1.3.0.plasmoid  verified installable archive
+dist/artifact/kuota-v2.0.0/           unpacked Plasma package
+dist/artifact/kuota-v2.0.0.plasmoid  verified installable archive
 ```
 
 The installer installs or upgrades the package for your user. Open Plasma's
@@ -117,25 +117,42 @@ scripts/uninstall.sh
 ```
 
 This removes the package `io.github.darkokuzmanovic.kuota` and
-`~/.cache/kuota/`. It does not delete Pi credentials or edit Plasma's global
-configuration.
+`~/.cache/kuota/`. It does not delete Kuota's own logins
+(`~/.config/kuota/credentials.json`; remove them with `kuota logout <provider>`
+or delete the file) or edit Plasma's global configuration.
 
 ## Providers and credentials
 
-In the table below, **`auth` means the root JSON object** in
-`~/.pi/agent/auth.json`, not an extra `auth` wrapper. Kuota does not provide a
-login UI. Use the appropriate client to sign in; never put tokens in widget
-settings, command arguments, issues, or screenshots.
+Kuota keeps its own logins in `~/.config/kuota/credentials.json`
+(`$XDG_CONFIG_HOME/kuota/`; file mode 0600, directory 0700). It does not read
+Pi's `auth.json`. Sign in once per provider from a terminal with the bundled
+collector; a short alias helps:
 
-| Provider | Data available when returned by the provider | Credential discovery |
+```bash
+alias kuota='node ~/.local/share/plasma/plasmoids/io.github.darkokuzmanovic.kuota/contents/code/collector/cli.js'
+kuota login codex        # ChatGPT: open the printed URL, enter the code
+kuota login grok         # SuperGrok / X Premium, same flow
+kuota login kimi         # Kimi Code (or: kuota login kimi --api-key)
+kuota login opencode     # paste an API key (hidden), or pipe it on stdin
+kuota login commandcode  # paste an API key
+kuota status             # which source each provider uses (never values)
+kuota logout codex
+```
+
+Keys are never accepted as command arguments (they would show in `ps`). Never
+put tokens in widget settings, issues, or screenshots. Kuota renews its own
+Codex, Grok, and Kimi logins; it never refreshes or writes another tool's
+login. Codex device sign-in must be allowed for your ChatGPT account.
+
+| Provider | Data available when returned by the provider | Credential sources, in order |
 |---|---|---|
-| **Claude** | Session/weekly utilization, reset times, model-specific windows and extra-usage facts. | Claude Code's `~/.claude/.credentials.json` (`claudeAiOauth`, needs `user:profile` scope) first, then Pi's `auth.anthropic` (OAuth). Read-only: Kuota never refreshes either token. Uses a fresh Kuota-owned cache before a live fetch. |
-| **Codex** | Primary/secondary usage windows, resets, plan/credit facts. | `auth["openai-codex"]`, OAuth access plus account ID; refresh metadata enables one refresh attempt. |
-| **Grok** | Monthly credits and an optional weekly window. | `auth.xai`, `auth["xai-auth"]`, or `auth["grok-cli"]`; `GROK_CLI_OAUTH_TOKEN` fallback. |
-| **Kimi** | Weekly and short-window usage, resets, concurrency facts. | `auth["kimi-coding"]`, OAuth or API key; `KIMI_API_KEY` fallback. |
-| **Cursor** | Included-plan spend share, billing reset, membership and on-demand usage facts. | Local Cursor `state.vscdb` session first, then `CURSOR_SESSION_TOKEN`. Does **not** use Pi's auth file. |
-| **OpenCode Go** | Hosted Go plan: rolling 5-hour, weekly, and monthly percentages with resets. Not arbitrary OpenCode/Zen/API spend. | `auth["opencode-go"]`, then `auth.opencode`; `OPENCODE_API_KEY` fallback. Supports `api`/`api_key` + `key`, or `oauth` + `access`. |
-| **CommandCode** | Five-hour and optional weekly windows; monthly/purchased/free credit facts and optional plan name. | `auth.commandcode`: OAuth-shaped `access` or `api_key` + `key`; `COMMANDCODE_API_KEY` fallback. |
+| **Claude** | Session/weekly utilization, reset times, model-specific windows and extra-usage facts. | Claude Code's `~/.claude/.credentials.json` (`claudeAiOauth`, needs `user:profile` scope). Read-only, never refreshed; sign in with Claude Code. Uses a fresh Kuota-owned cache before a live fetch. |
+| **Codex** | Primary/secondary usage windows, resets, plan/credit facts. | `kuota login codex`; then the Codex CLI's `~/.codex/auth.json` (`$CODEX_HOME`), read-only and never refreshed. |
+| **Grok** | Monthly credits and an optional weekly window. | `kuota login grok`; `GROK_CLI_OAUTH_TOKEN` fallback. |
+| **Kimi** | Weekly and short-window usage, resets, concurrency facts. | `kuota login kimi` (OAuth or `--api-key`); `KIMI_API_KEY` fallback. |
+| **Cursor** | Included-plan spend share, billing reset, membership and on-demand usage facts. | Local Cursor `state.vscdb` session first, then `CURSOR_SESSION_TOKEN`. |
+| **OpenCode Go** | Hosted Go plan: rolling 5-hour, weekly, and monthly percentages with resets. Not arbitrary OpenCode/Zen/API spend. | `kuota login opencode` (API key); `OPENCODE_API_KEY` fallback. |
+| **CommandCode** | Five-hour and optional weekly windows; monthly/purchased/free credit facts and optional plan name. | `kuota login commandcode` (API key); `COMMANDCODE_API_KEY` fallback. |
 
 **Provider limits matter:** CommandCode exposes monthly credit allowances, not a
 monthly-used total; Kuota therefore has no monthly utilization window for it.

@@ -95,10 +95,13 @@ refactor.
 
 ## Credential and filesystem safety
 
-Most providers read the shared `~/.pi/agent/auth.json`; Cursor instead reads its
-local SQLite session or an environment fallback. Only Codex refresh may write
-the shared auth file. That path uses a latest-read, identity-checked atomic
-merge preserving unrelated entries and file mode.
+Codex, Grok, Kimi, OpenCode and CommandCode read Kuota's own
+`$XDG_CONFIG_HOME/kuota/credentials.json` (written by `kuota login`); Claude
+reads Claude Code's login, Codex falls back to the Codex CLI login, and Cursor
+reads its local SQLite session, all read-only,
+with env fallbacks where listed in the README. Only Kuota's own Codex/Grok/Kimi
+refresh writes, and only to Kuota's store, through a latest-read,
+identity-checked atomic merge that preserves unrelated entries and forces 0600.
 
 Cache paths under `~/.cache/kuota/` hold normalized usage, never credentials.
 Atomic writes use same-directory exclusive temporary files, trusted-parent

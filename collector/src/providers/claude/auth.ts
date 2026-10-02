@@ -78,18 +78,12 @@ interface ClaudeAuthSourceOptions {
   readonly now?: ClaudeAuthClock;
 }
 
-export interface PiClaudeAuthOptions extends ClaudeAuthSourceOptions {
-  /** Exact Pi auth path override, useful for isolated callers and tests. */
-  readonly authPath?: string;
-}
-
 export interface ClaudeCodeAuthOptions extends ClaudeAuthSourceOptions {
   /** Exact Claude Code credentials path override, useful for isolated callers and tests. */
   readonly credentialsPath?: string;
 }
 
 export interface ClaudeAuthOptions extends ClaudeAuthSourceOptions {
-  readonly piAuthPath?: string;
   readonly claudeCodeCredentialsPath?: string;
 }
 
@@ -229,16 +223,6 @@ function classifyAccess(
   };
 }
 
-function classifyPiCredential(entry: unknown, now: ClaudeAuthClock): ClaudeAuthResult {
-  try {
-    if (!isPlainRecord(entry)) return authNeeded("wrong-type");
-    if (ownValue(entry, "type") !== "oauth") return authNeeded("wrong-type");
-    return classifyAccess(ownValue(entry, "access"), ownValue(entry, "expires"), now);
-  } catch {
-    return authNeeded("wrong-type");
-  }
-}
-
 /**
  * Extracts only `accessToken`, `expiresAt`, and `scopes`; the refresh token and MCP
  * credentials in the same file are never extracted or copied.
@@ -290,20 +274,8 @@ async function readEntry(
   }
 }
 
-export function resolvePiClaudeAuthPath(homeDirectory: string): string {
-  return join(homeDirectory, ".pi", "agent", "auth.json");
-}
-
 export function resolveClaudeCodeCredentialsPath(homeDirectory: string): string {
   return join(homeDirectory, ".claude", ".credentials.json");
-}
-
-/** Reads and classifies only the Anthropic entry from Pi's auth file. */
-export async function readPiClaudeAuth(
-  options: PiClaudeAuthOptions = {},
-): Promise<ClaudeAuthResult> {
-  const path = options.authPath ?? resolvePiClaudeAuthPath(options.homeDirectory ?? homedir());
-  return readEntry(path, "anthropic", options, classifyPiCredential);
 }
 
 /** Reads and classifies only the `claudeAiOauth` entry from Claude Code's credentials. */
@@ -317,34 +289,19 @@ export async function readClaudeCodeAuth(
 }
 
 /**
- * Read-only credential chain: Claude Code first, Pi second. Kuota never refreshes
- * either token; refreshing would rotate the owning tool's refresh token.
- * When neither is usable, an actionable auth-needed state wins over a read error.
+ * Claude's only credential source: Claude Code's login, read-only. Kuota never
+ * refreshes it (that would rotate Claude Code's refresh token) and has no Claude
+ * login of its own (spec 2026-10-02-standalone-credentials-design.md).
  */
 export async function readClaudeAuth(
   options: ClaudeAuthOptions = {},
 ): Promise<ClaudeAuthResult> {
-  const shared: ClaudeAuthSourceOptions = {
+  return readClaudeCodeAuth({
     ...(options.homeDirectory === undefined ? {} : { homeDirectory: options.homeDirectory }),
     ...(options.readJsonFile === undefined ? {} : { readJsonFile: options.readJsonFile }),
     ...(options.now === undefined ? {} : { now: options.now }),
-  };
-
-  const primary = await readClaudeCodeAuth({
-    ...shared,
     ...(options.claudeCodeCredentialsPath === undefined
       ? {}
       : { credentialsPath: options.claudeCodeCredentialsPath }),
   });
-  if (primary.state === "available") return primary;
-
-  const fallback = await readPiClaudeAuth({
-    ...shared,
-    ...(options.piAuthPath === undefined ? {} : { authPath: options.piAuthPath }),
-  });
-  if (fallback.state === "available") return fallback;
-
-  if (primary.state === "auth-needed") return primary;
-  if (fallback.state === "auth-needed") return fallback;
-  return primary;
 }

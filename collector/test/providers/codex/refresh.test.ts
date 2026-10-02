@@ -259,3 +259,28 @@ test("rejects invalid configuration, clock values, and expiry overflow without a
   assertError(overflow);
   assert.equal(expiring.capture.calls, 1);
 });
+
+// Spec 2026-10-02-standalone-credentials-design.md: Grok/Kimi reuse this bounded refresh.
+test("another provider's client gets a form-encoded body at its own endpoint without the Codex User-Agent", async () => {
+  const calls: { url: string; init: CodexRefreshRequestInit }[] = [];
+  const fetchSeam: CodexRefreshFetchSeam = async (url, init) => {
+    calls.push({ url, init });
+    return response(200, stream([encode(JSON.stringify({ access_token: ACCESS, expires_in: 3600 }))]).body);
+  };
+  const result = await refreshCodexOAuth({
+    refreshToken: REFRESH,
+    client: { tokenEndpoint: "https://synthetic.invalid/oauth2/token", clientId: "synthetic-client" },
+    signal: new AbortController().signal,
+    fetch: fetchSeam,
+    now: () => NOW,
+  });
+  assert.deepEqual(result, { outcome: "ok", credential: { access: ACCESS, expires: NOW + 3_600_000 } });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.url, "https://synthetic.invalid/oauth2/token");
+  assert.deepEqual(calls[0]?.init.headers, { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" });
+  assert.deepEqual(
+    Object.fromEntries(new URLSearchParams(calls[0]?.init.body ?? "")),
+    { client_id: "synthetic-client", grant_type: "refresh_token", refresh_token: REFRESH },
+  );
+  assert.equal(calls[0]?.init.redirect, "manual");
+});

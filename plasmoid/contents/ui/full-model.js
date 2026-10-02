@@ -55,7 +55,7 @@ function buildFullViewModel(record, thresholds, appearance) {
         lastSuccessAt: optionalString(record.lastSuccessAt),
         windows: buildWindowRows(record, resolvedThresholds, resolvedAppearance.accentFor(providerId)),
         facts: buildFacts(record),
-        stateMessage: stateMessageFor(state),
+        stateMessage: stateMessageFor(state, providerId),
         textColor: resolvedAppearance.customTextColor,
         // iconName is exposed for API symmetry with the compact model; the
         // compact representation is the only current visual consumer — the
@@ -361,9 +361,24 @@ function formatNumber(value) {
     return String(value);
 }
 
-function stateMessageFor(state) {
+// Spec 2026-10-02-standalone-credentials-design.md: auth-needed names the fix.
+// Fixed strings keyed by a closed provider list; nothing from the record is echoed.
+var LOGIN_HINTS = Object.freeze({
+    claude: "sign in to Claude Code",
+    cursor: "sign in to the Cursor app",
+    codex: "run in a terminal: kuota login codex",
+    grok: "run in a terminal: kuota login grok",
+    kimi: "run in a terminal: kuota login kimi",
+    opencode: "run in a terminal: kuota login opencode",
+    commandcode: "run in a terminal: kuota login commandcode"
+});
+
+function stateMessageFor(state, providerId) {
     if (state === "ok") {
         return undefined;
+    }
+    if (state === "auth-needed" && Object.prototype.hasOwnProperty.call(LOGIN_HINTS, providerId)) {
+        return STATE_MESSAGES["auth-needed"] + " — " + LOGIN_HINTS[providerId];
     }
     if (Object.prototype.hasOwnProperty.call(STATE_MESSAGES, state)) {
         return STATE_MESSAGES[state];

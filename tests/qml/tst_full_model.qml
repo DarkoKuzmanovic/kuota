@@ -389,7 +389,24 @@ TestCase {
         var record = Fixtures.validCodexProvider({ state: "auth-needed" });
         var model = FullModel.buildFullViewModel(record);
         compare(model.state, "auth-needed");
-        compare(model.stateMessage, "Login needed");
+        compare(model.stateMessage, "Login needed — run in a terminal: kuota login codex");
+    }
+
+    // Spec 2026-10-02-standalone-credentials-design.md: the hint names the fix, never a secret.
+    function test_authNeededHintPerProvider() {
+        var cases = [
+            ["claude", "Login needed — sign in to Claude Code"],
+            ["cursor", "Login needed — sign in to the Cursor app"],
+            ["grok", "Login needed — run in a terminal: kuota login grok"],
+            ["kimi", "Login needed — run in a terminal: kuota login kimi"],
+            ["opencode", "Login needed — run in a terminal: kuota login opencode"],
+            ["commandcode", "Login needed — run in a terminal: kuota login commandcode"],
+            ["future-provider", "Login needed"]
+        ];
+        for (var i = 0; i < cases.length; i++) {
+            var model = FullModel.buildFullViewModel({ id: cases[i][0], state: "auth-needed", status: "Authentication required" });
+            compare(model.stateMessage, cases[i][1], cases[i][0]);
+        }
     }
 
     function test_stateErrorMessage() {

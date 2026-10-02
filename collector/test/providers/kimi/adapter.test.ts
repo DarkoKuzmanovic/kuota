@@ -30,3 +30,27 @@ test("maps unavailable credentials and transport/parse failures to safe records 
   assert.deepEqual(failed, { id: "kimi", state: "auth-needed", status: "Authentication required" });
   assert.equal(fetchCalls, 0);
 });
+
+// Spec 2026-10-02-standalone-credentials-design.md: Kuota-store logins refresh on expiry.
+test("refreshes an expired store login before fetching and maps refresh outcomes", async () => {
+  const fetched: string[] = [];
+  const seen: unknown[] = [];
+  const make = (outcome: { readonly state: "ok"; readonly access: string } | { readonly state: "auth-needed" } | { readonly state: "error" }) => createKimiAdapter({
+    resolveAuthPath: () => "/synthetic/credentials.json",
+    readAuth: async () => ({ state: "available", credential: { kind: "oauth", value: "synthetic-old", refresh: "synthetic-r", expires: 1 } }),
+    refreshIfExpired: async (options) => {
+      seen.push({ id: options.id, storePath: options.storePath, value: options.credential.value, refresh: options.credential.refresh });
+      return outcome;
+    },
+    fetchUsage: async (options) => { fetched.push(options.credential.value); return { outcome: "auth-needed" }; },
+    now: () => 1_700_000_000_000,
+  });
+
+  await make({ state: "ok", access: "synthetic-new" }).collect(context());
+  assert.deepEqual(fetched, ["synthetic-new"]);
+  assert.deepEqual(seen, [{ id: "kimi", storePath: "/synthetic/credentials.json", value: "synthetic-old", refresh: "synthetic-r" }]);
+
+  assert.equal((await make({ state: "auth-needed" }).collect(context())).state, "auth-needed");
+  assert.equal((await make({ state: "error" }).collect(context())).state, "error");
+  assert.deepEqual(fetched, ["synthetic-new"]);
+});
