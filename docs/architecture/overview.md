@@ -103,7 +103,8 @@ with env fallbacks where listed in the README. Only Kuota's own Codex/Grok/Kimi
 refresh writes, and only to Kuota's store, through a latest-read,
 identity-checked atomic merge that preserves unrelated entries and forces 0600.
 
-Cache paths under `~/.cache/kuota/` hold normalized usage, never credentials.
+Cache paths under `~/.cache/kuota/` hold normalized usage and Kuota-owned
+secret-free retry state (`claude-backoff.json`), never credentials.
 Atomic writes use same-directory exclusive temporary files, trusted-parent
 checks, fsync, and cleanup. A post-commit durability failure is indeterminate;
 read back rather than blindly retrying the write. Keep these guarantees when

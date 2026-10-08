@@ -54,8 +54,8 @@ These are hard rules. Violating any of them is a stop condition, not a fix.
   Stderr carries only redacted diagnostics. Diagnostics never include the
   rejected raw value, authorization headers, tokens, refresh tokens, account
   IDs, or curl configuration.
-- Cache files contain usage results only — never credentials. Cache and temp
-  writes use restrictive permissions.
+- Cache files contain usage results or Kuota's secret-free backoff sidecar —
+  never credentials. Cache and temp writes use restrictive permissions.
 - Atomic writes use same-directory exclusive temp files, `fsync` durability, and
   clean up temp files on failure. Never truncate the destination on a failed
   serialize or rename. Latest-read replacements carry the identity token
