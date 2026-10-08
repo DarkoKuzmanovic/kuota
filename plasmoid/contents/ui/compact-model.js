@@ -1,20 +1,13 @@
 .pragma library
+.import "provider-catalog.js" as ProviderCatalog
 
 // Plasma-independent compact panel model. Maps an already-validated
 // CollectorDocument plus display config to ordered compact entries.
 // Never imports Plasma executable APIs or touches I/O.
 
-var DEFAULT_ORDER = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"];
+var DEFAULT_ORDER = ProviderCatalog.PROVIDER_IDS;
 
-var PROVIDER_LABELS = Object.freeze({
-    claude: "Claude",
-    codex: "Codex",
-    grok: "Grok",
-    kimi: "Kimi",
-    cursor: "Cursor",
-    opencode: "OpenCode",
-    commandcode: "CommandCode"
-});
+var PROVIDER_LABELS = ProviderCatalog.PROVIDER_LABELS;
 
 var THRESHOLD_LEVEL = Object.freeze({
     NONE: "none",
@@ -28,15 +21,7 @@ var DEFAULT_CRITICAL_THRESHOLD = 90;
 function createDefaultDisplayConfig() {
     return {
         order: DEFAULT_ORDER.slice(),
-        visibility: {
-            claude: true,
-            codex: true,
-            grok: true,
-            kimi: true,
-            cursor: true,
-            opencode: true,
-            commandcode: true
-        },
+        visibility: ProviderCatalog.defaultVisibility(),
         metric: {},
         window: {},
         cautionThreshold: DEFAULT_CAUTION_THRESHOLD,

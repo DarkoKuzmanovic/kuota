@@ -1016,6 +1016,390 @@ worker dispatches: 2 · independent review dispatches: 2 · review-driven
 correction cycles: 1 · original vertical RED→GREEN slices: 7 · oracle: 0 ·
 code/test change sets: 2 · parent gate-closure documentation change sets: 1.
 
+## G-R — Review batch #7 → #5 → #6 (2026-09-09)
+
+### G-R7 worker milestone — provider selection governs collection
+
+**Worker implementation/verification complete; parent rerun and independent
+review pending. Gate not closed.** Owner-approved scope is recorded in
+`docs/specs/2026-09-09-provider-selection-collection-design.md`. This is issue #7
+only, on public base `9b4cfa2f535b3b8eeca1c5040aa9fa270fc07385` and branch
+`feat/review-7-5-6`; #5/#6 have not started, #8/#9 remain deferred. All changes
+are unstaged and uncommitted.
+
+**Implementation:** `main.qml` supplies the canonical subset derived from
+sanitized visibility for startup, manual, timer, and membership changes.
+Order/appearance changes do not recollect. Empty selection makes no process or
+fresh observation. `CollectorBridge.qml` clears incompatible snapshots and
+permanently invalidates a changed selection's active result, including A→B→A,
+without surrendering source ownership or resetting its existing deadline.
+Changes coalesce to one latest nonempty refresh after completion/deadline.
+Ordinary same-selection no-overlap and failure retention remain intact.
+
+**Changed paths:** `plasmoid/contents/ui/{main.qml,CollectorBridge.qml,config-model.js,
+configProviders.qml}`; `tests/qml/{tst_main_wiring.qml,tst_collector_bridge_process.qml,
+tst_collector_bridge_selection.qml,tst_config_model.qml,tst_config_providers.qml}`;
+`collector/test/collect/selection-integrated.test.ts`; `README.md`;
+`docs/architecture/overview.md`; this plan and the approved #7 amendment's
+acceptance checklist. The existing KConfig schema/keys/defaults, collector
+production code, command builder, lifecycle token helper, validator, lock and
+cache implementations are unchanged. No provider metadata consolidation or JSON
+reader work is included.
+
+**RED→GREEN evidence:** complete logs under `../evidence/issue7-worker/`.
+Counts are passed/failed Qt test entries (including suite init/cleanup):
+
+| Slice | Pre-implementation RED | GREEN |
+| --- | --- | --- |
+| Empty bridge, no spawn/no fabricated observation | `red-empty-final.log`: 13/1 | `green-empty.log`: 14/0 |
+| Selection invalidation/coalescing/ownership | `red-selection.log`: 3/8 | `green-selection-final.log`: 11/0 |
+| Root current-settings wiring | `red-root.log`: 8/3 | `green-root-final.log`: 11/0 |
+| Sanitized config membership helper | `red-config.log`: 27/1 (missing helper API) | `green-config.log`: 28/0 |
+
+The root behavioral RED used only a nonpersistent collector-fixture path and
+object-name plumbing, with selection behavior unchanged. Expanded final tests
+were also replayed over a private copy of the public base: `red-replay-root.log`
+8/4, `red-replay-process.log` 13/5, `red-replay-selection.log` 3/8. Final focused
+GREEN: `green-root-expanded.log` 12/0, `green-process-expanded.log` 18/0,
+`green-selection-final.log` 11/0. These cover real executable success, failure,
+invalid output and timeout, deterministic stale callbacks, A→B→A, re-enable,
+rapid coalescing, canonical argv, and independent bridge instances.
+
+`red-wording-final.log` is a corrected baseline replay (2/1), followed by
+`green-wording-final.log` (3/0). The first wording probe counted internal label
+items as checkboxes; it is not claimed as behavioral RED. The root fixture's
+nested provider-order array needed `Qt.binding` to preserve JS-array identity
+through `createObject`'s QVariant conversion; final baseline replay includes
+that corrected fixture. An intermediate bridge run exposed a redundant initial
+snapshot signal; preserving the initial state avoided changing existing signal
+semantics without weakening tests. All intermediate logs are retained.
+
+`green-integration-final.log`: **3 pass / 0 fail**, characterization of the
+already-supported collector path, not a claimed collector RED/fix. Each test
+uses real CLI/config/registry/integrated collection and all seven real policy
+adapters with synthetic auth/fetch/parser/cache seams, a positive all-provider
+control, then explicit subsets or empty. Disabled providers have zero discovery,
+fetch, and other mechanism calls; live and stale-cache/held-lock fallback
+responses retain exact membership, hidden disk records survive, and the lock is
+usable again after release. No collector production changes were needed.
+
+**Final sequential gates:**
+`python ~/hermes/kuota-next-7-5-6/run-gates.py issue7-worker-final`.
+Original logs: `../evidence/issue7-worker-final/`; complete gate logs and manifests
+mirrored to `../evidence/issue7-worker/final/`.
+
+| Gate | Final result |
+| --- | --- |
+| `npm ci --ignore-scripts --no-audit --no-fund` | exit 0 |
+| `npm run typecheck` | exit 0 |
+| `npm test` | 630 pass / 0 fail / 0 cancelled / 0 skipped |
+| `npm run test:qml` | 354 pass / 0 fail / 0 skipped |
+| `npm run validate:plasma` | exit 0 |
+| `npm run build:artifact` | exit 0; `kuota-v1.2.1.plasmoid` |
+
+Both outer npm tooling and children ran under private synthetic HOME/XDG/cache
+and allowlisted environments, sequentially without shared-dist races. Gate
+runtime: `~/.nvm/versions/node/v24.15.0/bin/node` **24.15.0**, npm
+**12.0.2**; real bridge fixtures used fixed `/usr/bin/node` **26.8.1**. Exact paths
+and versions are in `runtime.json` and `final/runtime.json`. `git diff --check`
+passed; the index is unchanged. The Node total includes the existing helper
+module entry, as in the parent baseline.
+
+**Boundaries/limitations:** no real auth/config/cache reads, provider requests,
+token refresh, installed-widget smoke, installer, Plasma restart, publication or
+commit. The Timer handler was invoked directly rather than waiting five minutes.
+Qt emits offscreen Plasmoid host warnings and QProcess teardown warnings on
+synthetic timeout/root teardown paths; these are recorded, not evidence of child
+reaping. Already-launched work may finish; no claim is made that DataSource
+disconnect terminates descendants. Live acceptance and parent independent
+fail-closed review remain unconfirmed. The overview's unrelated historical
+artifact-isolation paragraph was not revised in this issue-only slice.
+
+**G-R7 counters:** worker dispatches 1 · independent reviews 0 (pending) ·
+review-driven correction cycles 0 · core behavioral RED→GREEN slices 3 ·
+implementation/test/documentation change sets 1 · oracle 0 · commits 0.
+
+### G-R7 parent closure — 2026-09-09
+
+**PASS for the implemented synthetic-tested slice; #5 may begin.** Parent
+reviewed the complete change set and independently reran the six isolated
+gates: Node **630 pass / 0 fail**, QML **354 pass / 0 fail**, dependencies,
+typecheck, Plasma validation and artifact build/check all exit 0. Evidence:
+`../evidence/issue7-parent/{gates.json,runtime.json}`. Parent Node is 24.15.0;
+the fixed bridge runtime remains `/usr/bin/node` 26.8.1.
+
+Independent fail-closed review passed tree
+`eac6dbf33b655b6e74be62a5000288c0d5a185ff` with no security, logic or suggestion
+findings. Its own private-environment runs passed **123 QML entries** and **3
+integrated collector selection/cache/lock tests**, including additional copy,
+default-all/legacy-Umans, invalid-input, stale-token and real-deadline probes.
+Evidence: `../evidence/issue7-review/{verdict.json,verification.json,runs.json}`.
+Parent read back the verdict and confirmed the working files still matched the
+reviewed tree. This closure and the acceptance tick are documentation-only
+updates after that review; the reviewed implementation/tests are unchanged.
+
+The real Git index and HEAD remain unchanged: source changes are uncommitted;
+an external alternate-index snapshot records the review identity. No live
+widget/provider test, commit, publication or deployment is claimed. Prior
+in-flight/cancellation and timer-signal verification limitations still apply.
+Final G-R7 counters: implementation workers **1**, independent reviews **1**,
+review-driven correction cycles **0**, parent code edits **0**, oracle **0**,
+commits **0**. #8/#9 remain deferred until the owner's batch checkpoint.
+
+### G-R5 worker milestone — shared metadata and drift gates
+
+**Implementation and worker verification PASS; parent rerun and independent
+review pending. Gate not closed.** This is only issue #5 under the approved
+`docs/specs/2026-09-09-provider-metadata-consistency-design.md`, following G-R7
+closure. The issue-only baseline is tree
+`031caa30b037e7097b1dee5fd1c25b45627f41b2`, not Git HEAD: #7 was already present
+as unstaged changes. The branch remains `feat/review-7-5-6`; no staging or commit.
+#6 has not started and #8/#9 remain deferred.
+
+**Implementation:** one pure `provider-catalog.js` supplies canonical QML IDs,
+plain labels and the current Claude/Codex window IDs. Seven QML consumers derive
+order/allowlists instead of maintaining separate ID arrays. Collector defaults
+and the artifact checker reuse the existing TS contract `PROVIDER_IDS`.
+`config-model.js` now has one complete default definition, a copying factory,
+and derived per-provider defaults/sanitization/visibility. The persisted XML,
+all 38 key/type/default values, specialized clamps/fallbacks, static `cfg_`
+bindings and #7 collection semantics are preserved. Standalone full view and
+Add Widgets metadata now include OpenCode and CommandCode. All production
+QML/JS files, including config/config.qml and the catalog, are covered by lint
+and isolation lists checked against discovered inventory.
+
+**Deliberate duplicates:** literal `qsTr` names/window labels remain in their
+original QML contexts (with English-label parity tests); replacing them with
+plain catalog strings would change extraction/translation behavior. Typed
+registry adapter/registration tuples remain explicit to preserve their public
+correlated tuple exports; coverage and identity are tested. Both whole-document
+validation algorithms, native parsers, specialized config guards, and the JSON
+graph guards remain unchanged; only QML validator ID metadata is shared. No new
+selector, provider, dependency or settings UI framework was introduced.
+
+**Observed RED → GREEN (full logs in `../evidence/issue5-worker/`):**
+
+- `standalone-red.log`: **38 pass / 1 fail**, missing OpenCode/CommandCode in
+  actual standalone provider order; `standalone-green.log`: **39 / 0**.
+- `inventory-red.log`: **1 pass / 3 fail**, missing Add Widgets names and
+  lint/isolation entries; `inventory-green.log`: **4 / 0**.
+- `settings-red.log`: **7 pass / 1 fail**, DEFAULTS omits persisted theming
+  keys; `settings-green.log`: **8 / 0**. Existing factory/sanitizer behavior
+  was already GREEN, not a fabricated behavioral failure.
+- `checkpoint-characterization.log`: **22 / 0** against original checkpoint
+  QML source copies, including complete fallback/non-default settings, array
+  copies, stable window delegates and shared contract corpus. Later focused
+  coverage reached **25 / 0 QML**; the final Node consistency tests include
+  **21 passing tests**, including synthetic fixture safety.
+- `mutations.json` records **12 real assertion-failing, restored mutations**:
+  missing/reordered provider, default change, dropped sanitizer assignment,
+  window catalog/control drift, metadata omission, lint/isolation omission,
+  XML default drift, missing cfg binding, and an unlisted new production file.
+  Mutation runner corrections (Qt returns a failure count, diagnostics can
+  contain non-UTF-8 bytes, and inverse patches need unique context) are
+  evidence-tooling issues, not claimed product REDs or review corrections.
+
+**Final six sequential isolated gates:**
+`python ~/hermes/kuota-next-7-5-6/run-gates.py issue5-worker-final`:
+dependencies, typecheck, Node **651 pass / 0 fail**, QML **380 pass / 0 fail**,
+Plasma validation and artifact build/check all exit **0**. Evidence is in
+`../evidence/issue5-worker-final/{gates.json,runtime.json,*.log}`, with copies
+under `../evidence/issue5-worker/final/`. Node/npm used
+`~/.nvm/versions/node/v24.15.0/bin/{node,npm}` (Node **24.15.0**,
+npm **12.0.2**); bridge fixtures use `/usr/bin/node` **26.8.1**. Qt is **6.11.2**.
+These are not minimum-Node-20 execution results.
+
+**Files:** collector `collect/config.ts`; artifact checker; package lint script;
+new catalog and its seven QML consumers; package metadata; full-representation
+and isolation tests; new Node/QML consistency suites and two explicit JSON
+fixtures; fixture policy, architecture overview, this milestone and #5 evidence
+checkboxes. Exact issue-only paths and preserved #7 files are recorded in
+`../evidence/issue5-worker/final-manifest.json` rather than treating untracked
+checkpoint files as deletions in a normal `git diff <tree>`.
+
+**Boundaries:** synthetic private HOME/cache/XDG and minimal environment only;
+no account/auth/cache inspection, provider calls, token refresh, installation,
+installer, Plasma restart, publication or deployment. Existing offscreen
+Plasmoid-host/QProcess teardown warnings remain; no child-reaping claim is made.
+Minimum Node 20.0.0 execution, non-English translation behavior, live widget
+acceptance, parent rerun and independent review remain unconfirmed.
+
+**G-R5 counters:** implementation workers **1** · independent reviews **0**
+(pending) · review-driven corrections **0** · implementation/test/doc change
+sets **1** · oracle **0** · commits **0**.
+
+### G-R5 parent closure — 2026-09-09
+
+**PASS for the approved synthetic-tested slice; #6 may begin.** Parent
+independently reran the six sequential isolated gates on both Node **24.15.0**
+and minimum **20.0.0**: Node **651 pass / 0 fail**, QML **380 pass / 0 fail**,
+dependencies, typecheck, Plasma validation and artifact build/check all exit 0.
+Evidence: `../evidence/issue5-parent/` and `../evidence/issue5-parent-node20/`.
+The QML bridge fixtures still use fixed `/usr/bin/node` **26.8.1**; Node 20 is
+not being attributed to those fixture processes.
+
+Independent review passed exact tree
+`8b118022fe77b83f2635efbd57465616a00f7c89` without product security or logic
+findings. Its own execution passed focused Node **24/0** on Node 26.8.1 and
+20.0.0, full QML **380/0**, and **1,025** baseline/current compatibility
+comparisons including all **128** visibility subsets. Six mutations in a
+private snapshot failed assertions; restored Node control passed **21/0**.
+Parent read the verdict/results and independently matched all **213** source
+blobs to the reviewed tree; the real index and HEAD remain unchanged.
+
+The review found one evidence-packaging defect: the original saved diff was
+tool-truncated. Both reviewer and parent recovered/verified the complete raw
+patch from the exact stored trees. Use
+`../evidence/issue5-review/complete-tree.diff`, not `issue5-review.diff`;
+`../evidence/issue5-parent-review-resolution.json` records byte/hash equality
+and the full-patch security scan. The old evidence is retained for audit. This
+required no product correction and did not leave an unreviewed source gap.
+
+These closure notes and the acceptance tick are documentation-only updates
+after review. Live widget/accounts, non-English translation execution and
+installed-artifact acceptance remain untested. Timer-signal and existing
+disconnect/reaping limitations remain explicit. No commit, publication,
+installation or deployment occurred. Final G-R5 counters: implementation
+workers **1**, independent reviews **1**, product correction cycles **0**,
+parent code edits **0**, evidence-packaging corrections **1**, oracle **0**,
+commits **0**. #8/#9 remain deferred to the owner's batch checkpoint.
+
+### G-R6 — Pure JSON-value guard extraction — closed
+
+**Scope/status:** issue #6 only, approved spec
+`docs/specs/2026-09-09-json-value-guard-design.md`; implementation complete,
+parent rerun and independent combined-range review **passed**. Starting tree
+`2a5d245e212157223ffbe34ab38c2b8055922c22` includes the closed #7/#5 work.
+All changes remain unstaged/uncommitted; #8/#9 and publication remain deferred.
+
+**Files:** `collector/src/io/{json-value,json-file,atomic-write}.ts`;
+`collector/test/io/{json-value-corpus,json-value.test}.ts`; architecture overview,
+#6 spec and this milestone. The pure leaf contains the original json-file
+iterative guard/types. json-file re-exports the predicate/types; atomic-write
+uses a typed boolean alias to the same function object. No I/O/dependencies in
+the leaf, wrappers, new limits, schema changes or recursive validation.
+Non-extraction bytes in both I/O modules are checked against the exact baseline.
+
+**Test-first proof:** `../evidence/issue6-worker/` contains original git blobs,
+blame, compile receipts and raw stdout/stderr. Old-old characterization was
+**73 pass / 0 fail**: 70 factory cases plus compatibility types, accepted-deep
+serialization failure before all filesystem mechanisms, and cache accessor
+rejection. Existing malformed-read/unsafe-update and filesystem safety tests
+remain unchanged. The same-function test then produced genuine assertion RED
+**73 pass / 1 fail**, with compilation passing. Extraction produced identity
+GREEN **74 / 0**; direct pure-export parity/types were then included. No missing
+module/compiler failure is counted as RED.
+
+`parity-node24-pinned.stdout.log` and `parity-node20-pinned.stdout.log` compare
+separately compiled exact-tree old guards with both new legacy exports and the
+pure export. Each runtime: **70 cases, 350 fresh-fixture guard executions,
+70 old-old plus 210 old-new comparisons, zero mismatches** in results, throws,
+or recorded counters. Baseline compilation equals the pre-extraction emitted
+modules. Corpus covers primitives, prototypes/cross-realm objects, depth 20,000,
+DAGs/cycles, sparse arrays, descriptors, symbols/accessors and adversarial
+synthetic proxies. Property getters are not invoked; proxy meta-traps can run.
+
+**Six sequential isolated gates:** `run-gates.py issue6-worker-final` on
+Node **24.15.0** / npm **12.0.2** and `run-gates.py issue6-worker-node20` on
+minimum Node **20.0.0** / npm **9.6.4** both passed dependencies, typecheck,
+Node **726/0**, QML **380/0**, Plasma validation and artifact build/check.
+Full logs/runtime receipts are copied to `issue6-worker/final-node24/` and
+`final-node20/`; originals remain in the named runner evidence directories.
+The Node total includes the fixture module smoke test from default discovery.
+Focused final tests pass **74/0** on both runtimes. QML bridge fixtures retain
+fixed `/usr/bin/node` **26.8.1**, not Node 20. No gates ran concurrently.
+
+**Limits/handoff:** private synthetic HOME/cache/XDG and allowlisted environment;
+no personal credentials, live providers/accounts/widget checks, installation,
+Plasma restart, commit or external publication. Existing offscreen warnings and
+#7 child-reaping/timer limits remain. Parity is bounded corpus evidence, not a
+proof for every stateful proxy; no proxy behavior or filesystem policy changed.
+Independent TS/QML contract validators and provider-native parsers deliberately
+remain separate. `final-manifest.json` checks actual on-disk checkpoint blobs
+(including previously untracked files), not misleading untracked deletions from
+ordinary tree diffs. The final closure below supersedes this worker handoff.
+
+**Worker handoff counters:** implementation workers **1** · independent reviews **0**
+(pending) · review-driven corrections **0** · implementation/test/doc change
+sets **1** · oracle consultations **0** · commits **0**.
+
+### Parent combined gates and artifact verification
+
+Parent reran the six gates sequentially with `run-gates.py batch-parent-node24`
+and `run-gates.py batch-parent-node20` in private HOME/cache/XDG/tmp and an
+allowlisted environment. Both passed: **726 Node entries / 380 QML entries**,
+zero failures/cancellations/skips, typecheck, Plasma validation and artifact
+build/check. Runtime receipts identify Node **24.15.0** / npm **12.0.2** and
+minimum Node **20.0.0** / npm **9.6.4**; fixed bridge fixtures still use
+`/usr/bin/node` **26.8.1**. Original logs remain in the named evidence directories.
+
+`../evidence/batch-parent-extra/verify.py` independently retrieved and compiled
+the exact pre-extraction I/O blobs. On both runtimes its own parity harness
+passed **70 cases**, **350 fresh-fixture guard executions**, **70 old-old** and
+**210 old-new comparisons**, **zero mismatches**. It also proved exact unchanged
+I/O bytes outside the documented imports/exports/extraction and unchanged
+original pure-guard/types bytes apart from final newlines. This supplements,
+rather than re-labels, worker evidence.
+
+Archive verification checked CRC, unique safe paths, every archived file
+against generated output, all **19** Plasma source files and **52** compiled
+collector files, and CLI/new-helper syntax on both runtimes. The archive has
+**71 files**, **89 members**, **154348 bytes**, and SHA-256
+`bdc93b211d00841ab4fbc7047a041f688782f0fd07afdde9096331f47126bb7c`.
+A read-back-verified copy is preserved outside generated dist at
+`../artifacts/kuota-v1.2.1.plasmoid`; `batch-parent-extra/verification.json`
+records its identity. No installer or live collector/account check ran.
+
+Parent corrected the already-edited architecture overview's obsolete statement
+that packaged children inherit credentials, distinguishing verified child
+isolation from still-required outer gate isolation. The dated project review is
+now described as historical findings, and the overview no longer implies an
+unimplemented JSON-file size cap. These are documentation corrections only;
+parent production/test edits at this pre-review point were **0**. Final independent #6 and combined
+public-base→batch review closure follows.
+
+### Final independent review and owner checkpoint — PASS
+
+`deleg_6be83f38` independently passed both #6 and the full ordered #7→#5→#6
+range at exact tree `a3bac205dbced636947298d2ee210dfcc6d10ecb`; security,
+logic and suggestion lists are empty. Reviewer execution passed its own current
+compilation, focused Node **156/0** on Node **24.15.0** and **20.0.0**, full
+QML **380/0**, typecheck, Plasma validation and the reused-artifact checker.
+Its additional proxy probes exercised **76** fresh-factory cases through five
+old/current guards (**380 calls per runtime**, zero mismatches). The historical
+oracle compilation was reused with its source independently pinned to Git;
+neither this nor inspected parent full gates are claimed as reviewer rebuilds.
+Real concurrent synthetic child/lock probes preserved selected-only fallback
+responses and hidden shared-cache records. All **71** archive files matched
+current Plasma source or reviewer-compiled collector output.
+
+Parent read the verdict, required-hunt notes and execution records; matched all
+**217** working files to the exact reviewed blobs; verified identical before/
+after inventories, unchanged real index and archive identity; and checked all
+review commands exited successfully. Evidence:
+`../evidence/batch-final-review/{verdict,verification,runs,before,after}.json`,
+`review-notes.md`, raw logs, and `../evidence/parent-review-acceptance.json`.
+The gate/spec closure and one EOF-only cleanup are the only post-review edits.
+The complete public-base→tree whitespace check caught a redundant final blank
+line in the new `json-value.ts` that ordinary unstaged checks had omitted.
+Parent removed exactly one trailing LF, rebuilt the test graph, and verified
+all **107** emitted JavaScript files byte-identical to reviewer output and all
+**52** collector files identical to the packaged build. Focused tests passed
+**74/0** on Node 24.15.0 and 20.0.0; no behavior, test or archive change.
+`../evidence/final-format-verification.json` and `checkpoint-final/` retain the
+byte proofs and raw results. The final complete-patch check includes every new
+file, not just the real index's tracked paths.
+
+Final G-R6 counters: implementation workers **1**, independent reviews **1**,
+review-driven product corrections **0**, parent behavior changes **0**,
+parent EOF-only source cleanup **1** (test edits **0**), oracle consultations
+**0**, commits **0**. G-R7, G-R5 and G-R6 are closed for
+the approved synthetic-tested scope. Stop at the owner's check: **#8/#9 remain
+deferred**; no staging, commit, publication, installation, live account/provider
+acceptance or Plasma restart is authorized by this closure. Non-English
+translation execution, elapsed five-minute scheduling and descendant reaping
+remain unclaimed, as documented in the independent verdict.
+
 ## Milestone 15 (shipped in v1.3.0) — Window selectors for all providers
 
 **Outcome:** Every provider with more than one genuinely meaningful usage
@@ -1146,6 +1530,100 @@ Worktree `.worktrees/feat-m17-standalone-credentials` (branch `feat/m17-standalo
 **Counters:** reviews: 1 (Codex on PR #12: design-precedence and PLAN-recording findings) · fix-cycles: 1 (both findings) · oracle: 0 · direct-edits: 3 (AGENTS.md, the 2026-07-10 design spec, the architecture overview)
 
 - The cache description in `AGENTS.md` and `docs/architecture/overview.md` now names the secret-free Claude backoff sidecar alongside normalized usage; the design spec's cache bullet and the collector diagram are amended to match, per the M2.5 decision. Empty `PERO_*.md` scratch files and their `.pero.json` pointer are removed.
+
+## G-RL — #7/#5/#6 landed on 2.0.0 (2026-10-08)
+
+**Owner check:** delegated in chat on 2026-10-08 ("figure out
+feat/review-7-5-6 on your own and fix it"), with approval to push, open a PR,
+merge once Codex has nothing blocking, and remove the worktree. The batch's
+session had stopped at the 2026-09-09 owner checkpoint
+(`.worktrees/feat-review-7-5-6-evidence/CHECKPOINT.md`); no later session
+touched the worktree.
+
+**Identity:** the uncommitted worktree was byte-identical to the checkpoint's
+final tree `abcfb44`, and its base `47fc011` has the same tree as the reviewed
+public base `9b4cfa2` (a message-only history rewrite). It was committed
+unchanged as `846cbcc`.
+
+**Merge with main (M15–M17):** `22be9ce`. In `config-model.js`, #5's single
+`DEFAULTS` owner and catalog-owned `KNOWN_WINDOWS` stay, M15's four
+`<id>Window` defaults are added, and M15's window facts move into
+`provider-catalog.js`. `tst_config_providers.qml` (add/add) combines #7's
+checkbox test with M15's three window tests. This file keeps both sides.
+`1ffa3a1` carries M15 through #5's drift gates: catalog-sourced combo values,
+four more keys in the settings-ABI fixture, six expected selectors. It also
+adds dated landing notes to the three specs, amending D-R5.4. Static test
+declarations confirm the merge lost nothing: QML `test_` functions 342 = main
+316 + batch 26; Node `test()` calls 614 = main 601 + batch 13.
+
+**Gates** run sequentially, with a private synthetic HOME and an allowlisted
+environment, at `1ffa3a1` (tree `a3b2648`, clean):
+
+| Gate | Node 24.15.0 / npm 12.2.0 | Node 20.0.0 / npm 9.6.4 |
+| --- | --- | --- |
+| `npm ci --ignore-scripts --no-audit --no-fund` | exit 0 | exit 0 |
+| `npm run typecheck` | exit 0 | exit 0 |
+| `npm test` | 760 pass / 0 fail | 760 pass / 0 fail |
+| `npm run test:qml` | 393 pass / 0 fail | 393 pass / 0 fail |
+| `npm run validate:plasma` | exit 0 | exit 0 |
+| `npm run build:artifact` | exit 0 (`kuota-v2.0.0.plasmoid`) | exit 0 |
+
+Node 20.0.0 is the official archive, re-fetched and checked against Node's
+published SHASUMS256. The archive (`9e512f1f…`) and binary (`2dc70820…`)
+hashes both match the 2026-09-09 receipt. QML fixture processes use the
+fixed-path `/usr/bin/node` 26.10.0.
+
+**Review — panel, 2026-10-08:** two models on `main...551d9e1`, both at high
+effort. openai-codex `gpt-6.1-sol` reported no findings. anthropic
+`claude-opus-5-5` reported 1 critical, 7 warnings and 4 nits. The parent
+verified each finding against main, the batch commit `846cbcc` and the
+approved specs.
+
+- **Fixed:**
+  - `5a24cf8`: the critical one. A multi-checkbox Apply launched a collector
+    mid-Apply, for a selection that still held the providers being
+    unchecked. Plasma's `saveConfig()` writes one key at a time, so emptying
+    the selection still launched one. `CollectorBridge.select()` now
+    invalidates at once, and the root defers the launch with
+    `Qt.callLater`. RED 13/2 → GREEN 15/0 in `tst_main_wiring.qml`; the spec
+    gets a dated D-R7.4 note.
+  - `a7df96f`: the window-combo test pins literal (label, value) pairs; a
+    catalog-swap mutation fails it. M17's `refreshIfExpired` is a counted
+    stub in the integrated selection test.
+  - `951cd48`: stale Claude/Codex-only selector text, the catalog's "not
+    validation policy" comment, G-R heading nesting, and four absolute home
+    paths.
+- **Deferred.** None of these is a regression, and each needs its own scope:
+  - Move the bridge's selection state into `bridge-lifecycle.js` and stop
+    re-parsing the argv token (`select()` is the first step).
+  - Loop window defaults and the sanitizer over `KNOWN_WINDOWS`. The ABI
+    fixture already pins every key.
+  - A distinct "no providers enabled" view with Refresh disabled. D-R7.3
+    specifies the existing empty state, so this is a product change.
+  - Drop `atomic-write`'s `isJsonValue` re-export. D-R6.2 keeps it on
+    purpose; no production code imports it.
+  - `check-artifact` compares against the build's own `PROVIDER_IDS`.
+- **Dismissed:**
+  - The `claude/cache.ts` cast predates the batch.
+  - `../evidence/` paths are local by design.
+  - Section order follows the merge.
+  - The "Show in widget" helper tolerance is covered by an exact label
+    assertion.
+  - `collectorPathOverride` is D-R7's reviewed test seam.
+
+**Gates after the panel fixes**, same method, at `951cd48` (tree `e670ce7`,
+clean, still clean afterwards). Node 24.15.0 / npm 12.2.0 and Node 20.0.0 /
+npm 9.6.4 both pass: every gate exits 0, `npm test` 760 pass / 0 fail, QML
+395 pass / 0 fail (+2 per-key Apply tests). Static QML `test_` functions:
+344.
+
+**G-RL counters:** panel reviews 1 (2 models) · review-driven fix cycles 1 ·
+code commits 1 · test commits 1 · doc commits 1 · deferred findings 5.
+
+Not claimed, as in the batch's own verdict: live widget/account acceptance,
+non-English translation runs, elapsed five-minute scheduling, and descendant
+reaping. The batch rides the next release; release, installation and #8/#9
+need their own scope.
 
 ## Deferred providers
 

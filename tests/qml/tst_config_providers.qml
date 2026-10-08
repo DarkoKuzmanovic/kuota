@@ -2,7 +2,9 @@ import QtQuick
 import QtTest
 
 TestCase {
+    id: testCase
     name: "ConfigProviders"
+    when: windowShown
     visible: true
 
     Component {
@@ -10,6 +12,20 @@ TestCase {
         Loader {
             source: "../../plasmoid/contents/ui/configProviders.qml"
         }
+    }
+
+    // Provider ids with more than one genuinely meaningful usage window get a
+    // selector; Cursor (single "plan" window) deliberately has none.
+    // Spec: docs/specs/2026-09-05-window-selector-all-providers-design.md
+    readonly property var selectableProviders: ["claude", "codex", "grok", "kimi", "opencode", "commandcode"]
+
+    function checkboxes(item) {
+        var result = [];
+        if (typeof item.checked === "boolean" &&
+                (item.text === "Show in widget" || item.text === "Show and collect usage")) result.push(item);
+        var children = item.children || [];
+        for (var i = 0; i < children.length; i++) result = result.concat(checkboxes(children[i]));
+        return result;
     }
 
     function findChildByObjectName(parent, name) {
@@ -29,17 +45,37 @@ TestCase {
         return null;
     }
 
-    // Provider ids with more than one genuinely meaningful usage window get a
-    // selector; Cursor (single "plan" window) deliberately has none.
-    // Spec: docs/specs/2026-09-05-window-selector-all-providers-design.md
-    readonly property var selectableProviders: ["claude", "codex", "grok", "kimi", "opencode", "commandcode"]
-
     function comboValues(combo) {
         var values = [];
         for (var i = 0; i < combo.model.length; i++) {
             values.push(combo.model[i].value);
         }
         return values;
+    }
+
+    function test_existingVisibilityKeysEnableDisplayAndCollection() {
+        var component = Qt.createComponent("../../plasmoid/contents/ui/configProviders.qml");
+        compare(component.status, Component.Ready, component.errorString());
+        var page = component.createObject(testCase);
+        try {
+            var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"];
+            var names = ["Claude", "Codex", "Grok", "Kimi", "Cursor", "OpenCode", "CommandCode"];
+            var checks = checkboxes(page);
+            compare(checks.length, 7);
+            for (var i = 0; i < checks.length; i++) {
+                compare(checks[i].text, "Show and collect usage");
+                compare(checks[i].Accessible.name, names[i] + " display and collection enabled");
+                page["cfg_" + ids[i] + "Visible"] = true;
+                compare(checks[i].checked, true);
+                checks[i].checked = false;
+                compare(page["cfg_" + ids[i] + "Visible"], false);
+            }
+            page.moveProvider(0, 1);
+            wait(0);
+            var after = checkboxes(page);
+            compare(after.length, checks.length);
+            for (var j = 0; j < checks.length; j++) compare(after[j], checks[j]);
+        } finally { page.destroy(); }
     }
 
     function test_everySelectableProviderHasACombo() {

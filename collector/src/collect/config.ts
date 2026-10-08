@@ -4,14 +4,12 @@ import { PROVIDER_IDS, type ProviderId } from "../contract/schema-v1.js";
 import type { ConfiguredProvider } from "../providers/registry.js";
 import type { CollectorConfig } from "./collect.js";
 
-// Providers that have registered adapters in this release. The contract recognizes more IDs
-// (PROVIDER_IDS), but the default collector configuration only enables providers with real adapters.
-const DEFAULT_ENABLED_PROVIDER_IDS: readonly ProviderId[] = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"];
+// Every supported provider has a real adapter; the consistency gate enforces coverage.
 
 export const DEFAULT_COLLECTOR_CONFIG: Readonly<CollectorConfig> = Object.freeze({
   providers: Object.freeze(
     PROVIDER_IDS.map((id) =>
-      Object.freeze({ id, enabled: DEFAULT_ENABLED_PROVIDER_IDS.includes(id) }),
+      Object.freeze({ id, enabled: true }),
     ),
   ),
   timeoutMs: 10_000,
@@ -104,7 +102,6 @@ export function parseCollectorConfig(input: unknown): CollectorConfig {
   const providers: ConfiguredProvider[] = PROVIDER_IDS.map((id) =>
     Object.freeze({ id, enabled: enabledSet.has(id) }),
   );
-  // Preserve deterministic canonical order while restricting default-enabled providers to those
-  // with registered adapters. Explicit config may enable any recognized provider ID.
+  // Preserve deterministic canonical order for the explicitly selected subset.
   return Object.freeze({ providers: Object.freeze(providers), timeoutMs: 10_000 });
 }

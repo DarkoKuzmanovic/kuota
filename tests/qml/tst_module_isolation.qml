@@ -18,6 +18,7 @@ TestCase {
     ]
 
     property var modulesUnderTest: [
+        "../../plasmoid/contents/ui/provider-catalog.js",
         "../../plasmoid/contents/ui/collector-validator.js",
         "../../plasmoid/contents/ui/snapshot-state.js",
         "../../plasmoid/contents/ui/collector-command.js",
@@ -30,6 +31,7 @@ TestCase {
     // Every production QML file that could plausibly import the executable
     // compatibility bridge. Exactly one is allowed to.
     property var productionQmlFiles: [
+        "../../plasmoid/contents/config/config.qml",
         "../../plasmoid/contents/ui/main.qml",
         "../../plasmoid/contents/ui/CompactRepresentation.qml",
         "../../plasmoid/contents/ui/FullRepresentation.qml",

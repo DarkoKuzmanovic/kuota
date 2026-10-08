@@ -1,0 +1,178 @@
+{
+  "providerOrder": {
+    "type": "StringList",
+    "default": [
+      "claude",
+      "codex",
+      "grok",
+      "kimi",
+      "cursor",
+      "opencode",
+      "commandcode"
+    ]
+  },
+  "claudeVisible": {
+    "type": "Bool",
+    "default": true
+  },
+  "codexVisible": {
+    "type": "Bool",
+    "default": true
+  },
+  "grokVisible": {
+    "type": "Bool",
+    "default": true
+  },
+  "kimiVisible": {
+    "type": "Bool",
+    "default": true
+  },
+  "cursorVisible": {
+    "type": "Bool",
+    "default": true
+  },
+  "opencodeVisible": {
+    "type": "Bool",
+    "default": true
+  },
+  "commandcodeVisible": {
+    "type": "Bool",
+    "default": true
+  },
+  "claudeWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "codexWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "grokWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "kimiWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "opencodeWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "commandcodeWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "displayMode": {
+    "type": "String",
+    "default": "icons+text"
+  },
+  "separator": {
+    "type": "String",
+    "default": " \u00b7 "
+  },
+  "fontScale": {
+    "type": "Double",
+    "default": 1.0
+  },
+  "iconLabelSpacing": {
+    "type": "Int",
+    "default": 2
+  },
+  "labelValueSpacing": {
+    "type": "Int",
+    "default": 1
+  },
+  "showCountdown": {
+    "type": "Bool",
+    "default": true
+  },
+  "refreshIntervalMinutes": {
+    "type": "Int",
+    "default": 5
+  },
+  "cautionThreshold": {
+    "type": "Int",
+    "default": 75
+  },
+  "criticalThreshold": {
+    "type": "Int",
+    "default": 90
+  },
+  "fontFamily": {
+    "type": "String",
+    "default": ""
+  },
+  "customTextColorEnabled": {
+    "type": "Bool",
+    "default": false
+  },
+  "customTextColor": {
+    "type": "String",
+    "default": ""
+  },
+  "labelOpacity": {
+    "type": "Double",
+    "default": 1.0
+  },
+  "separatorOpacity": {
+    "type": "Double",
+    "default": 1.0
+  },
+  "claudeAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "codexAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "grokAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "kimiAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "claudeCustomIcon": {
+    "type": "String",
+    "default": ""
+  },
+  "codexCustomIcon": {
+    "type": "String",
+    "default": ""
+  },
+  "grokCustomIcon": {
+    "type": "String",
+    "default": ""
+  },
+  "kimiCustomIcon": {
+    "type": "String",
+    "default": ""
+  },
+  "cursorAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "cursorCustomIcon": {
+    "type": "String",
+    "default": ""
+  },
+  "opencodeAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "opencodeCustomIcon": {
+    "type": "String",
+    "default": ""
+  },
+  "commandcodeAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "commandcodeCustomIcon": {
+    "type": "String",
+    "default": ""
+  }
+}

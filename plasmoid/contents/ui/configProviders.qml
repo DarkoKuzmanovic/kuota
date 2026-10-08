@@ -1,4 +1,5 @@
 import QtQuick
+import "provider-catalog.js" as ProviderCatalog
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import org.kde.kirigami 2.20 as Kirigami
@@ -22,7 +23,7 @@ Kirigami.FormLayout {
 
     // StringList has no 1:1 widget; the reorder Repeater below reads/writes
     // this plain array directly (matches the compact-model.js entries pattern).
-    property var cfg_providerOrder: ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]
+    property var cfg_providerOrder: ProviderCatalog.PROVIDER_IDS.slice()
 
     function providerLabel(providerId) {
         switch (providerId) {
@@ -60,56 +61,56 @@ Kirigami.FormLayout {
     Kirigami.Heading {
         Kirigami.FormData.isSection: true
         level: 4
-        text: qsTr("Visibility")
+        text: qsTr("Display and collection")
     }
 
     Controls.CheckBox {
         id: claudeVisibleCheck
         Kirigami.FormData.label: qsTr("Claude:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Claude visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Claude display and collection enabled")
     }
 
     Controls.CheckBox {
         id: codexVisibleCheck
         Kirigami.FormData.label: qsTr("Codex:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Codex visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Codex display and collection enabled")
     }
 
     Controls.CheckBox {
         id: grokVisibleCheck
         Kirigami.FormData.label: qsTr("Grok:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Grok visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Grok display and collection enabled")
     }
 
     Controls.CheckBox {
         id: kimiVisibleCheck
         Kirigami.FormData.label: qsTr("Kimi:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Kimi visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Kimi display and collection enabled")
     }
 
     Controls.CheckBox {
         id: cursorVisibleCheck
         Kirigami.FormData.label: qsTr("Cursor:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Cursor visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Cursor display and collection enabled")
     }
 
     Controls.CheckBox {
         id: opencodeVisibleCheck
         Kirigami.FormData.label: qsTr("OpenCode:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("OpenCode visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("OpenCode display and collection enabled")
     }
 
     Controls.CheckBox {
         id: commandcodeVisibleCheck
         Kirigami.FormData.label: qsTr("CommandCode:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("CommandCode visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("CommandCode display and collection enabled")
     }
 
     Kirigami.Heading {
@@ -127,7 +128,7 @@ Kirigami.FormLayout {
         // null" etc. during reorder). Each row instead looks up its own
         // provider id reactively via `index`, so reordering only re-evaluates
         // bindings in place — no delegate teardown.
-        model: 7
+        model: ProviderCatalog.PROVIDER_IDS.length
 
         delegate: RowLayout {
             id: providerOrderRow
@@ -167,8 +168,9 @@ Kirigami.FormLayout {
     // One selector per provider with more than one genuinely meaningful usage
     // window (D4, amended 2026-09-05). Cursor shows a single "plan" window and
     // deliberately has no combo: a control that cannot change anything is a
-    // dead control. Catalog values must match KNOWN_WINDOWS in
-    // config-model.js; "Default" (empty) defers to the primary window.
+    // dead control. Option values come from ProviderCatalog.SELECTABLE_WINDOWS,
+    // the catalog config-model.js sanitizes against; "Default" (empty) defers
+    // to the primary window.
     Controls.ComboBox {
         id: claudeWindowCombo
         objectName: "claudeWindowCombo"
@@ -178,9 +180,9 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("Session"), value: "session" },
-            { text: qsTr("Weekly (all)"), value: "weekly-all" },
-            { text: qsTr("Weekly (OAuth apps)"), value: "weekly-oauth-apps" }
+            { text: qsTr("Session"), value: ProviderCatalog.SELECTABLE_WINDOWS.claude[0] },
+            { text: qsTr("Weekly (all)"), value: ProviderCatalog.SELECTABLE_WINDOWS.claude[1] },
+            { text: qsTr("Weekly (OAuth apps)"), value: ProviderCatalog.SELECTABLE_WINDOWS.claude[2] }
         ]
     }
 
@@ -193,8 +195,8 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("Primary"), value: "primary" },
-            { text: qsTr("Secondary"), value: "secondary" }
+            { text: qsTr("Primary"), value: ProviderCatalog.SELECTABLE_WINDOWS.codex[0] },
+            { text: qsTr("Secondary"), value: ProviderCatalog.SELECTABLE_WINDOWS.codex[1] }
         ]
     }
 
@@ -207,8 +209,8 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("7d"), value: "week" },
-            { text: qsTr("30d"), value: "month" }
+            { text: qsTr("7d"), value: ProviderCatalog.SELECTABLE_WINDOWS.grok[0] },
+            { text: qsTr("30d"), value: ProviderCatalog.SELECTABLE_WINDOWS.grok[1] }
         ]
     }
 
@@ -221,13 +223,13 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("Week"), value: "week" },
+            { text: qsTr("Week"), value: ProviderCatalog.SELECTABLE_WINDOWS.kimi[0] },
             // Kimi's short window is duration-derived; ids cover every label
             // the collector can emit. Ones the account lacks fall back to the
             // primary window.
-            { text: qsTr("5h"), value: "5h" },
-            { text: qsTr("Daily"), value: "daily" },
-            { text: qsTr("Month"), value: "month" }
+            { text: qsTr("5h"), value: ProviderCatalog.SELECTABLE_WINDOWS.kimi[1] },
+            { text: qsTr("Daily"), value: ProviderCatalog.SELECTABLE_WINDOWS.kimi[2] },
+            { text: qsTr("Month"), value: ProviderCatalog.SELECTABLE_WINDOWS.kimi[3] }
         ]
     }
 
@@ -240,9 +242,9 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("5h"), value: "rolling" },
-            { text: qsTr("Weekly"), value: "weekly" },
-            { text: qsTr("Monthly"), value: "monthly" }
+            { text: qsTr("5h"), value: ProviderCatalog.SELECTABLE_WINDOWS.opencode[0] },
+            { text: qsTr("Weekly"), value: ProviderCatalog.SELECTABLE_WINDOWS.opencode[1] },
+            { text: qsTr("Monthly"), value: ProviderCatalog.SELECTABLE_WINDOWS.opencode[2] }
         ]
     }
 
@@ -255,8 +257,8 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("5h"), value: "fiveHour" },
-            { text: qsTr("Weekly"), value: "weekly" }
+            { text: qsTr("5h"), value: ProviderCatalog.SELECTABLE_WINDOWS.commandcode[0] },
+            { text: qsTr("Weekly"), value: ProviderCatalog.SELECTABLE_WINDOWS.commandcode[1] }
         ]
     }
 }

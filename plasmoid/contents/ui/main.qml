@@ -14,15 +14,20 @@ PlasmoidItem {
     readonly property bool inFlight: _bridge.inFlight
 
     function refresh() {
-        _bridge.refresh();
+        _bridge.refresh(enabledProviders);
     }
 
     function snapshotAgeMs() {
         return SnapshotState.getSnapshotAgeMs(_bridge.snapshotState, Date.now());
     }
 
+    // Nonpersistent fixture-path seam, never read from KConfig.
+    property string collectorPathOverride: ""
+
     CollectorBridge {
         id: _bridge
+        objectName: "collectorBridge"
+        collectorPathOverride: root.collectorPathOverride
     }
 
     // Test seam (M9.3): `plasmoid` is null whenever this file is loaded
@@ -40,6 +45,22 @@ PlasmoidItem {
     // floor, threshold clamp/order, garbage fallback) is enforced once here
     // via config-model.js before any value reaches the compact/full models.
     readonly property var sanitizedSettings: ConfigModel.sanitize(root.rawConfig)
+    readonly property var enabledProviders: ConfigModel.enabledProviders(root.sanitizedSettings)
+    // A value key avoids recollecting when only order/appearance bindings change.
+    readonly property string collectionSelectionKey: enabledProviders.join(",")
+    property bool _collectionReady: false
+    onCollectionSelectionKeyChanged: {
+        if (!_collectionReady) return;
+        // Plasma's saveConfig() writes an Apply one key at a time. Invalidate
+        // on every change, but launch once after the whole Apply, so an
+        // intermediate selection never reaches the collector.
+        _bridge.select(enabledProviders);
+        Qt.callLater(root.refresh);
+    }
+    Component.onCompleted: {
+        _collectionReady = true;
+        refresh();
+    }
 
     readonly property string compactDisplayMode: root.sanitizedSettings.displayMode
 
@@ -67,10 +88,11 @@ PlasmoidItem {
 
     Timer {
         id: _refreshTimer
+        objectName: "refreshTimer"
         interval: root.sanitizedSettings.refreshIntervalMinutes * 60 * 1000
         running: true
         repeat: true
-        triggeredOnStart: true
+        triggeredOnStart: false
         onTriggered: root.refresh()
     }
 

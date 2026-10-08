@@ -6,6 +6,23 @@ import "../../plasmoid/contents/ui/config-model.js" as ConfigModel
 TestCase {
     name: "ConfigModel"
 
+    function test_collectionMembershipUsesSanitizedVisibilityNotDisplayOrder() {
+        var settings = ConfigModel.sanitize({
+            providerOrder: ["commandcode", "claude"],
+            claudeVisible: true, codexVisible: false, grokVisible: false,
+            kimiVisible: false, cursorVisible: false, opencodeVisible: false,
+            commandcodeVisible: true
+        });
+        compare(ConfigModel.enabledProviders(settings), ["claude", "commandcode"]);
+        compare(ConfigModel.assembleDisplayConfig(settings).order, ["commandcode", "claude"]);
+        settings.claudeVisible = false;
+        settings.commandcodeVisible = false;
+        compare(ConfigModel.enabledProviders(settings), []);
+        var garbage = ConfigModel.sanitize({ claudeVisible: "false", providerOrder: ["synthetic-unknown"] });
+        compare(ConfigModel.enabledProviders(garbage), ConfigModel.KNOWN_PROVIDERS);
+        compare(ConfigModel.enabledProviders(ConfigModel.sanitize(null)), ConfigModel.KNOWN_PROVIDERS);
+    }
+
     function test_knownProvidersExcludeUmans() {
         compare(ConfigModel.KNOWN_PROVIDERS, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
     }

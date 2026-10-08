@@ -13,6 +13,10 @@ import {
 } from "node:fs/promises";
 import type { BigIntStats } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { isJsonValue as sharedIsJsonValue } from "./json-value.js";
+
+/** Compatibility boolean signature; the binding is the shared predicate, not a wrapper. */
+export const isJsonValue: (value: unknown) => boolean = sharedIsJsonValue;
 
 function metadataFromStat(stat: BigIntStats): FileMetadata {
   return {
@@ -502,129 +506,6 @@ export async function atomicWrite(
       await removeTemporary(fs, temporary);
     }
   }
-}
-
-/** Validates JSON-shaped data without invoking getters or traversing cyclic graphs. */
-export function isJsonValue(value: unknown): boolean {
-  type Work =
-    | { readonly value: unknown; readonly exit: false }
-    | { readonly value: object; readonly exit: true };
-  const work: Work[] = [{ value, exit: false }];
-  const active = new WeakSet<object>();
-
-  while (work.length > 0) {
-    const item = work.pop();
-    if (item === undefined) {
-      return false;
-    }
-    if (item.exit) {
-      active.delete(item.value);
-      continue;
-    }
-    const current = item.value;
-    if (current === null || typeof current === "string" || typeof current === "boolean") {
-      continue;
-    }
-    if (typeof current === "number") {
-      if (!Number.isFinite(current)) {
-        return false;
-      }
-      continue;
-    }
-    if (typeof current !== "object" || active.has(current)) {
-      return false;
-    }
-
-    let prototype: object | null;
-    let keys: readonly (string | symbol)[];
-    try {
-      prototype = Object.getPrototypeOf(current);
-      keys = Reflect.ownKeys(current);
-    } catch {
-      return false;
-    }
-    active.add(current);
-    work.push({ value: current, exit: true });
-
-    let arrayValue = false;
-    try {
-      arrayValue = Array.isArray(current);
-    } catch {
-      return false;
-    }
-    if (arrayValue) {
-      if (prototype !== Array.prototype) {
-        return false;
-      }
-      let lengthDescriptor: PropertyDescriptor | undefined;
-      try {
-        lengthDescriptor = Object.getOwnPropertyDescriptor(current, "length");
-      } catch {
-        return false;
-      }
-      if (
-        lengthDescriptor === undefined ||
-        !Object.prototype.hasOwnProperty.call(lengthDescriptor, "value") ||
-        typeof lengthDescriptor.value !== "number" ||
-        !Number.isSafeInteger(lengthDescriptor.value) ||
-        lengthDescriptor.enumerable
-      ) {
-        return false;
-      }
-      const length = lengthDescriptor.value;
-      for (const key of keys) {
-        if (typeof key === "symbol") {
-          return false;
-        }
-        if (key === "length") {
-          continue;
-        }
-        const index = Number(key);
-        if (!(Number.isInteger(index) && index >= 0 && index < length && String(index) === key)) {
-          return false;
-        }
-        let descriptor: PropertyDescriptor | undefined;
-        try {
-          descriptor = Object.getOwnPropertyDescriptor(current, key);
-        } catch {
-          return false;
-        }
-        if (
-          descriptor === undefined ||
-          !descriptor.enumerable ||
-          !Object.prototype.hasOwnProperty.call(descriptor, "value")
-        ) {
-          return false;
-        }
-        work.push({ value: descriptor.value, exit: false });
-      }
-      continue;
-    }
-
-    if (prototype !== Object.prototype && prototype !== null) {
-      return false;
-    }
-    for (const key of keys) {
-      if (typeof key === "symbol") {
-        return false;
-      }
-      let descriptor: PropertyDescriptor | undefined;
-      try {
-        descriptor = Object.getOwnPropertyDescriptor(current, key);
-      } catch {
-        return false;
-      }
-      if (
-        descriptor === undefined ||
-        !descriptor.enumerable ||
-        !Object.prototype.hasOwnProperty.call(descriptor, "value")
-      ) {
-        return false;
-      }
-      work.push({ value: descriptor.value, exit: false });
-    }
-  }
-  return true;
 }
 
 /** Serializes and validates before any destination inspection or filesystem operation. */
