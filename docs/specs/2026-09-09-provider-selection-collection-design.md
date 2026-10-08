@@ -95,3 +95,12 @@ See the parent closure in PLAN.md and `../evidence/issue7-review/`.
 > decisions unchanged. `../evidence/` paths above now live under
 > `.worktrees/feat-review-7-5-6-evidence/evidence/` (local, untracked).
 > Landing gates and review: PLAN.md "G-RL".
+
+> **2026-10-08 panel correction (D-R7.4)** — Plasma's `saveConfig()` writes an
+> Apply one key at a time, so unchecking several providers is several
+> membership changes. The first change used to launch a collector for an
+> intermediate selection that still held the providers being unchecked. The
+> root now invalidates on every change (`CollectorBridge.select`) and launches
+> once, after the whole Apply (`Qt.callLater`), with the final selection; an
+> Apply that empties the selection launches nothing. Tests: the per-key Apply
+> cases in `tst_main_wiring.qml`.

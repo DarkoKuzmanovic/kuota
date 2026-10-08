@@ -34,7 +34,7 @@ validators remain separate implementations.
 It is an independent test oracle, not generated during a gate: updating it
 requires an approved settings change. Tests compare the XML, complete JS defaults,
 default factory, sanitizer fallbacks/non-default values, and config-page keys.
-The current window selector set remains Claude/Codex only. Both new fixture
+Window selectors cover every provider except Cursor (one window only). Both new fixture
 files are checked by `scanForSecrets` in the consistency suite.
 
 ## How to verify

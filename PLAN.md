@@ -1016,6 +1016,8 @@ worker dispatches: 2 · independent review dispatches: 2 · review-driven
 correction cycles: 1 · original vertical RED→GREEN slices: 7 · oracle: 0 ·
 code/test change sets: 2 · parent gate-closure documentation change sets: 1.
 
+## G-R — Review batch #7 → #5 → #6 (2026-09-09)
+
 ### G-R7 worker milestone — provider selection governs collection
 
 **Worker implementation/verification complete; parent rerun and independent
@@ -1082,7 +1084,7 @@ responses retain exact membership, hidden disk records survive, and the lock is
 usable again after release. No collector production changes were needed.
 
 **Final sequential gates:**
-`python /home/quzma/hermes/kuota-next-7-5-6/run-gates.py issue7-worker-final`.
+`python ~/hermes/kuota-next-7-5-6/run-gates.py issue7-worker-final`.
 Original logs: `../evidence/issue7-worker-final/`; complete gate logs and manifests
 mirrored to `../evidence/issue7-worker/final/`.
 
@@ -1097,7 +1099,7 @@ mirrored to `../evidence/issue7-worker/final/`.
 
 Both outer npm tooling and children ran under private synthetic HOME/XDG/cache
 and allowlisted environments, sequentially without shared-dist races. Gate
-runtime: `/home/quzma/.nvm/versions/node/v24.15.0/bin/node` **24.15.0**, npm
+runtime: `~/.nvm/versions/node/v24.15.0/bin/node` **24.15.0**, npm
 **12.0.2**; real bridge fixtures used fixed `/usr/bin/node` **26.8.1**. Exact paths
 and versions are in `runtime.json` and `final/runtime.json`. `git diff --check`
 passed; the index is unchanged. The Node total includes the existing helper
@@ -1198,12 +1200,12 @@ selector, provider, dependency or settings UI framework was introduced.
   evidence-tooling issues, not claimed product REDs or review corrections.
 
 **Final six sequential isolated gates:**
-`python /home/quzma/hermes/kuota-next-7-5-6/run-gates.py issue5-worker-final`:
+`python ~/hermes/kuota-next-7-5-6/run-gates.py issue5-worker-final`:
 dependencies, typecheck, Node **651 pass / 0 fail**, QML **380 pass / 0 fail**,
 Plasma validation and artifact build/check all exit **0**. Evidence is in
 `../evidence/issue5-worker-final/{gates.json,runtime.json,*.log}`, with copies
 under `../evidence/issue5-worker/final/`. Node/npm used
-`/home/quzma/.nvm/versions/node/v24.15.0/bin/{node,npm}` (Node **24.15.0**,
+`~/.nvm/versions/node/v24.15.0/bin/{node,npm}` (Node **24.15.0**,
 npm **12.0.2**); bridge fixtures use `/usr/bin/node` **26.8.1**. Qt is **6.11.2**.
 These are not minimum-Node-20 execution results.
 
@@ -1262,7 +1264,7 @@ workers **1**, independent reviews **1**, product correction cycles **0**,
 parent code edits **0**, evidence-packaging corrections **1**, oracle **0**,
 commits **0**. #8/#9 remain deferred to the owner's batch checkpoint.
 
-## G-R6 — Pure JSON-value guard extraction — closed
+### G-R6 — Pure JSON-value guard extraction — closed
 
 **Scope/status:** issue #6 only, approved spec
 `docs/specs/2026-09-09-json-value-guard-design.md`; implementation complete,

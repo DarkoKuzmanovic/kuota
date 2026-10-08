@@ -90,7 +90,8 @@ validation boundary. New settings must have a schema default, sanitizer,
 config-page binding, real rendered consumer, and wiring tests.
 
 The bundled `provider-catalog.js` owns shared QML provider order, plain display
-labels, and the existing Claude/Codex selectable-window IDs. Command and
+labels, and the selectable-window IDs for every provider except Cursor (one
+window only). Command and
 validator allowlists, model defaults, and config-page order derive from it;
 TypeScript uses its existing contract `PROVIDER_IDS`. The two whole-document
 validators and native parsers remain independent. Literal `qsTr` labels stay in

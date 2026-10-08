@@ -1,6 +1,8 @@
 .pragma library
 
-// Bundled presentation facts, not a configurable registry or validation policy.
+// Bundled provider facts, not a configurable registry. PROVIDER_IDS is also
+// the allowlist for the collector command and the response validator, so a
+// new ID widens both.
 var PROVIDER_IDS = Object.freeze(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
 var PROVIDER_LABELS = Object.freeze({
     claude: "Claude",
