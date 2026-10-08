@@ -168,8 +168,9 @@ Kirigami.FormLayout {
     // One selector per provider with more than one genuinely meaningful usage
     // window (D4, amended 2026-09-05). Cursor shows a single "plan" window and
     // deliberately has no combo: a control that cannot change anything is a
-    // dead control. Catalog values must match KNOWN_WINDOWS in
-    // config-model.js; "Default" (empty) defers to the primary window.
+    // dead control. Option values come from ProviderCatalog.SELECTABLE_WINDOWS,
+    // the catalog config-model.js sanitizes against; "Default" (empty) defers
+    // to the primary window.
     Controls.ComboBox {
         id: claudeWindowCombo
         objectName: "claudeWindowCombo"
@@ -208,8 +209,8 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("7d"), value: "week" },
-            { text: qsTr("30d"), value: "month" }
+            { text: qsTr("7d"), value: ProviderCatalog.SELECTABLE_WINDOWS.grok[0] },
+            { text: qsTr("30d"), value: ProviderCatalog.SELECTABLE_WINDOWS.grok[1] }
         ]
     }
 
@@ -222,13 +223,13 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("Week"), value: "week" },
+            { text: qsTr("Week"), value: ProviderCatalog.SELECTABLE_WINDOWS.kimi[0] },
             // Kimi's short window is duration-derived; ids cover every label
             // the collector can emit. Ones the account lacks fall back to the
             // primary window.
-            { text: qsTr("5h"), value: "5h" },
-            { text: qsTr("Daily"), value: "daily" },
-            { text: qsTr("Month"), value: "month" }
+            { text: qsTr("5h"), value: ProviderCatalog.SELECTABLE_WINDOWS.kimi[1] },
+            { text: qsTr("Daily"), value: ProviderCatalog.SELECTABLE_WINDOWS.kimi[2] },
+            { text: qsTr("Month"), value: ProviderCatalog.SELECTABLE_WINDOWS.kimi[3] }
         ]
     }
 
@@ -241,9 +242,9 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("5h"), value: "rolling" },
-            { text: qsTr("Weekly"), value: "weekly" },
-            { text: qsTr("Monthly"), value: "monthly" }
+            { text: qsTr("5h"), value: ProviderCatalog.SELECTABLE_WINDOWS.opencode[0] },
+            { text: qsTr("Weekly"), value: ProviderCatalog.SELECTABLE_WINDOWS.opencode[1] },
+            { text: qsTr("Monthly"), value: ProviderCatalog.SELECTABLE_WINDOWS.opencode[2] }
         ]
     }
 
@@ -256,8 +257,8 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("5h"), value: "fiveHour" },
-            { text: qsTr("Weekly"), value: "weekly" }
+            { text: qsTr("5h"), value: ProviderCatalog.SELECTABLE_WINDOWS.commandcode[0] },
+            { text: qsTr("Weekly"), value: ProviderCatalog.SELECTABLE_WINDOWS.commandcode[1] }
         ]
     }
 }

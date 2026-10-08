@@ -97,3 +97,12 @@ Parent closure: all six gates passed on Node 24.15.0 and minimum 20.0.0
 `8b118022fe77b83f2635efbd57465616a00f7c89`, with its own focused Node20/26,
 full QML, compatibility and private mutation checks. See PLAN.md G-R5 closure
 and `../evidence/issue5-review/verdict.json`. Live/i18n acceptance is not implied.
+
+> **2026-10-08 landing amendment** — M15 shipped in v1.3.0 while this batch
+> waited, so D-R5.4 no longer limits selectors to Claude and Codex. On the
+> 2.0.0 base the catalog owns every selectable-window fact M15 shipped (also
+> Grok, Kimi, OpenCode and CommandCode; Cursor has one window and none), and
+> the drift gates and settings-ABI fixture include M15's four `<id>Window`
+> keys. The landing adds no setting or selector. `../evidence/` paths above
+> now live under `.worktrees/feat-review-7-5-6-evidence/evidence/` (local,
+> untracked). Landing gates and review: PLAN.md "G-RL".

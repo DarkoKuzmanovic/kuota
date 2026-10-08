@@ -47,6 +47,22 @@
     "type": "String",
     "default": ""
   },
+  "grokWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "kimiWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "opencodeWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "commandcodeWindow": {
+    "type": "String",
+    "default": ""
+  },
   "displayMode": {
     "type": "String",
     "default": "icons+text"

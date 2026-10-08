@@ -80,6 +80,8 @@ TestCase {
         });
         raw.cautionThreshold = 30; raw.criticalThreshold = 60;
         raw.claudeWindow = "weekly-oauth-apps"; raw.codexWindow = "secondary";
+        raw.grokWindow = "month"; raw.kimiWindow = "daily";
+        raw.opencodeWindow = "monthly"; raw.commandcodeWindow = "weekly";
         raw.displayMode = "text"; raw.customTextColor = "#123456";
         Catalog.PROVIDER_IDS.forEach(function(id) { raw[id + "AccentColor"] = "#abcdef"; });
         var actual = Config.sanitize(raw);
@@ -127,7 +129,14 @@ TestCase {
         compare(Compact.PROVIDER_LABELS, Catalog.PROVIDER_LABELS);
         compare(Config.enabledProviders(Config.sanitize(null)), ids);
         compare(Object.keys(Compact.createDefaultDisplayConfig().visibility).sort(), ids.slice().sort());
-        var windows = { claude: ["session", "weekly-all", "weekly-oauth-apps"], codex: ["primary", "secondary"] };
+        var windows = {
+            claude: ["session", "weekly-all", "weekly-oauth-apps"],
+            codex: ["primary", "secondary"],
+            grok: ["week", "month"],
+            kimi: ["week", "5h", "daily", "month"],
+            opencode: ["rolling", "weekly", "monthly"],
+            commandcode: ["fiveHour", "weekly"]
+        };
         compare(Catalog.SELECTABLE_WINDOWS, windows);
         compare(Config.KNOWN_WINDOWS, windows);
     }
@@ -160,9 +169,16 @@ TestCase {
         var page = component.createObject(testCase);
         try {
             var combos = controls(page, function(item) { return item.valueRole === "value"; });
-            compare(combos.length, 2); // no unpublished M15 selectors
-            var ids = ["claude", "codex"];
-            var expectedTexts = [["Default", "Session", "Weekly (all)", "Weekly (OAuth apps)"], ["Default", "Primary", "Secondary"]];
+            compare(combos.length, 6); // every multi-window provider (M15); Cursor has none
+            var ids = ["claude", "codex", "grok", "kimi", "opencode", "commandcode"];
+            var expectedTexts = [
+                ["Default", "Session", "Weekly (all)", "Weekly (OAuth apps)"],
+                ["Default", "Primary", "Secondary"],
+                ["Default", "7d", "30d"],
+                ["Default", "Week", "5h", "Daily", "Month"],
+                ["Default", "5h", "Weekly", "Monthly"],
+                ["Default", "5h", "Weekly"]
+            ];
             for (var i = 0; i < ids.length; i++) {
                 var expected = [""].concat(Config.KNOWN_WINDOWS[ids[i]]);
                 compare(combos[i].count, expected.length);

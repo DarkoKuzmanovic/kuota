@@ -102,8 +102,9 @@ exports; tests enforce their provider coverage and adapter identity.
 `config-model.js` owns one complete settings-default definition and returns
 fresh array copies. Tests pin all KConfig keys, types and defaults against the
 approved public settings ABI, exercise fallback and non-default values, and
-check every config-page binding. Only Claude and Codex have window selectors;
-this consolidation introduces no new persisted setting.
+check every config-page binding. Claude, Codex, Grok, Kimi, OpenCode and
+CommandCode have window selectors (M15); Cursor has a single window and none.
+This consolidation introduces no new persisted setting.
 
 The automatic refresh interval defaults to five minutes and has a five-minute
 minimum. Under the approved [issue #7 amendment](../specs/2026-09-09-provider-selection-collection-design.md),

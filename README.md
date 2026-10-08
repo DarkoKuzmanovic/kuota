@@ -174,8 +174,8 @@ credential consumers.
 
 Right-click Kuota and open its configuration dialog:
 
-- **Providers:** display/collection selection, display order, and Claude/Codex
-  compact usage-window choices.
+- **Providers:** display/collection selection, display order, and compact
+  usage-window choices for every provider except Cursor (one window only).
 - **Appearance:** display mode, font scale, separator, icon/label/value spacing,
   and countdown visibility.
 - **Thresholds:** refresh interval and caution/critical utilization levels.

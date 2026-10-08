@@ -90,3 +90,8 @@ and the other four gates exit 0. Independent review passed implementation tree
 123 QML entries and 3 collector integration tests. G-R7 is closed for the
 synthetic-tested code slice, not live acceptance, publication or deployment.
 See the parent closure in PLAN.md and `../evidence/issue7-review/`.
+
+> **2026-10-08 landing note** — Merged onto 2.0.0 (M15–M17) with these
+> decisions unchanged. `../evidence/` paths above now live under
+> `.worktrees/feat-review-7-5-6-evidence/evidence/` (local, untracked).
+> Landing gates and review: PLAN.md "G-RL".

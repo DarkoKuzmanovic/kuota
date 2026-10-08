@@ -94,3 +94,9 @@ See G-R6 and `../evidence/final-format-verification.json` for that proof.
 - [x] Independent review covers #6 plus the combined public-base→batch range;
   no blocking findings remain. Record bounded counters and stop for the owner's
   check without committing, publishing, installing or starting #8/#9.
+
+> **2026-10-08 landing note** — Merged onto 2.0.0 (M15–M17) with these
+> decisions unchanged. M17 did not touch `collector/src/io/`, and this guard is
+> still the only JSON-graph validator in `collector/src`. `../evidence/` paths
+> above now live under `.worktrees/feat-review-7-5-6-evidence/evidence/`
+> (local, untracked). Landing gates and review: PLAN.md "G-RL".
