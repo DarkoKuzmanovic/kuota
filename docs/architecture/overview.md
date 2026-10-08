@@ -26,7 +26,7 @@ QML timer / manual Refresh
         -> whole-collection lock
         -> concurrent provider adapters
         -> normalized, validated results + last-known-good merge
-        -> usage-only cache
+        -> usage + retry-state cache
      <- one schema-v2 JSON document on stdout
   <- validate entire document, then replace snapshot
   -> compact/full presentation models

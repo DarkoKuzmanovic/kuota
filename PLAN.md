@@ -1141,6 +1141,12 @@ Worktree `.worktrees/feat-m17-standalone-credentials` (branch `feat/m17-standalo
 
 **Counters:** reviews: 1 · fix-cycles: 1 · oracle: 0 · direct-edits: 8.
 
+## Review correction round — PR #12 (2026-10-08)
+
+**Counters:** reviews: 1 (Codex on PR #12: design-precedence and PLAN-recording findings) · fix-cycles: 1 (both findings) · oracle: 0 · direct-edits: 3 (AGENTS.md, the 2026-07-10 design spec, the architecture overview)
+
+- The cache description in `AGENTS.md` and `docs/architecture/overview.md` now names the secret-free Claude backoff sidecar alongside normalized usage; the design spec's cache bullet and the collector diagram are amended to match, per the M2.5 decision. Empty `PERO_*.md` scratch files and their `.pero.json` pointer are removed.
+
 ## Deferred providers
 
 ### Meta Muse Code — deferred 2026-09-25 (owner decision)

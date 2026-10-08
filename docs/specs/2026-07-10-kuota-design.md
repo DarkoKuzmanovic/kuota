@@ -177,7 +177,7 @@ Grok and Kimi are added in 1.1.0, amending owner-approved Decision #2 (which fro
 Kuota treats `~/.pi/agent/auth.json` as sensitive shared state.
 
 - Reads are local and never copied into project or widget caches.
-- Cache files contain usage results only, never credentials.
+- Cache files contain usage results or Kuota's secret-free retry state (the Claude backoff sidecar), never credentials.
 - Cache and temporary writes use restrictive permissions.
 - Codex token persistence preserves unrelated auth entries and existing file permissions.
 - Writes are atomic and designed to avoid truncating the shared file.
@@ -185,6 +185,8 @@ Kuota treats `~/.pi/agent/auth.json` as sensitive shared state.
 - The widget does not provide login or account-management controls in v1.
 
 > **M17 amendment (2026-10-02)** — Kuota no longer reads or writes `~/.pi/agent/auth.json`. It keeps its own credential store and offers `login`/`logout`/`status` CLI commands, with read-only fallbacks to Claude Code, Codex CLI, Cursor and env vars. See [`2026-10-02-standalone-credentials-design.md`](2026-10-02-standalone-credentials-design.md); where it conflicts with this section and the provider sources above, the amendment wins.
+
+> **2026-10-08 correction** — cache contents also include Kuota's own secret-free Claude backoff sidecar (`claude-backoff.json`), per the PLAN M2.5 decision (2026-07-12).
 
 ## Configuration
 
