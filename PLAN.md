@@ -1573,7 +1573,52 @@ published SHASUMS256. The archive (`9e512f1f…`) and binary (`2dc70820…`)
 hashes both match the 2026-09-09 receipt. QML fixture processes use the
 fixed-path `/usr/bin/node` 26.10.0.
 
-**Review:** pending.
+**Review — panel, 2026-10-08:** two models on `main...551d9e1`, both at high
+effort. openai-codex `gpt-6.1-sol` reported no findings. anthropic
+`claude-opus-5-5` reported 1 critical, 7 warnings and 4 nits. The parent
+verified each finding against main, the batch commit `846cbcc` and the
+approved specs.
+
+- **Fixed:**
+  - `5a24cf8`: the critical one. A multi-checkbox Apply launched a collector
+    mid-Apply, for a selection that still held the providers being
+    unchecked. Plasma's `saveConfig()` writes one key at a time, so emptying
+    the selection still launched one. `CollectorBridge.select()` now
+    invalidates at once, and the root defers the launch with
+    `Qt.callLater`. RED 13/2 → GREEN 15/0 in `tst_main_wiring.qml`; the spec
+    gets a dated D-R7.4 note.
+  - `a7df96f`: the window-combo test pins literal (label, value) pairs; a
+    catalog-swap mutation fails it. M17's `refreshIfExpired` is a counted
+    stub in the integrated selection test.
+  - `951cd48`: stale Claude/Codex-only selector text, the catalog's "not
+    validation policy" comment, G-R heading nesting, and four absolute home
+    paths.
+- **Deferred.** None of these is a regression, and each needs its own scope:
+  - Move the bridge's selection state into `bridge-lifecycle.js` and stop
+    re-parsing the argv token (`select()` is the first step).
+  - Loop window defaults and the sanitizer over `KNOWN_WINDOWS`. The ABI
+    fixture already pins every key.
+  - A distinct "no providers enabled" view with Refresh disabled. D-R7.3
+    specifies the existing empty state, so this is a product change.
+  - Drop `atomic-write`'s `isJsonValue` re-export. D-R6.2 keeps it on
+    purpose; no production code imports it.
+  - `check-artifact` compares against the build's own `PROVIDER_IDS`.
+- **Dismissed:**
+  - The `claude/cache.ts` cast predates the batch.
+  - `../evidence/` paths are local by design.
+  - Section order follows the merge.
+  - The "Show in widget" helper tolerance is covered by an exact label
+    assertion.
+  - `collectorPathOverride` is D-R7's reviewed test seam.
+
+**Gates after the panel fixes**, same method, at `951cd48` (tree `e670ce7`,
+clean, still clean afterwards). Node 24.15.0 / npm 12.2.0 and Node 20.0.0 /
+npm 9.6.4 both pass: every gate exits 0, `npm test` 760 pass / 0 fail, QML
+395 pass / 0 fail (+2 per-key Apply tests). Static QML `test_` functions:
+344.
+
+**G-RL counters:** panel reviews 1 (2 models) · review-driven fix cycles 1 ·
+code commits 1 · test commits 1 · doc commits 1 · deferred findings 5.
 
 Not claimed, as in the batch's own verdict: live widget/account acceptance,
 non-English translation runs, elapsed five-minute scheduling, and descendant
