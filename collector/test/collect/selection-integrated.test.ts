@@ -66,12 +66,14 @@ function spiedRegistry() {
     createProviderRegistration(createGrokAdapter({
       now, resolveAuthPath,
       readAuth: spy("grok", "auth", { state: "available", credential: { kind: "oauth", value: "synthetic-issue7-not-real" } }),
+      refreshIfExpired: spy("grok", "refresh", { state: "ok", access: "synthetic-issue7-not-real" }),
       fetchUsage: spy("grok", "fetch", { outcome: "ok", value: { monthly: {} } }),
       parseUsage: () => ({ ok: true, record: success("grok") }),
     })),
     createProviderRegistration(createKimiAdapter({
       now, resolveAuthPath,
       readAuth: spy("kimi", "auth", { state: "available", credential: { kind: "oauth", value: "synthetic-issue7-not-real" } }),
+      refreshIfExpired: spy("kimi", "refresh", { state: "ok", access: "synthetic-issue7-not-real" }),
       fetchUsage: spy("kimi", "fetch", { outcome: "ok", value: {} }),
       parseUsage: () => ({ ok: true, record: success("kimi") }),
     })),
@@ -110,6 +112,10 @@ function spiedRegistry() {
         }
       }
       assert.equal(calls.get("commandcode:subscription") ?? 0, selected.includes("commandcode") && !failFetch ? 1 : 0);
+      // M17's store-token refresh is a provider request too.
+      for (const id of ["grok", "kimi"] as const) {
+        assert.equal(calls.get(`${id}:refresh`) ?? 0, selected.includes(id) ? 1 : 0, `${id} token refresh`);
+      }
     },
   };
 }

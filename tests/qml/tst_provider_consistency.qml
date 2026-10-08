@@ -171,24 +171,28 @@ TestCase {
             var combos = controls(page, function(item) { return item.valueRole === "value"; });
             compare(combos.length, 6); // every multi-window provider (M15); Cursor has none
             var ids = ["claude", "codex", "grok", "kimi", "opencode", "commandcode"];
-            var expectedTexts = [
-                ["Default", "Session", "Weekly (all)", "Weekly (OAuth apps)"],
-                ["Default", "Primary", "Secondary"],
-                ["Default", "7d", "30d"],
-                ["Default", "Week", "5h", "Daily", "Month"],
-                ["Default", "5h", "Weekly", "Monthly"],
-                ["Default", "5h", "Weekly"]
+            // Literal (label, value) pairs, as v2.0.0 shipped them: values read
+            // back from the catalog would let a reordered catalog relabel a
+            // window unnoticed.
+            var expectedPairs = [
+                [["Default", ""], ["Session", "session"], ["Weekly (all)", "weekly-all"], ["Weekly (OAuth apps)", "weekly-oauth-apps"]],
+                [["Default", ""], ["Primary", "primary"], ["Secondary", "secondary"]],
+                [["Default", ""], ["7d", "week"], ["30d", "month"]],
+                [["Default", ""], ["Week", "week"], ["5h", "5h"], ["Daily", "daily"], ["Month", "month"]],
+                [["Default", ""], ["5h", "rolling"], ["Weekly", "weekly"], ["Monthly", "monthly"]],
+                [["Default", ""], ["5h", "fiveHour"], ["Weekly", "weekly"]]
             ];
             for (var i = 0; i < ids.length; i++) {
-                var expected = [""].concat(Config.KNOWN_WINDOWS[ids[i]]);
-                compare(combos[i].count, expected.length);
-                for (var j = 0; j < expected.length; j++) {
-                    compare(combos[i].model[j].value, expected[j]);
-                    compare(combos[i].model[j].text, expectedTexts[i][j]);
+                var pairs = expectedPairs[i];
+                compare(pairs.map(function(pair) { return pair[1]; }), [""].concat(Config.KNOWN_WINDOWS[ids[i]]));
+                compare(combos[i].count, pairs.length);
+                for (var j = 0; j < pairs.length; j++) {
+                    compare(combos[i].model[j].text, pairs[j][0]);
+                    compare(combos[i].model[j].value, pairs[j][1]);
                     combos[i].currentIndex = j;
-                    compare(page["cfg_" + ids[i] + "Window"], expected[j]);
-                    var raw = {}; raw[ids[i] + "Window"] = expected[j];
-                    compare(Config.sanitize(raw)[ids[i] + "Window"], expected[j]);
+                    compare(page["cfg_" + ids[i] + "Window"], pairs[j][1]);
+                    var raw = {}; raw[ids[i] + "Window"] = pairs[j][1];
+                    compare(Config.sanitize(raw)[ids[i] + "Window"], pairs[j][1]);
                 }
             }
             var rows = controls(page, function(item) { return typeof item.providerId === "string" && typeof item.index === "number"; });
