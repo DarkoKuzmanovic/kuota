@@ -13,6 +13,19 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
 
+### Changed
+
+- **Provider selection now controls collection, not just display.** Settings →
+  Providers reads “Show and collect usage”: an unchecked provider is skipped
+  entirely (no credential discovery, no request), and unchecking every provider
+  launches no collector. Re-enabling a provider refreshes; reordering or
+  appearance changes don't trigger collection. (#7)
+
+### Fixed
+
+- The Add Widgets description lists all seven providers; OpenCode and
+  CommandCode were missing. (#5)
+
 ## [2.0.0] - 2026-10-02
 
 Kuota no longer depends on Pi. **Breaking:** credentials in Pi's

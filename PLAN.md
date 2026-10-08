@@ -1529,6 +1529,55 @@ Worktree `.worktrees/feat-m17-standalone-credentials` (branch `feat/m17-standalo
 
 - The cache description in `AGENTS.md` and `docs/architecture/overview.md` now names the secret-free Claude backoff sidecar alongside normalized usage; the design spec's cache bullet and the collector diagram are amended to match, per the M2.5 decision. Empty `PERO_*.md` scratch files and their `.pero.json` pointer are removed.
 
+## G-RL — #7/#5/#6 landed on 2.0.0 (2026-10-08)
+
+**Owner check:** delegated in chat on 2026-10-08 ("figure out
+feat/review-7-5-6 on your own and fix it"), with approval to push, open a PR,
+merge once Codex has nothing blocking, and remove the worktree. The batch's
+session had stopped at the 2026-09-09 owner checkpoint
+(`.worktrees/feat-review-7-5-6-evidence/CHECKPOINT.md`); no later session
+touched the worktree.
+
+**Identity:** the uncommitted worktree was byte-identical to the checkpoint's
+final tree `abcfb44`, and its base `47fc011` has the same tree as the reviewed
+public base `9b4cfa2` (a message-only history rewrite). It was committed
+unchanged as `846cbcc`.
+
+**Merge with main (M15–M17):** `22be9ce`. In `config-model.js`, #5's single
+`DEFAULTS` owner and catalog-owned `KNOWN_WINDOWS` stay, M15's four
+`<id>Window` defaults are added, and M15's window facts move into
+`provider-catalog.js`. `tst_config_providers.qml` (add/add) combines #7's
+checkbox test with M15's three window tests. This file keeps both sides.
+`1ffa3a1` carries M15 through #5's drift gates: catalog-sourced combo values,
+four more keys in the settings-ABI fixture, six expected selectors. It also
+adds dated landing notes to the three specs, amending D-R5.4. Static test
+declarations confirm the merge lost nothing: QML `test_` functions 342 = main
+316 + batch 26; Node `test()` calls 614 = main 601 + batch 13.
+
+**Gates** run sequentially, with a private synthetic HOME and an allowlisted
+environment, at `1ffa3a1` (tree `a3b2648`, clean):
+
+| Gate | Node 24.15.0 / npm 12.2.0 | Node 20.0.0 / npm 9.6.4 |
+| --- | --- | --- |
+| `npm ci --ignore-scripts --no-audit --no-fund` | exit 0 | exit 0 |
+| `npm run typecheck` | exit 0 | exit 0 |
+| `npm test` | 760 pass / 0 fail | 760 pass / 0 fail |
+| `npm run test:qml` | 393 pass / 0 fail | 393 pass / 0 fail |
+| `npm run validate:plasma` | exit 0 | exit 0 |
+| `npm run build:artifact` | exit 0 (`kuota-v2.0.0.plasmoid`) | exit 0 |
+
+Node 20.0.0 is the official archive, re-fetched and checked against Node's
+published SHASUMS256. The archive (`9e512f1f…`) and binary (`2dc70820…`)
+hashes both match the 2026-09-09 receipt. QML fixture processes use the
+fixed-path `/usr/bin/node` 26.10.0.
+
+**Review:** pending.
+
+Not claimed, as in the batch's own verdict: live widget/account acceptance,
+non-English translation runs, elapsed five-minute scheduling, and descendant
+reaping. The batch rides the next release; release, installation and #8/#9
+need their own scope.
+
 ## Deferred providers
 
 ### Meta Muse Code — deferred 2026-09-25 (owner decision)
