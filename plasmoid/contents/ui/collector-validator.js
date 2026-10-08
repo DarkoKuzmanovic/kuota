@@ -1,4 +1,5 @@
 .pragma library
+.import "provider-catalog.js" as ProviderCatalog
 
 // Plasma-independent whole-document validator for the collector contract
 // (schema version 2). This module must never import the Plasma executable
@@ -13,7 +14,7 @@
 // from process output that must never be echoed back verbatim.
 
 var SCHEMA_VERSION = 2;
-var PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"];
+var PROVIDER_IDS = ProviderCatalog.PROVIDER_IDS;
 var PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"];
 var MAX_INPUT_LENGTH = 262144; // 256 KiB of QML string content.
 

@@ -8,7 +8,7 @@
       }
     ],
     "Category": "System Information",
-    "Description": "Keep Claude, Codex, Grok, Kimi, and Cursor account usage visible on the Plasma desktop.",
+    "Description": "Keep Claude, Codex, Grok, Kimi, Cursor, OpenCode, and CommandCode account usage visible on the Plasma desktop.",
     "Icon": "network-server",
     "Id": "io.github.darkokuzmanovic.kuota",
     "License": "MIT",

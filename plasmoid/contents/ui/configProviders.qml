@@ -1,4 +1,5 @@
 import QtQuick
+import "provider-catalog.js" as ProviderCatalog
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import org.kde.kirigami 2.20 as Kirigami
@@ -18,7 +19,7 @@ Kirigami.FormLayout {
 
     // StringList has no 1:1 widget; the reorder Repeater below reads/writes
     // this plain array directly (matches the compact-model.js entries pattern).
-    property var cfg_providerOrder: ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]
+    property var cfg_providerOrder: ProviderCatalog.PROVIDER_IDS.slice()
 
     function providerLabel(providerId) {
         switch (providerId) {
@@ -56,56 +57,56 @@ Kirigami.FormLayout {
     Kirigami.Heading {
         Kirigami.FormData.isSection: true
         level: 4
-        text: qsTr("Visibility")
+        text: qsTr("Display and collection")
     }
 
     Controls.CheckBox {
         id: claudeVisibleCheck
         Kirigami.FormData.label: qsTr("Claude:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Claude visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Claude display and collection enabled")
     }
 
     Controls.CheckBox {
         id: codexVisibleCheck
         Kirigami.FormData.label: qsTr("Codex:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Codex visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Codex display and collection enabled")
     }
 
     Controls.CheckBox {
         id: grokVisibleCheck
         Kirigami.FormData.label: qsTr("Grok:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Grok visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Grok display and collection enabled")
     }
 
     Controls.CheckBox {
         id: kimiVisibleCheck
         Kirigami.FormData.label: qsTr("Kimi:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Kimi visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Kimi display and collection enabled")
     }
 
     Controls.CheckBox {
         id: cursorVisibleCheck
         Kirigami.FormData.label: qsTr("Cursor:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("Cursor visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("Cursor display and collection enabled")
     }
 
     Controls.CheckBox {
         id: opencodeVisibleCheck
         Kirigami.FormData.label: qsTr("OpenCode:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("OpenCode visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("OpenCode display and collection enabled")
     }
 
     Controls.CheckBox {
         id: commandcodeVisibleCheck
         Kirigami.FormData.label: qsTr("CommandCode:")
-        text: qsTr("Show in widget")
-        Accessible.name: qsTr("CommandCode visible")
+        text: qsTr("Show and collect usage")
+        Accessible.name: qsTr("CommandCode display and collection enabled")
     }
 
     Kirigami.Heading {
@@ -123,7 +124,7 @@ Kirigami.FormLayout {
         // null" etc. during reorder). Each row instead looks up its own
         // provider id reactively via `index`, so reordering only re-evaluates
         // bindings in place — no delegate teardown.
-        model: 7
+        model: ProviderCatalog.PROVIDER_IDS.length
 
         delegate: RowLayout {
             id: providerOrderRow
@@ -168,9 +169,9 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("Session"), value: "session" },
-            { text: qsTr("Weekly (all)"), value: "weekly-all" },
-            { text: qsTr("Weekly (OAuth apps)"), value: "weekly-oauth-apps" }
+            { text: qsTr("Session"), value: ProviderCatalog.SELECTABLE_WINDOWS.claude[0] },
+            { text: qsTr("Weekly (all)"), value: ProviderCatalog.SELECTABLE_WINDOWS.claude[1] },
+            { text: qsTr("Weekly (OAuth apps)"), value: ProviderCatalog.SELECTABLE_WINDOWS.claude[2] }
         ]
     }
 
@@ -182,8 +183,8 @@ Kirigami.FormLayout {
         valueRole: "value"
         model: [
             { text: qsTr("Default"), value: "" },
-            { text: qsTr("Primary"), value: "primary" },
-            { text: qsTr("Secondary"), value: "secondary" }
+            { text: qsTr("Primary"), value: ProviderCatalog.SELECTABLE_WINDOWS.codex[0] },
+            { text: qsTr("Secondary"), value: ProviderCatalog.SELECTABLE_WINDOWS.codex[1] }
         ]
     }
 }

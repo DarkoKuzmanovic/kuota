@@ -1,4 +1,5 @@
 import QtQuick
+import "provider-catalog.js" as ProviderCatalog
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import org.kde.kirigami 2.20 as Kirigami
@@ -30,7 +31,7 @@ Kirigami.FormLayout {
     property string cfg_commandcodeAccentColor: ""
     property string cfg_commandcodeCustomIcon: ""
 
-    readonly property var providerIds: ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]
+    readonly property var providerIds: ProviderCatalog.PROVIDER_IDS.slice()
 
     function providerLabel(providerId) {
         switch (providerId) {

@@ -12,6 +12,123 @@ TestCase {
         }
     }
 
+
+    // D-R7: this seam changes only the bundled collector fixture path, never
+    // selection. Every real root refresh still consumes sanitized settings.
+    function selectedSettings(ids) {
+        var raw = { providerOrder: ids.slice().reverse() };
+        var all = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"];
+        for (var i = 0; i < all.length; i++) raw[all[i] + "Visible"] = ids.indexOf(all[i]) !== -1;
+        return raw;
+    }
+    function createSelectionRoot(ids) {
+        var component = Qt.createComponent("../../plasmoid/contents/ui/main.qml");
+        compare(component.status, Component.Ready, component.errorString());
+        // Preserve the JS array through createObject's QVariant boundary, as
+        // the existing configOverride assignment tests do after construction.
+        var settings = selectedSettings(ids);
+        var root = component.createObject(null, {
+            configOverride: Qt.binding(function() { return settings; }),
+            collectorPathOverride: Qt.resolvedUrl("fixtures/collector/success.js").toString().replace("file://", "")
+        });
+        verify(root !== null);
+        return root;
+    }
+    function waitForSelection(root, expected) {
+        tryVerify(function() { return !root.inFlight && root.snapshot !== null; }, 5000);
+        compare(root.snapshot.providers.map(function(p) { return p.id; }), expected);
+    }
+    function test_startupManualAndTimerUseCanonicalSelectedArgv() {
+        var root = createSelectionRoot(["claude", "commandcode"]);
+        try {
+            waitForSelection(root, ["claude", "commandcode"]);
+            compare(root.compactDisplayConfig.order, ["commandcode", "claude"]);
+            var bridge = findChild(root, "collectorBridge");
+            verify(bridge !== null);
+            compare(bridge._requestState.nextSourceId, 2);
+            root.refresh();
+            verify(bridge._requestState.activeToken.indexOf(" --enabled-providers=claude,commandcode # ") !== -1);
+            waitForSelection(root, ["claude", "commandcode"]);
+            var timer = findChild(root, "refreshTimer");
+            verify(timer !== null);
+            timer.triggered();
+            verify(bridge._requestState.activeToken.indexOf(" --enabled-providers=claude,commandcode # ") !== -1);
+            waitForSelection(root, ["claude", "commandcode"]);
+            compare(bridge._requestState.nextSourceId, 4);
+        } finally { root.destroy(); }
+    }
+    function test_emptyStartupManualTimerViewsAndReenable() {
+        var root = createSelectionRoot([]);
+        try {
+            var bridge = findChild(root, "collectorBridge");
+            verify(bridge !== null);
+            wait(100);
+            compare(bridge._requestState.nextSourceId, 1);
+            root.refresh();
+            findChild(root, "refreshTimer").triggered();
+            compare(bridge._requestState.nextSourceId, 1);
+            compare(root.inFlight, false);
+            compare(root.snapshot, null);
+            compare(root.snapshotAgeMs(), undefined);
+            var compact = root.compactRepresentation.createObject(root);
+            var full = root.fullRepresentation.createObject(root);
+            compare(compact.hasEntries, false);
+            compare(full.hasProviders, false);
+            root.configOverride = selectedSettings(["codex"]);
+            waitForSelection(root, ["codex"]);
+            compare(bridge._requestState.nextSourceId, 2);
+            root.configOverride = selectedSettings([]);
+            compare(root.snapshot, null);
+            compare(root.snapshotAgeMs(), undefined);
+            compare(compact.hasEntries, false);
+            compare(full.hasProviders, false);
+            compare(bridge._requestState.nextSourceId, 2);
+        } finally { root.destroy(); }
+    }
+    function test_membershipRefreshesButOrderAndAppearanceDoNot() {
+        var root = createSelectionRoot(["claude", "grok"]);
+        try {
+            waitForSelection(root, ["claude", "grok"]);
+            var bridge = findChild(root, "collectorBridge");
+            var prior = root.snapshot;
+            var raw = selectedSettings(["claude", "grok"]);
+            raw.providerOrder = ["claude", "grok"];
+            raw.fontScale = 2;
+            raw.separator = "synthetic separator";
+            raw.claudeWindow = "weekly-all";
+            root.configOverride = raw;
+            wait(100);
+            compare(bridge._requestState.nextSourceId, 2);
+            compare(root.snapshot, prior);
+            compare(root.compactDisplayConfig.order, ["claude", "grok"]);
+            root.configOverride = selectedSettings(["kimi"]);
+            compare(root.snapshot, null);
+            waitForSelection(root, ["kimi"]);
+            compare(bridge._requestState.nextSourceId, 3);
+        } finally { root.destroy(); }
+    }
+
+    function test_activeRootChangesKeepOwnershipAndCollectOnlyLatestSettings() {
+        var root = createSelectionRoot([]);
+        try {
+            var bridge = findChild(root, "collectorBridge");
+            root.collectorPathOverride = Qt.resolvedUrl("fixtures/collector/slow.js").toString().replace("file://", "");
+            root.configOverride = selectedSettings(["claude"]);
+            verify(root.inFlight);
+            var old = bridge._requestState.activeToken;
+            root.configOverride = selectedSettings([]);
+            compare(root.snapshot, null);
+            compare(bridge._requestState.activeToken, old);
+            root.collectorPathOverride = Qt.resolvedUrl("fixtures/collector/success.js").toString().replace("file://", "");
+            root.configOverride = selectedSettings(["cursor"]);
+            root.configOverride = selectedSettings(["opencode", "commandcode"]);
+            compare(bridge._requestState.activeToken, old);
+            compare(bridge._requestState.nextSourceId, 2);
+            waitForSelection(root, ["opencode", "commandcode"]);
+            compare(bridge._requestState.nextSourceId, 3);
+        } finally { root.destroy(); }
+    }
+
     function test_exposesOnlyTheSafeRootRefreshLifecycleSurface() {
         var loader = mainComponent.createObject(null);
         tryCompare(loader, "status", Loader.Ready);

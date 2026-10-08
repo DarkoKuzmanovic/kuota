@@ -30,16 +30,45 @@ QtObject {
     property var snapshotState: SnapshotState.createInitialSnapshotState()
 
     property var _requestState: BridgeLifecycle.createRequestState()
+    property var _selectionKey: null
+    property var _enabledProviders: undefined
+    property bool _discardActiveResult: false
+    property bool _pendingRefresh: false
 
     function _defaultCollectorPath() {
         var url = Qt.resolvedUrl("../code/collector/cli.js").toString();
         return url.indexOf("file://") === 0 ? url.slice("file://".length) : url;
     }
 
-    // enabledProviders: undefined selects collector defaults (all
-    // providers, no argument); an array selects exactly that allowlisted,
-    // canonically ordered subset (which may be empty).
+    // undefined/null retain standalone default-all compatibility. Empty
+    // canonical membership never launches a process or invents an observation.
     function refresh(enabledProviders) {
+        var providerToken = CollectorCommand.buildProviderToken(enabledProviders);
+        if (providerToken === undefined) {
+            if (!inFlight) snapshotState = SnapshotState.retainOnProcessError(snapshotState);
+            return false;
+        }
+        var selectionKey = providerToken === ""
+            ? CollectorCommand.CANONICAL_PROVIDER_IDS.join(",")
+            : providerToken.slice(" --enabled-providers=".length);
+        var changed = selectionKey !== _selectionKey;
+        if (changed) {
+            _selectionKey = selectionKey;
+            // Store a canonical copy, never a caller-owned mutable array.
+            _enabledProviders = providerToken === "" ? undefined
+                : (selectionKey.length === 0 ? [] : selectionKey.split(","));
+            if (snapshotState.lifecycleStatus !== SnapshotState.LIFECYCLE_STATUS.INITIAL) {
+                snapshotState = SnapshotState.createInitialSnapshotState();
+            }
+            if (inFlight) {
+                // Selection invalidation is permanent, even A→B→A. Keep the
+                // active source and deadline: disconnect is not child reaping.
+                _discardActiveResult = true;
+                _pendingRefresh = selectionKey.length > 0;
+            }
+        }
+        if (selectionKey.length === 0 || inFlight) return false;
+
         var attempt = BridgeLifecycle.beginRequest(_requestState);
         if (!attempt.started) {
             return false;
@@ -71,7 +100,15 @@ QtObject {
         _deadlineTimer.stop();
         _executable.disconnectSource(sourceName);
         _requestState = BridgeLifecycle.clearIfActive(_requestState, sourceName);
-        _settle(data);
+        if (!_discardActiveResult) _settle(data);
+        _refreshAfterSelectionChange();
+    }
+
+    function _refreshAfterSelectionChange() {
+        var pending = _pendingRefresh;
+        _pendingRefresh = false;
+        _discardActiveResult = false;
+        if (pending) refresh(_enabledProviders);
     }
 
     function _settle(data) {
@@ -98,9 +135,11 @@ QtObject {
         if (token === null || !BridgeLifecycle.isActiveToken(_requestState, token)) {
             return;
         }
+        _deadlineTimer.stop();
         _executable.disconnectSource(token);
         _requestState = BridgeLifecycle.clearIfActive(_requestState, token);
-        snapshotState = SnapshotState.retainOnTimeout(snapshotState);
+        if (!_discardActiveResult) snapshotState = SnapshotState.retainOnTimeout(snapshotState);
+        _refreshAfterSelectionChange();
     }
 
     // QtObject has no default child-list property, so the executable

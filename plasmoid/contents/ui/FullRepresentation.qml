@@ -4,6 +4,7 @@ import QtQuick.Controls as Controls
 import org.kde.kirigami 2.20 as Kirigami
 
 import "full-model.js" as FullModel
+import "provider-catalog.js" as ProviderCatalog
 
 FocusScope {
     id: fullRoot
@@ -12,7 +13,7 @@ FocusScope {
     property bool inFlight: false
     property real nowMs: Date.now()
     property bool autoAdvanceClock: true
-    property var providerOrder: ["claude", "codex", "grok", "kimi", "cursor"]
+    property var providerOrder: ProviderCatalog.PROVIDER_IDS.slice()
     // Injected caution/critical thresholds (M9, D5). Defaults preserve M8's
     // 75/90 behavior for standalone instantiation (e.g. existing tests that
     // never set this).

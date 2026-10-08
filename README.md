@@ -157,17 +157,26 @@ credential consumers.
 
 Right-click Kuota and open its configuration dialog:
 
-- **Providers:** visibility/order and Claude/Codex compact usage-window choices
-  in the published source.
+- **Providers:** display/collection selection, display order, and Claude/Codex
+  compact usage-window choices.
 - **Appearance:** display mode, font scale, separator, icon/label/value spacing,
   and countdown visibility.
 - **Thresholds:** refresh interval and caution/critical utilization levels.
 - **Theming:** optional fonts, icons, text colors, accents, and opacity. Native
   Plasma styling remains the default.
 
-“Show in widget” currently affects presentation, **not collection**: hidden
-providers can still be queried. The standalone collector can explicitly select
-a subset; connecting that capability to a clear UI control is proposed work.
+In this source revision, **“Show and collect usage”** controls both display and
+collection using the existing visibility setting. Disabled providers are excluded
+from future collector invocations, including credential discovery and requests.
+Disabling all providers leaves the empty view and launches no collector; it does
+not create a fresh observation. Re-enabling a provider requests a refresh.
+Reordering providers or changing appearance does not trigger collection.
+
+Work already launched while a provider was enabled may finish. Selection changes
+clear the old snapshot and discard that in-flight result, then refresh only the
+latest selection once the existing run finishes or reaches its deadline. Multiple
+widget instances may select different subsets; cached records for other
+instances are preserved on disk but excluded from the current response.
 
 ## Troubleshooting
 

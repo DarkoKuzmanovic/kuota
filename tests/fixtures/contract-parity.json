@@ -1,0 +1,518 @@
+[
+  {
+    "tag": "all-supported-auth-needed",
+    "valid": true,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "auth-needed"
+        },
+        {
+          "id": "codex",
+          "state": "auth-needed"
+        },
+        {
+          "id": "grok",
+          "state": "auth-needed"
+        },
+        {
+          "id": "kimi",
+          "state": "auth-needed"
+        },
+        {
+          "id": "cursor",
+          "state": "auth-needed"
+        },
+        {
+          "id": "opencode",
+          "state": "auth-needed"
+        },
+        {
+          "id": "commandcode",
+          "state": "auth-needed"
+        }
+      ]
+    }
+  },
+  {
+    "tag": "v1-legacy-umans-ignored",
+    "valid": true,
+    "document": {
+      "schemaVersion": 1,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "auth-needed"
+        },
+        {
+          "id": "codex",
+          "state": "auth-needed"
+        },
+        {
+          "id": "umans",
+          "ignoredLegacy": "synthetic-ignored"
+        },
+        {
+          "id": "grok",
+          "state": "auth-needed"
+        },
+        {
+          "id": "kimi",
+          "state": "auth-needed"
+        },
+        {
+          "id": "cursor",
+          "state": "auth-needed"
+        },
+        {
+          "id": "opencode",
+          "state": "auth-needed"
+        },
+        {
+          "id": "commandcode",
+          "state": "auth-needed"
+        }
+      ]
+    }
+  },
+  {
+    "tag": "v1-only-legacy-umans",
+    "valid": true,
+    "document": {
+      "schemaVersion": 1,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "umans"
+        }
+      ]
+    }
+  },
+  {
+    "tag": "v2-umans-rejected",
+    "valid": false,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "umans"
+        }
+      ]
+    }
+  },
+  {
+    "tag": "all-supported-windows-and-details",
+    "valid": true,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "claude": {
+              "tokens": 12
+            }
+          }
+        },
+        {
+          "id": "codex",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "codex": {
+              "plan": "synthetic-plan"
+            }
+          }
+        },
+        {
+          "id": "grok",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "grok": {
+              "monthlyUsed": 2,
+              "monthlyLimit": 10
+            }
+          }
+        },
+        {
+          "id": "kimi",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "kimi": {
+              "concurrency": 1,
+              "concurrencyLimit": 2
+            }
+          }
+        },
+        {
+          "id": "cursor",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "cursor": {
+              "membershipType": "synthetic-plan"
+            }
+          }
+        },
+        {
+          "id": "opencode",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ]
+        },
+        {
+          "id": "commandcode",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "commandcode": {
+              "monthlyCredits": 10,
+              "planName": "synthetic-plan"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "tag": "retained-stale",
+    "valid": true,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "stale",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "claude": {
+              "tokens": 12
+            }
+          }
+        },
+        {
+          "id": "codex",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "codex": {
+              "plan": "synthetic-plan"
+            }
+          }
+        },
+        {
+          "id": "grok",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "grok": {
+              "monthlyUsed": 2,
+              "monthlyLimit": 10
+            }
+          }
+        },
+        {
+          "id": "kimi",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "kimi": {
+              "concurrency": 1,
+              "concurrencyLimit": 2
+            }
+          }
+        },
+        {
+          "id": "cursor",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "cursor": {
+              "membershipType": "synthetic-plan"
+            }
+          }
+        },
+        {
+          "id": "opencode",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ]
+        },
+        {
+          "id": "commandcode",
+          "state": "ok",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z",
+          "windows": [
+            {
+              "id": "synthetic-window",
+              "label": "Synthetic window",
+              "usedPercent": 12
+            }
+          ],
+          "details": {
+            "commandcode": {
+              "monthlyCredits": 10,
+              "planName": "synthetic-plan"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "tag": "unknown-provider",
+    "valid": false,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "auth-needed"
+        },
+        {
+          "id": "synthetic-unknown",
+          "state": "auth-needed"
+        }
+      ]
+    }
+  },
+  {
+    "tag": "duplicate-provider",
+    "valid": false,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "auth-needed"
+        },
+        {
+          "id": "claude",
+          "state": "auth-needed"
+        }
+      ]
+    }
+  },
+  {
+    "tag": "wrong-details-namespace",
+    "valid": false,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "auth-needed",
+          "details": {
+            "codex": {
+              "tokens": 1
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "tag": "unknown-details-field",
+    "valid": false,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "auth-needed",
+          "details": {
+            "claude": {
+              "syntheticUnknown": 1
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "tag": "stale-without-data",
+    "valid": false,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "stale",
+          "lastSuccessAt": "2026-09-09T00:00:00.000Z"
+        }
+      ]
+    }
+  },
+  {
+    "tag": "unknown-top-level",
+    "valid": false,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "auth-needed"
+        }
+      ],
+      "syntheticUnknown": true
+    }
+  },
+  {
+    "tag": "backwards-timestamps",
+    "valid": false,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-08T00:00:00.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "auth-needed"
+        }
+      ]
+    }
+  },
+  {
+    "tag": "unknown-schema",
+    "valid": false,
+    "document": {
+      "schemaVersion": 3,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": [
+        {
+          "id": "claude",
+          "state": "auth-needed"
+        }
+      ]
+    }
+  },
+  {
+    "tag": "null-providers",
+    "valid": false,
+    "document": {
+      "schemaVersion": 2,
+      "collectionStartedAt": "2026-09-09T00:00:00.000Z",
+      "collectionFinishedAt": "2026-09-09T00:00:01.000Z",
+      "providers": null
+    }
+  }
+]

@@ -1,4 +1,5 @@
 .pragma library
+.import "provider-catalog.js" as ProviderCatalog
 
 // Plasma-independent builder for the one shell command the executable
 // compatibility bridge launches. This module never imports the executable
@@ -13,7 +14,7 @@
 // quoting alone already neutralizes shell metacharacters.
 
 var NODE_PATH = "/usr/bin/node";
-var CANONICAL_PROVIDER_IDS = Object.freeze(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
+var CANONICAL_PROVIDER_IDS = ProviderCatalog.PROVIDER_IDS;
 var MAX_PATH_LENGTH = 4096;
 
 var COMMAND_BUILD_FAILURE = Object.freeze({

@@ -82,15 +82,19 @@ TestCase {
         compare(bridge.snapshotState.snapshot.providers[0].id, "claude");
     }
 
-    function test_emptyProviderSetSucceedsWithNoProviders() {
+    // D-R7.3 replaces the old empty-process success expectation: no observation
+    // was made, so even a valid empty collector response must not be fabricated.
+    function test_emptyProviderSetNeverLaunchesOrInventsObservation() {
         bridge.collectorPathOverride = fixturePath("success.js");
-        bridge.bridgeTimeoutMsOverride = 5000;
-
-        verify(bridge.refresh([]));
-        spy.wait(5000);
-
-        compare(bridge.snapshotState.lifecycleStatus, SnapshotState.LIFECYCLE_STATUS.ACCEPTED);
-        compare(bridge.snapshotState.snapshot.providers.length, 0);
+        var nextSourceId = bridge._requestState.nextSourceId;
+        compare(bridge.refresh([]), false);
+        compare(bridge.inFlight, false);
+        compare(bridge._requestState.nextSourceId, nextSourceId);
+        compare(bridge._executable.connectedSources.length, 0);
+        compare(bridge.snapshotState.snapshot, null);
+        compare(bridge.snapshotState.lifecycleStatus, SnapshotState.LIFECYCLE_STATUS.INITIAL);
+        wait(100);
+        compare(bridge.snapshotState.snapshot, null);
     }
 
     // --- Real process failure paths retain the prior snapshot ---------------
@@ -195,6 +199,36 @@ TestCase {
         spy.wait(5000);
 
         compare(bridge.snapshotState.lifecycleStatus, SnapshotState.LIFECYCLE_STATUS.ACCEPTED);
+    }
+
+    // D-R7: real Plasma executable completions, with no auth/network work.
+    function test_selectionChangesCoalesceAcrossRealProcessOutcomes_data() {
+        return [
+            {tag: "success", fixture: "slow.js", timeout: 5000},
+            {tag: "failure", fixture: "nonzero-exit.js", timeout: 5000},
+            {tag: "invalid", fixture: "malformed-output.js", timeout: 5000},
+            {tag: "timeout", fixture: "slow.js", timeout: 50}
+        ];
+    }
+    function test_selectionChangesCoalesceAcrossRealProcessOutcomes(data) {
+        bridge.collectorPathOverride = fixturePath(data.fixture);
+        bridge.bridgeTimeoutMsOverride = data.timeout;
+        verify(bridge.refresh(["claude"]));
+        var old = bridge._requestState.activeToken;
+        bridge.collectorPathOverride = fixturePath("success.js");
+        bridge.bridgeTimeoutMsOverride = 5000;
+        compare(bridge.refresh(["codex"]), false);
+        compare(bridge.refresh([]), false);
+        compare(bridge.refresh(["commandcode", "grok"]), false);
+        compare(bridge._requestState.activeToken, old);
+        compare(bridge._requestState.nextSourceId, 2);
+        tryVerify(function() { return !bridge.inFlight && bridge.snapshotState.snapshot !== null; }, 5000);
+        compare(bridge.snapshotState.snapshot.providers.map(function(p) { return p.id; }), ["grok", "commandcode"]);
+        compare(bridge._requestState.nextSourceId, 3);
+        // Exactly the new selection was published, never an intermediate result.
+        compare(spy.count, 1);
+        if (data.tag === "timeout") wait(600);
+        compare(spy.count, 1);
     }
 
     // --- Command injection safety through the real bridge -------------------

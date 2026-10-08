@@ -50,6 +50,18 @@ TestCase {
         }
     }
 
+    function test_standaloneOffersEverySupportedProvider() {
+        var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"];
+        full.snapshot = sampleSnapshot(ids.map(function(id) { return { id: id, state: "auth-needed" }; }));
+        compare(full.providerOrder, ids);
+        compare(full.availableProviderIds, ids);
+        compare(full.providerSwitcherItem.count, ids.length);
+        for (var i = 0; i < ids.length; i++) {
+            full.providerSwitcherItem.currentIndex = i;
+            compare(full.activeModel.providerId, ids[i]);
+        }
+    }
+
     function test_undefinedSnapshotShowsNoProviders() {
         full.snapshot = null;
         compare(full.hasProviders, false);

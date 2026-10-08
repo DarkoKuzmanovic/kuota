@@ -22,6 +22,21 @@ All test fixtures in the Kuota project must be **synthetic and recognizable as n
 
 The normalized schema fixtures under `tests/fixtures/normalized/` are classified by an explicit filename inventory in the contract tests; deleting or renaming one fails the suite. A valid `stale` provider always includes `lastSuccessAt` plus retained data: at least one usage window or a non-empty details object in the provider's matching namespace. The valid stale examples intentionally omit other optional fields, while invalid stale examples cover missing retention.
 
+## Cross-layer consistency fixtures
+
+`contract-parity.json` is a small shared synthetic corpus consumed by both the
+Node and Qt Quick Test validators. Each row supplies its expected acceptance;
+valid schema-v1 documents are upgraded and legacy Umans records are ignored,
+while schema-v2 Umans and malformed current records fail closed. Production
+validators remain separate implementations.
+
+`settings-defaults.json` pins the approved public KConfig key/type/default ABI.
+It is an independent test oracle, not generated during a gate: updating it
+requires an approved settings change. Tests compare the XML, complete JS defaults,
+default factory, sanitizer fallbacks/non-default values, and config-page keys.
+The current window selector set remains Claude/Codex only. Both new fixture
+files are checked by `scanForSecrets` in the consistency suite.
+
 ## How to verify
 
 ```bash

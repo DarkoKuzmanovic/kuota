@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { validateCollectorDocument } from '../dist/collector/contract/validate.js';
+import { PROVIDER_IDS } from '../dist/collector/contract/schema-v1.js';
 import { CLI_FAILURE_DIAGNOSTIC } from '../dist/collector/cli.js';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -72,7 +73,7 @@ function checkNormalInvocation() {
     fail('normal invocation violated the collector schema');
   }
   const providerIds = validation.value.providers.map((provider) => provider.id);
-  if (JSON.stringify(providerIds) !== JSON.stringify(['claude', 'codex', 'grok', 'kimi', 'cursor', 'opencode', 'commandcode'])) {
+  if (JSON.stringify(providerIds) !== JSON.stringify(PROVIDER_IDS)) {
     fail('normal invocation did not use canonical provider IDs');
   }
 }

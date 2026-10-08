@@ -1,12 +1,13 @@
 .pragma library
+.import "provider-catalog.js" as ProviderCatalog
 
 // Plasma-independent configuration sanitizer and display-config assembler.
 // Owns the read-boundary invariant for plasmoid settings before they reach
 // compact/full models. Never imports Plasma executable APIs or touches I/O.
 
-var KNOWN_PROVIDERS = Object.freeze(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
+var KNOWN_PROVIDERS = ProviderCatalog.PROVIDER_IDS;
 
-var DEFAULT_PROVIDER_ORDER = Object.freeze(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
+var DEFAULT_PROVIDER_ORDER = ProviderCatalog.PROVIDER_IDS;
 
 var DISPLAY_MODES = Object.freeze({
     icons: true,
@@ -15,74 +16,51 @@ var DISPLAY_MODES = Object.freeze({
 });
 
 // Static known window IDs per provider (D4).
-var KNOWN_WINDOWS = Object.freeze({
-    claude: Object.freeze(["session", "weekly-all", "weekly-oauth-apps"]),
-    codex: Object.freeze(["primary", "secondary"])
-});
+var KNOWN_WINDOWS = ProviderCatalog.SELECTABLE_WINDOWS;
 
 // Schema defaults — must stay in lockstep with plasmoid/contents/config/main.xml.
 // fontScale is a unit multiplier (1.0 = 100%), not a percent integer.
-var DEFAULTS = Object.freeze({
-    providerOrder: DEFAULT_PROVIDER_ORDER.slice(),
-    claudeVisible: true,
-    codexVisible: true,
-    grokVisible: true,
-    kimiVisible: true,
-    cursorVisible: true,
-    opencodeVisible: true,
-    commandcodeVisible: true,
-    claudeWindow: "",
-    codexWindow: "",
-    displayMode: "icons+text",
-    separator: " · ",
-    fontScale: 1.0,
-    showCountdown: true,
-    refreshIntervalMinutes: 5,
-    cautionThreshold: 75,
-    criticalThreshold: 90,
-    fontFamily: "",
-    customTextColorEnabled: false,
-    customTextColor: "",
-    labelOpacity: 1.0,
-    separatorOpacity: 1.0,
-    iconLabelSpacing: 2,
-    labelValueSpacing: 1
-});
+var DEFAULTS = buildDefaults();
+
+function buildDefaults() {
+    var defaults = {
+        providerOrder: DEFAULT_PROVIDER_ORDER,
+        claudeWindow: "",
+        codexWindow: "",
+        displayMode: "icons+text",
+        separator: " · ",
+        fontScale: 1.0,
+        showCountdown: true,
+        refreshIntervalMinutes: 5,
+        cautionThreshold: 75,
+        criticalThreshold: 90,
+        fontFamily: "",
+        customTextColorEnabled: false,
+        customTextColor: "",
+        labelOpacity: 1.0,
+        separatorOpacity: 1.0,
+        iconLabelSpacing: 2,
+        labelValueSpacing: 1
+    };
+    for (var i = 0; i < KNOWN_PROVIDERS.length; i++) {
+        var id = KNOWN_PROVIDERS[i];
+        defaults[id + "Visible"] = true;
+        defaults[id + "AccentColor"] = "";
+        defaults[id + "CustomIcon"] = "";
+    }
+    return Object.freeze(defaults);
+}
 
 var REFRESH_INTERVAL_FLOOR_MINUTES = 5;
 var FONT_SCALE_MIN = 0.5;  // matches configAppearance.qml SpinBox from: 50
 var FONT_SCALE_MAX = 3.0;
 
 function createDefaultSettings() {
-    var settings = {
-        providerOrder: DEFAULTS.providerOrder.slice(),
-        claudeVisible: DEFAULTS.claudeVisible,
-        codexVisible: DEFAULTS.codexVisible,
-        grokVisible: DEFAULTS.grokVisible,
-        kimiVisible: DEFAULTS.kimiVisible,
-        cursorVisible: DEFAULTS.cursorVisible,
-        opencodeVisible: DEFAULTS.opencodeVisible,
-        commandcodeVisible: DEFAULTS.commandcodeVisible,
-        claudeWindow: DEFAULTS.claudeWindow,
-        codexWindow: DEFAULTS.codexWindow,
-        displayMode: DEFAULTS.displayMode,
-        separator: DEFAULTS.separator,
-        fontScale: DEFAULTS.fontScale,
-        showCountdown: DEFAULTS.showCountdown,
-        refreshIntervalMinutes: DEFAULTS.refreshIntervalMinutes,
-        cautionThreshold: DEFAULTS.cautionThreshold,
-        criticalThreshold: DEFAULTS.criticalThreshold,
-        fontFamily: DEFAULTS.fontFamily,
-        customTextColorEnabled: DEFAULTS.customTextColorEnabled,
-        customTextColor: DEFAULTS.customTextColor,
-        labelOpacity: DEFAULTS.labelOpacity,
-        separatorOpacity: DEFAULTS.separatorOpacity,
-        iconLabelSpacing: DEFAULTS.iconLabelSpacing,
-        labelValueSpacing: DEFAULTS.labelValueSpacing
-    };
-    for (var i = 0; i < KNOWN_PROVIDERS.length; i++) {
-        settings[KNOWN_PROVIDERS[i] + "AccentColor"] = "";
-        settings[KNOWN_PROVIDERS[i] + "CustomIcon"] = "";
+    var settings = {};
+    var keys = Object.keys(DEFAULTS);
+    for (var i = 0; i < keys.length; i++) {
+        var value = DEFAULTS[keys[i]];
+        settings[keys[i]] = Array.isArray(value) ? value.slice() : value;
     }
     return settings;
 }
@@ -104,13 +82,10 @@ function sanitize(rawConfig) {
     }
 
     out.providerOrder = sanitizeProviderOrder(rawConfig.providerOrder);
-    out.claudeVisible = sanitizeBool(rawConfig.claudeVisible, DEFAULTS.claudeVisible);
-    out.codexVisible = sanitizeBool(rawConfig.codexVisible, DEFAULTS.codexVisible);
-    out.grokVisible = sanitizeBool(rawConfig.grokVisible, DEFAULTS.grokVisible);
-    out.kimiVisible = sanitizeBool(rawConfig.kimiVisible, DEFAULTS.kimiVisible);
-    out.cursorVisible = sanitizeBool(rawConfig.cursorVisible, DEFAULTS.cursorVisible);
-    out.opencodeVisible = sanitizeBool(rawConfig.opencodeVisible, DEFAULTS.opencodeVisible);
-    out.commandcodeVisible = sanitizeBool(rawConfig.commandcodeVisible, DEFAULTS.commandcodeVisible);
+    for (var v = 0; v < KNOWN_PROVIDERS.length; v++) {
+        var key = KNOWN_PROVIDERS[v] + "Visible";
+        out[key] = sanitizeBool(rawConfig[key], DEFAULTS[key]);
+    }
     out.claudeWindow = sanitizeWindowSelection("claude", rawConfig.claudeWindow);
     out.codexWindow = sanitizeWindowSelection("codex", rawConfig.codexWindow);
     out.displayMode = sanitizeDisplayMode(rawConfig.displayMode);
@@ -137,6 +112,17 @@ function sanitize(rawConfig) {
     return out;
 }
 
+// Collection membership is independent of display order. Call only with the
+// read-boundary sanitizer result; return allowlisted, secret-free IDs only.
+function enabledProviders(sanitized) {
+    var selected = [];
+    for (var i = 0; i < KNOWN_PROVIDERS.length; i++) {
+        var id = KNOWN_PROVIDERS[i];
+        if (sanitized[id + "Visible"] === true) selected.push(id);
+    }
+    return selected;
+}
+
 /**
  * Assemble the displayConfig shape compact-model.js consumes.
  * Hidden providers are omitted from order (empty order when all hidden).
@@ -145,15 +131,11 @@ function sanitize(rawConfig) {
  */
 function assembleDisplayConfig(sanitized) {
     var settings = isRecord(sanitized) ? sanitized : createDefaultSettings();
-    var visibility = {
-        claude: settings.claudeVisible === true,
-        codex: settings.codexVisible === true,
-        grok: settings.grokVisible === true,
-        kimi: settings.kimiVisible === true,
-        cursor: settings.cursorVisible === true,
-        opencode: settings.opencodeVisible === true,
-        commandcode: settings.commandcodeVisible === true
-    };
+    var visibility = {};
+    for (var p = 0; p < KNOWN_PROVIDERS.length; p++) {
+        var providerId = KNOWN_PROVIDERS[p];
+        visibility[providerId] = settings[providerId + "Visible"] === true;
+    }
 
     var orderSource = Array.isArray(settings.providerOrder)
         ? settings.providerOrder
