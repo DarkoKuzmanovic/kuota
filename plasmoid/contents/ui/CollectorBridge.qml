@@ -40,19 +40,16 @@ QtObject {
         return url.indexOf("file://") === 0 ? url.slice("file://".length) : url;
     }
 
-    // undefined/null retain standalone default-all compatibility. Empty
-    // canonical membership never launches a process or invents an observation.
-    function refresh(enabledProviders) {
+    // Records the canonical selection. A membership change invalidates the
+    // snapshot and any active result at once, before (and without) a launch.
+    // Returns the selection key, or undefined for an invalid list.
+    function select(enabledProviders) {
         var providerToken = CollectorCommand.buildProviderToken(enabledProviders);
-        if (providerToken === undefined) {
-            if (!inFlight) snapshotState = SnapshotState.retainOnProcessError(snapshotState);
-            return false;
-        }
+        if (providerToken === undefined) return undefined;
         var selectionKey = providerToken === ""
             ? CollectorCommand.CANONICAL_PROVIDER_IDS.join(",")
             : providerToken.slice(" --enabled-providers=".length);
-        var changed = selectionKey !== _selectionKey;
-        if (changed) {
+        if (selectionKey !== _selectionKey) {
             _selectionKey = selectionKey;
             // Store a canonical copy, never a caller-owned mutable array.
             _enabledProviders = providerToken === "" ? undefined
@@ -66,6 +63,17 @@ QtObject {
                 _discardActiveResult = true;
                 _pendingRefresh = selectionKey.length > 0;
             }
+        }
+        return selectionKey;
+    }
+
+    // undefined/null retain standalone default-all compatibility. Empty
+    // canonical membership never launches a process or invents an observation.
+    function refresh(enabledProviders) {
+        var selectionKey = select(enabledProviders);
+        if (selectionKey === undefined) {
+            if (!inFlight) snapshotState = SnapshotState.retainOnProcessError(snapshotState);
+            return false;
         }
         if (selectionKey.length === 0 || inFlight) return false;
 

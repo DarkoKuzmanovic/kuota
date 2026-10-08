@@ -114,7 +114,8 @@ TestCase {
             var bridge = findChild(root, "collectorBridge");
             root.collectorPathOverride = Qt.resolvedUrl("fixtures/collector/slow.js").toString().replace("file://", "");
             root.configOverride = selectedSettings(["claude"]);
-            verify(root.inFlight);
+            // The launch is deferred to the end of the settings write.
+            tryVerify(function() { return root.inFlight; }, 1000);
             var old = bridge._requestState.activeToken;
             root.configOverride = selectedSettings([]);
             compare(root.snapshot, null);
@@ -127,6 +128,64 @@ TestCase {
             waitForSelection(root, ["opencode", "commandcode"]);
             compare(bridge._requestState.nextSourceId, 3);
         } finally { root.destroy(); }
+    }
+
+    // Plasma's AppletConfiguration.saveConfig() writes one key at a time, so
+    // one Apply is several synchronous property changes. Only the final
+    // selection may be collected; an intermediate one must never launch.
+    Component {
+        id: perKeyConfigComponent
+        QtObject {
+            property bool claudeVisible: true
+            property bool codexVisible: true
+            property bool grokVisible: true
+            property bool kimiVisible: false
+            property bool cursorVisible: false
+            property bool opencodeVisible: false
+            property bool commandcodeVisible: false
+        }
+    }
+    function createPerKeyRoot(config) {
+        var component = Qt.createComponent("../../plasmoid/contents/ui/main.qml");
+        compare(component.status, Component.Ready, component.errorString());
+        var root = component.createObject(null, {
+            configOverride: config,
+            collectorPathOverride: Qt.resolvedUrl("fixtures/collector/success.js").toString().replace("file://", "")
+        });
+        verify(root !== null);
+        waitForSelection(root, ["claude", "codex", "grok"]);
+        return root;
+    }
+    function test_perKeyApplyCollectsOnlyTheFinalSelection() {
+        var config = perKeyConfigComponent.createObject(null);
+        var root = createPerKeyRoot(config);
+        try {
+            var bridge = findChild(root, "collectorBridge");
+            compare(bridge._requestState.nextSourceId, 2);
+            root.collectorPathOverride = Qt.resolvedUrl("fixtures/collector/slow.js").toString().replace("file://", "");
+            config.codexVisible = false;
+            config.grokVisible = false;
+            compare(root.snapshot, null, "each membership change invalidates at once");
+            compare(root.inFlight, false, "no launch mid-Apply");
+            tryVerify(function() { return root.inFlight; }, 1000);
+            verify(bridge._requestState.activeToken.indexOf(" --enabled-providers=claude # ") !== -1);
+            tryVerify(function() { return !root.inFlight; }, 5000);
+            compare(bridge._requestState.nextSourceId, 3, "exactly one collection per Apply");
+        } finally { root.destroy(); config.destroy(); }
+    }
+    function test_perKeyApplyThatEmptiesTheSelectionLaunchesNothing() {
+        var config = perKeyConfigComponent.createObject(null);
+        var root = createPerKeyRoot(config);
+        try {
+            var bridge = findChild(root, "collectorBridge");
+            config.claudeVisible = false;
+            config.codexVisible = false;
+            config.grokVisible = false;
+            compare(root.snapshot, null);
+            wait(100);
+            compare(bridge._requestState.nextSourceId, 2, "no collector for an emptied selection");
+            compare(root.inFlight, false);
+        } finally { root.destroy(); config.destroy(); }
     }
 
     function test_exposesOnlyTheSafeRootRefreshLifecycleSurface() {

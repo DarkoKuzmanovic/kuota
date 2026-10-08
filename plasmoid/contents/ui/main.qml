@@ -50,7 +50,12 @@ PlasmoidItem {
     readonly property string collectionSelectionKey: enabledProviders.join(",")
     property bool _collectionReady: false
     onCollectionSelectionKeyChanged: {
-        if (_collectionReady) refresh();
+        if (!_collectionReady) return;
+        // Plasma's saveConfig() writes an Apply one key at a time. Invalidate
+        // on every change, but launch once after the whole Apply, so an
+        // intermediate selection never reaches the collector.
+        _bridge.select(enabledProviders);
+        Qt.callLater(root.refresh);
     }
     Component.onCompleted: {
         _collectionReady = true;
