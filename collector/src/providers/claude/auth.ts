@@ -23,6 +23,8 @@ export const CLAUDE_AUTH_NEEDED_REASONS = [
   "malformed-access",
   "malformed-expires",
   "expired",
+  "insufficient-scope",
+  "malformed-scopes",
 ] as const;
 
 export type ClaudeAuthNeededReason = (typeof CLAUDE_AUTH_NEEDED_REASONS)[number];
@@ -67,16 +69,26 @@ export type ClaudeAuthResult =
 export type ClaudeAuthReader = (path: string) => Promise<unknown>;
 export type ClaudeAuthClock = () => number;
 
-export interface ClaudeAuthOptions {
-  /** Used only when authPath is omitted; no filesystem lookup occurs here. */
+interface ClaudeAuthSourceOptions {
+  /** Used only when the exact path is omitted; no filesystem lookup occurs here. */
   readonly homeDirectory?: string;
-  /** Exact path override, useful for isolated callers and tests. */
-  readonly authPath?: string;
   /** Defaults to the safe no-follow JSON reader. */
   readonly readJsonFile?: ClaudeAuthReader;
   /** Epoch milliseconds used for optional OAuth expiry classification. */
   readonly now?: ClaudeAuthClock;
 }
+
+export interface ClaudeCodeAuthOptions extends ClaudeAuthSourceOptions {
+  /** Exact Claude Code credentials path override, useful for isolated callers and tests. */
+  readonly credentialsPath?: string;
+}
+
+export interface ClaudeAuthOptions extends ClaudeAuthSourceOptions {
+  readonly claudeCodeCredentialsPath?: string;
+}
+
+/** Scope the usage endpoint requires; checked only when Claude Code declares scopes. */
+const CLAUDE_USAGE_REQUIRED_SCOPE = "user:profile";
 
 type PlainRecord = { readonly [key: string]: unknown };
 type JsonFileErrorReason = Exclude<ClaudeAuthErrorReason, "auth-clock-invalid">;
@@ -177,62 +189,68 @@ function mapReadFailure(error: unknown): ClaudeAuthResult {
   }
 }
 
-function classifyCredential(
-  entry: unknown,
+/** Shared access/expiry classification; the only place the access token is copied. */
+function classifyAccess(
+  access: unknown,
+  expires: unknown,
   now: ClaudeAuthClock,
 ): ClaudeAuthResult {
+  if (access === MISSING) return authNeeded("missing-access");
+  if (typeof access !== "string") return authNeeded("malformed-access");
+  if (access.trim().length === 0) return authNeeded("empty-access");
+
+  if (expires !== MISSING && (typeof expires !== "number" || !Number.isFinite(expires))) {
+    return authNeeded("malformed-expires");
+  }
+
+  if (typeof expires === "number") {
+    let currentTime: number;
+    try {
+      currentTime = now();
+    } catch {
+      return errorResult("auth-clock-invalid");
+    }
+    if (!Number.isFinite(currentTime)) return errorResult("auth-clock-invalid");
+    if (expires <= currentTime) return authNeeded("expired");
+  }
+
+  const credential: ClaudeOAuthCredential =
+    typeof expires === "number" ? { access, expires } : { access };
+  return {
+    state: "available",
+    status: CLAUDE_AUTH_STATUS_TEXT.available,
+    credential,
+  };
+}
+
+/**
+ * Extracts only `accessToken`, `expiresAt`, and `scopes`; the refresh token and MCP
+ * credentials in the same file are never extracted or copied.
+ */
+function classifyClaudeCodeCredential(entry: unknown, now: ClaudeAuthClock): ClaudeAuthResult {
   try {
     if (!isPlainRecord(entry)) return authNeeded("wrong-type");
 
-    const type = ownValue(entry, "type");
-    if (type !== "oauth") return authNeeded("wrong-type");
-
-    const access = ownValue(entry, "access");
-    if (access === MISSING) return authNeeded("missing-access");
-    if (typeof access !== "string") return authNeeded("malformed-access");
-    if (access.trim().length === 0) return authNeeded("empty-access");
-
-    const expires = ownValue(entry, "expires");
-    if (expires !== MISSING && (typeof expires !== "number" || !Number.isFinite(expires))) {
-      return authNeeded("malformed-expires");
-    }
-
-    if (expires !== MISSING) {
-      let currentTime: number;
-      try {
-        currentTime = now();
-      } catch {
-        return errorResult("auth-clock-invalid");
+    const scopes = ownValue(entry, "scopes");
+    if (scopes !== MISSING) {
+      if (!Array.isArray(scopes) || !scopes.every((scope) => typeof scope === "string")) {
+        return authNeeded("malformed-scopes");
       }
-      if (!Number.isFinite(currentTime)) return errorResult("auth-clock-invalid");
-      if (expires <= currentTime) return authNeeded("expired");
+      if (!scopes.includes(CLAUDE_USAGE_REQUIRED_SCOPE)) return authNeeded("insufficient-scope");
     }
 
-    const credential: ClaudeOAuthCredential =
-      expires === MISSING
-        ? { access }
-        : { access, expires };
-    return {
-      state: "available",
-      status: CLAUDE_AUTH_STATUS_TEXT.available,
-      credential,
-    };
+    return classifyAccess(ownValue(entry, "accessToken"), ownValue(entry, "expiresAt"), now);
   } catch {
     return authNeeded("wrong-type");
   }
 }
 
-export function resolveClaudeAuthPath(homeDirectory: string): string {
-  return join(homeDirectory, ".pi", "agent", "auth.json");
-}
-
-/** Reads and classifies only the Anthropic entry from Pi's auth file. */
-export async function readClaudeAuth(
-  options: ClaudeAuthOptions = {},
+async function readEntry(
+  path: string,
+  entryKey: string,
+  options: ClaudeAuthSourceOptions,
+  classify: (entry: unknown, now: ClaudeAuthClock) => ClaudeAuthResult,
 ): Promise<ClaudeAuthResult> {
-  const path =
-    options.authPath ??
-    resolveClaudeAuthPath(options.homeDirectory ?? homedir());
   const read = options.readJsonFile ?? ((filePath: string) => readJsonFile(filePath));
 
   let document: unknown;
@@ -247,11 +265,43 @@ export async function readClaudeAuth(
   try {
     if (!isPlainRecord(document)) return errorResult("auth-file-not-object");
 
-    const anthropic = ownValue(document, "anthropic");
-    if (anthropic === MISSING) return authNeeded("missing-entry");
+    const entry = ownValue(document, entryKey);
+    if (entry === MISSING) return authNeeded("missing-entry");
 
-    return classifyCredential(anthropic, options.now ?? Date.now);
+    return classify(entry, options.now ?? Date.now);
   } catch {
     return errorResult("auth-file-not-object");
   }
+}
+
+export function resolveClaudeCodeCredentialsPath(homeDirectory: string): string {
+  return join(homeDirectory, ".claude", ".credentials.json");
+}
+
+/** Reads and classifies only the `claudeAiOauth` entry from Claude Code's credentials. */
+export async function readClaudeCodeAuth(
+  options: ClaudeCodeAuthOptions = {},
+): Promise<ClaudeAuthResult> {
+  const path =
+    options.credentialsPath ??
+    resolveClaudeCodeCredentialsPath(options.homeDirectory ?? homedir());
+  return readEntry(path, "claudeAiOauth", options, classifyClaudeCodeCredential);
+}
+
+/**
+ * Claude's only credential source: Claude Code's login, read-only. Kuota never
+ * refreshes it (that would rotate Claude Code's refresh token) and has no Claude
+ * login of its own (spec 2026-10-02-standalone-credentials-design.md).
+ */
+export async function readClaudeAuth(
+  options: ClaudeAuthOptions = {},
+): Promise<ClaudeAuthResult> {
+  return readClaudeCodeAuth({
+    ...(options.homeDirectory === undefined ? {} : { homeDirectory: options.homeDirectory }),
+    ...(options.readJsonFile === undefined ? {} : { readJsonFile: options.readJsonFile }),
+    ...(options.now === undefined ? {} : { now: options.now }),
+    ...(options.claudeCodeCredentialsPath === undefined
+      ? {}
+      : { credentialsPath: options.claudeCodeCredentialsPath }),
+  });
 }

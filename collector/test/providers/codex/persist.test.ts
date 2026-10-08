@@ -43,7 +43,7 @@ async function withDirectory<T>(callback: (directory: string) => Promise<T>): Pr
 function authDocument(codex: unknown): Record<string, unknown> {
   return {
     anthropic: { type: "oauth", access: "synthetic-unrelated" },
-    "openai-codex": codex,
+    "codex": codex,
     umans: { type: "api_key", key: "synthetic-unrelated" },
   };
 }
@@ -85,14 +85,14 @@ function changedIdentity(metadata: FileMetadata): FileMetadata {
   };
 }
 
-test("persists a matching Codex refresh without changing mode or unrelated fields", async () => {
+test("persists a matching Codex refresh, keeps unrelated fields, and tightens the store to 0600", async () => {
   await withDirectory(async (directory) => {
     const path = join(directory, "auth.json");
     await writeAuth(path);
     await chmod(path, 0o640);
 
     assert.equal(await persist(path), "updated");
-    assert.equal((await stat(path)).mode & 0o777, 0o640);
+    assert.equal((await stat(path)).mode & 0o777, 0o600);
     assert.deepEqual(JSON.parse(await readFile(path, "utf8")), authDocument({
       type: "oauth",
       accountId: INITIATING.accountId,

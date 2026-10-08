@@ -11,10 +11,15 @@ const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
 
 export interface CodexRefreshRequestInit {
   readonly method: "POST";
-  readonly headers: {
-    readonly "Content-Type": "application/json";
-    readonly "User-Agent": typeof CODEX_USAGE_USER_AGENT;
-  };
+  readonly headers:
+    | {
+        readonly "Content-Type": "application/json";
+        readonly "User-Agent": typeof CODEX_USAGE_USER_AGENT;
+      }
+    | {
+        readonly "Content-Type": "application/x-www-form-urlencoded";
+        readonly Accept: "application/json";
+      };
   readonly body: string;
   readonly redirect: "manual";
   readonly signal: AbortSignal;
@@ -65,6 +70,11 @@ export type CodexRefreshResult =
 
 export interface CodexRefreshOptions {
   readonly refreshToken: string;
+  /**
+   * Another provider's token endpoint (Grok, Kimi). These take an RFC 6749
+   * form-encoded body and no Codex User-Agent; Codex keeps its JSON body.
+   */
+  readonly client?: { readonly tokenEndpoint: string; readonly clientId: string };
   readonly signal: AbortSignal;
   readonly fetch?: CodexRefreshFetchSeam;
   readonly now?: CodexRefreshClock;
@@ -129,24 +139,40 @@ export async function refreshCodexOAuth(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const init: CodexRefreshRequestInit = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": CODEX_USAGE_USER_AGENT,
-      },
-      body: JSON.stringify({
-        client_id: CODEX_OAUTH_CLIENT_ID,
-        grant_type: "refresh_token",
-        refresh_token: options.refreshToken,
-      }),
-      redirect: "manual",
-      signal: controller.signal,
-    };
+    const client = options.client;
+    const init: CodexRefreshRequestInit = client === undefined
+      ? {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": CODEX_USAGE_USER_AGENT,
+          },
+          body: JSON.stringify({
+            client_id: CODEX_OAUTH_CLIENT_ID,
+            grant_type: "refresh_token",
+            refresh_token: options.refreshToken,
+          }),
+          redirect: "manual",
+          signal: controller.signal,
+        }
+      : {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+          },
+          body: new URLSearchParams({
+            client_id: client.clientId,
+            grant_type: "refresh_token",
+            refresh_token: options.refreshToken,
+          }).toString(),
+          redirect: "manual",
+          signal: controller.signal,
+        };
 
     let response: FetchResponseLike;
     try {
-      response = await (options.fetch ?? defaultFetchSeam)(CODEX_OAUTH_TOKEN_ENDPOINT, init);
+      response = await (options.fetch ?? defaultFetchSeam)(client?.tokenEndpoint ?? CODEX_OAUTH_TOKEN_ENDPOINT, init);
     } catch {
       return ERROR_RESULT;
     }

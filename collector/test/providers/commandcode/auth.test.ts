@@ -9,7 +9,7 @@ import {
 } from "../../../src/providers/commandcode/auth.js";
 
 const HOME = "/synthetic-home";
-const AUTH_PATH = "/synthetic-home/.pi/agent/auth.json";
+const AUTH_PATH = "/synthetic-home/.config/kuota/credentials.json";
 const OAUTH_ACCESS = "synthetic-commandcode-oauth-access-not-real";
 const API_KEY = "synthetic-commandcode-api-key-not-real";
 const ENV_KEY = "synthetic-commandcode-env-key-not-real";
@@ -30,7 +30,7 @@ async function classify(
 }
 
 test("resolves an injected auth path and accepts commandcode oauth or api-key entries", async () => {
-  assert.equal(resolveCommandCodeAuthPath(HOME), AUTH_PATH);
+  assert.equal(resolveCommandCodeAuthPath(HOME, {}), AUTH_PATH);
   const oauth = await classify({ commandcode: { type: "oauth", access: OAUTH_ACCESS } });
   const apiKey = await classify({ commandcode: { type: "api_key", key: API_KEY } });
   assert.deepEqual(oauth, { state: "available", credential: { kind: "oauth", value: OAUTH_ACCESS } });

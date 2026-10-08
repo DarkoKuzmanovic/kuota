@@ -272,6 +272,127 @@ TestCase {
         compare(ConfigModel.resolveWindow("claude", bogus, ["not-a-window"]), undefined);
     }
 
+    // --- Per-provider window selectors for all multi-window providers ---
+    // Spec: docs/specs/2026-09-05-window-selector-all-providers-design.md
+
+    function test_allWindowSelectionsDefaultToEmpty() {
+        var empty = ConfigModel.sanitize({});
+        compare(empty.claudeWindow, "");
+        compare(empty.codexWindow, "");
+        compare(empty.grokWindow, "");
+        compare(empty.kimiWindow, "");
+        compare(empty.opencodeWindow, "");
+        compare(empty.commandcodeWindow, "");
+        // Cursor exposes exactly one window ("plan") — no selector, no key
+        // (dead-control gate; D4 single-window precedent).
+        verify(!("cursorWindow" in empty));
+    }
+
+    function test_windowSelectionGarbageFallsBackToEmpty() {
+        var garbage = ConfigModel.sanitize({
+            grokWindow: 12,
+            kimiWindow: false,
+            opencodeWindow: null,
+            commandcodeWindow: "monthly"
+        });
+        compare(garbage.grokWindow, "");
+        compare(garbage.kimiWindow, "");
+        compare(garbage.opencodeWindow, "");
+        // "monthly" is not a CommandCode window (credits API has no monthly
+        // usage window) → catalog rejection, same as wrong-type values.
+        compare(garbage.commandcodeWindow, "");
+    }
+
+    function test_windowSelectionCatalogMembership() {
+        var valid = ConfigModel.sanitize({
+            grokWindow: "month",
+            kimiWindow: "daily",
+            opencodeWindow: "monthly",
+            commandcodeWindow: "weekly"
+        });
+        compare(valid.grokWindow, "month");
+        compare(valid.kimiWindow, "daily");
+        compare(valid.opencodeWindow, "monthly");
+        compare(valid.commandcodeWindow, "weekly");
+
+        // Each provider accepts only its own catalog.
+        var crossed = ConfigModel.sanitize({
+            grokWindow: "primary",
+            kimiWindow: "monthX",
+            opencodeWindow: "fiveHour",
+            commandcodeWindow: "rolling"
+        });
+        compare(crossed.grokWindow, "");
+        compare(crossed.kimiWindow, "");
+        compare(crossed.opencodeWindow, "");
+        compare(crossed.commandcodeWindow, "");
+
+        // Kimi short window id is duration-derived; the catalog carries all
+        // stable ids the adapter can emit.
+        var kimiIds = ["week", "5h", "daily", "month"];
+        for (var i = 0; i < kimiIds.length; i++) {
+            var picked = ConfigModel.sanitize({ kimiWindow: kimiIds[i] });
+            compare(picked.kimiWindow, kimiIds[i]);
+        }
+    }
+
+    function test_displayConfigWindowMapCoversAllSelectableProviders() {
+        var sanitized = ConfigModel.sanitize({
+            grokWindow: "week",
+            kimiWindow: "5h",
+            opencodeWindow: "monthly",
+            commandcodeWindow: "fiveHour"
+        });
+        var displayConfig = ConfigModel.assembleDisplayConfig(sanitized);
+        compare(displayConfig.window.grok, "week");
+        compare(displayConfig.window.kimi, "5h");
+        compare(displayConfig.window.opencode, "monthly");
+        compare(displayConfig.window.commandcode, "fiveHour");
+        // Empty selections stay out of the map (primary-window default).
+        verify(!Object.prototype.hasOwnProperty.call(displayConfig.window, "claude"));
+        verify(!Object.prototype.hasOwnProperty.call(displayConfig.window, "cursor"));
+    }
+
+    function test_resolveWindowHonorsNewProviderCatalogs() {
+        var grok = ConfigModel.sanitize({ grokWindow: "month" });
+        compare(ConfigModel.resolveWindow("grok", grok, ["week", "month"]), "month");
+
+        var kimi = ConfigModel.sanitize({ kimiWindow: "daily" });
+        compare(ConfigModel.resolveWindow("kimi", kimi, ["week", "daily"]), "daily");
+        // Selected id absent from the live snapshot → primary-window fallback.
+        compare(ConfigModel.resolveWindow("kimi", kimi, ["week", "5h"]), undefined);
+
+        var opencode = ConfigModel.sanitize({ opencodeWindow: "weekly" });
+        compare(ConfigModel.resolveWindow("opencode", opencode, ["rolling", "weekly", "monthly"]), "weekly");
+
+        var commandcode = ConfigModel.sanitize({ commandcodeWindow: "weekly" });
+        compare(ConfigModel.resolveWindow("commandcode", commandcode, ["fiveHour", "weekly"]), "weekly");
+        // Weekly is optional live (not every account reports it) — absent → primary fallback.
+        compare(ConfigModel.resolveWindow("commandcode", commandcode, ["fiveHour"]), undefined);
+
+        // Cursor has no selector: a hand-injected key must not resolve.
+        var cursor = ConfigModel.sanitize({ cursorWindow: "plan" });
+        compare(ConfigModel.resolveWindow("cursor", cursor, ["plan"]), undefined);
+    }
+
+    function test_knownWindowsKeysMatchSelectableProviderKeys() {
+        // Every KNOWN_WINDOWS entry maps to exactly one <id>Window key and to
+        // a selectable provider; Cursor deliberately has no entry.
+        var selectable = ["claude", "codex", "grok", "kimi", "opencode", "commandcode"];
+        selectable.sort();
+        var listed = [];
+        for (var id in ConfigModel.KNOWN_WINDOWS) {
+            if (Object.prototype.hasOwnProperty.call(ConfigModel.KNOWN_WINDOWS, id)) {
+                listed.push(id);
+                // Each catalog provider owns a <id>Window default in DEFAULTS.
+                verify(Object.prototype.hasOwnProperty.call(ConfigModel.DEFAULTS, id + "Window"), id);
+            }
+        }
+        listed.sort();
+        compare(listed, selectable);
+        verify(ConfigModel.KNOWN_WINDOWS.cursor === undefined);
+    }
+
     function test_providerOrderFiltersUnknownIds() {
         var sanitized = ConfigModel.sanitize({
             providerOrder: ["claude", "bogus", "codex", "claude", "codex"]

@@ -113,19 +113,18 @@ The contract is versioned so UI and collector changes can fail clearly rather th
 
 ### Claude
 
-Source: `https://api.anthropic.com/api/oauth/usage` using the existing Anthropic OAuth entry in `~/.pi/agent/auth.json`.
+Source: `https://api.anthropic.com/api/oauth/usage`. Credentials come from Claude Code's `~/.claude/.credentials.json` `claudeAiOauth` entry first, then the Anthropic OAuth entry in `~/.pi/agent/auth.json`. Both are read-only and never refreshed. The first locally valid credential wins; a server rejection of it does not retry with the other source. This source order was updated with owner approval on 2026-09-25 (PLAN M16); previously only the Pi entry was read.
 
 Known data includes short and weekly utilization windows and their reset timestamps, plus any model-specific windows genuinely returned by the current response.
 
 Claude's endpoint is aggressively rate-limited. Kuota therefore:
 
-- reads a fresh shared pi-hud cache when available;
-- maintains its own last-known-good cache;
+- maintains its own last-known-good cache (the earlier plan to read pi-hud's private cache was dropped in PLAN M2.2);
 - performs an independent live fetch when no fresh cache exists;
 - honors `Retry-After` and a minimum backoff after HTTP 429;
 - retains stale values during temporary failures.
 
-This preserves independent operation without needlessly colliding with pi-hud.
+This preserves independent operation without needlessly hammering the endpoint.
 
 ### Codex
 
@@ -178,12 +177,16 @@ Grok and Kimi are added in 1.1.0, amending owner-approved Decision #2 (which fro
 Kuota treats `~/.pi/agent/auth.json` as sensitive shared state.
 
 - Reads are local and never copied into project or widget caches.
-- Cache files contain usage results only, never credentials.
+- Cache files contain usage results or Kuota's secret-free retry state (the Claude backoff sidecar), never credentials.
 - Cache and temporary writes use restrictive permissions.
 - Codex token persistence preserves unrelated auth entries and existing file permissions.
 - Writes are atomic and designed to avoid truncating the shared file.
 - Logs and test fixtures redact authorization headers, tokens, refresh tokens, and account identifiers.
 - The widget does not provide login or account-management controls in v1.
+
+> **M17 amendment (2026-10-02)** — Kuota no longer reads or writes `~/.pi/agent/auth.json`. It keeps its own credential store and offers `login`/`logout`/`status` CLI commands, with read-only fallbacks to Claude Code, Codex CLI, Cursor and env vars. See [`2026-10-02-standalone-credentials-design.md`](2026-10-02-standalone-credentials-design.md); where it conflicts with this section and the provider sources above, the amendment wins.
+
+> **2026-10-08 correction** — cache contents also include Kuota's own secret-free Claude backoff sidecar (`claude-backoff.json`), per the PLAN M2.5 decision (2026-07-12).
 
 ## Configuration
 
@@ -276,7 +279,7 @@ Publishing to the KDE Store is a separate, explicitly approved release step.
 - cross-machine aggregation;
 - long-term historical charts;
 - notifications;
-- account login or account management;
+- account login or account management (superseded by the M17 amendment: CLI login for Kuota's own credentials);
 - a permanent background service;
 - KDE Store publication.
 

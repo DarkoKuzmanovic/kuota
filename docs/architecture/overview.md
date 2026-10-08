@@ -26,7 +26,7 @@ QML startup / timer / manual Refresh / collection-selection change
         -> whole-collection lock
         -> concurrent provider adapters
         -> normalized, validated results + last-known-good merge
-        -> usage-only cache
+        -> usage + retry-state cache
      <- one schema-v2 JSON document on stdout
   <- validate entire document, then replace snapshot
   -> compact/full presentation models
@@ -124,12 +124,16 @@ the invocation’s selected providers.
 
 ## Credential and filesystem safety
 
-Most providers read the shared `~/.pi/agent/auth.json`; Cursor instead reads its
-local SQLite session or an environment fallback. Only Codex refresh may write
-the shared auth file. That path uses a latest-read, identity-checked atomic
-merge preserving unrelated entries and file mode.
+Codex, Grok, Kimi, OpenCode and CommandCode read Kuota's own
+`$XDG_CONFIG_HOME/kuota/credentials.json` (written by `kuota login`); Claude
+reads Claude Code's login, Codex falls back to the Codex CLI login, and Cursor
+reads its local SQLite session, all read-only,
+with env fallbacks where listed in the README. Only Kuota's own Codex/Grok/Kimi
+refresh writes, and only to Kuota's store, through a latest-read,
+identity-checked atomic merge that preserves unrelated entries and forces 0600.
 
-Cache paths under `~/.cache/kuota/` hold normalized usage, never credentials.
+Cache paths under `~/.cache/kuota/` hold normalized usage and Kuota-owned
+secret-free retry state (`claude-backoff.json`), never credentials.
 Atomic writes use same-directory exclusive temporary files, trusted-parent
 checks, fsync, and cleanup. A post-commit durability failure is indeterminate;
 read back rather than blindly retrying the write. Keep these guarantees when

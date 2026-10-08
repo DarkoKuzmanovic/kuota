@@ -708,6 +708,40 @@ test("keeps valid legacy windows when dynamic seven-day identities are unsafe or
   assertFailure({ five_hour: { utilization: 10 }, seven_day_sonnet: { utilization: 101 } });
 });
 
+test("skips non-window seven-day siblings such as the usage breakdown", () => {
+  // Live shape observed 2026-09-25: `seven_day_breakdown` is a per-product report, not a
+  // metric window. Before this fix it rejected the whole payload as malformed.
+  const record = assertSuccess({
+    five_hour: { utilization: 10, resets_at: SESSION_RESET },
+    seven_day: { utilization: 20, resets_at: WEEKLY_RESET },
+    seven_day_breakdown: {
+      as_of: OBSERVED_AT,
+      window_started_at: "2026-07-04T10:00:00.000Z",
+      rows: [{ key: "claude_code", display_name: "Claude Code", percent: 70 }],
+    },
+    seven_day_report: [{ percent: 5 }],
+    seven_day_label: "synthetic-non-window",
+    seven_day_sonnet: { utilization: 50, resets_at: WEEKLY_RESET },
+  });
+  assert.deepEqual(record.windows, [
+    { id: "session", label: "Session (5-hour)", usedPercent: 10, resetAt: SESSION_RESET },
+    { id: "weekly-all", label: "Weekly (all)", usedPercent: 20, resetAt: WEEKLY_RESET },
+    { id: "weekly-sonnet", label: "Weekly Sonnet", usedPercent: 50, resetAt: WEEKLY_RESET },
+  ]);
+  const serialized = JSON.stringify(record);
+  assert.equal(serialized.includes("Breakdown"), false);
+  assert.equal(serialized.includes("claude_code"), false);
+
+  // Window-shaped but malformed dynamic values still reject.
+  assertFailure({ five_hour: { utilization: 10 }, seven_day_breakdown: { percent: 101 } });
+  assertFailure({ five_hour: { utilization: 10 }, seven_day_breakdown: { resets_at: "garbage" } });
+  // Base windows stay strict: a non-window value under a known base key rejects.
+  assertFailure({ five_hour: { rows: [] }, seven_day: { utilization: 20 } });
+  assertFailure({ five_hour: { utilization: 10 }, seven_day: { rows: [] } });
+  // `seven_day_oauth_apps` shares the dynamic prefix but is a base window: it must stay strict.
+  assertFailure({ five_hour: { utilization: 10 }, seven_day_oauth_apps: { rows: [] } });
+});
+
 test("widens disabled_reason to safe provider text while rejecting secret-shaped content", () => {
   const record = assertSuccess({
     extra_usage: {

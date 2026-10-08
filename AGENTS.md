@@ -1,7 +1,7 @@
 # Agent Instructions — Kuota
 
-Kuota is a standalone KDE Plasma 6 widget that keeps Claude, Codex, Grok, and
-Kimi account usage visible on the desktop without requiring a running Pi session. It
+Kuota is a standalone KDE Plasma 6 widget that keeps Claude, Codex, Grok, Kimi,
+Cursor, OpenCode, and CommandCode account usage visible on the desktop without requiring Pi or any other agent harness. It
 reports authoritative provider data — it does **not** estimate quota from local
 activity.
 
@@ -40,16 +40,22 @@ settings, command arguments, stdout, stderr, logs, or caches.
 
 These are hard rules. Violating any of them is a stop condition, not a fix.
 
-- `~/.pi/agent/auth.json` is sensitive shared state. Reads are local and never
-  copied into the project. Only Codex token refresh writes back, and it must be
-  a latest-read, atomic, permission-preserving merge that keeps unrelated
-  entries and the existing file mode.
-- Collector stdout is **exactly one JSON document per invocation** — nothing else.
+- Kuota never reads or writes `~/.pi/agent/auth.json` (M17). Its own logins
+  live in `$XDG_CONFIG_HOME/kuota/credentials.json` (dir 0700, file forced to
+  0600 on every write), written only by `kuota login/logout` and by refresh of
+  Kuota's own Codex/Grok/Kimi entries — always a latest-read, atomic merge that
+  keeps unrelated entries. Other tools' logins (Claude Code, Codex CLI, Cursor)
+  are read-only and are never refreshed: refreshing would rotate their tokens.
+- API keys are never accepted as argv. `login` reads them hidden from the TTY or
+  from piped stdin.
+- Collector stdout in collection mode is **exactly one JSON document per
+  invocation** — nothing else. (`login|logout|status` are human-facing, never
+  launched by the widget, and still never print a secret.)
   Stderr carries only redacted diagnostics. Diagnostics never include the
   rejected raw value, authorization headers, tokens, refresh tokens, account
   IDs, or curl configuration.
-- Cache files contain usage results only — never credentials. Cache and temp
-  writes use restrictive permissions.
+- Cache files contain usage results or Kuota's secret-free backoff sidecar —
+  never credentials. Cache and temp writes use restrictive permissions.
 - Atomic writes use same-directory exclusive temp files, `fsync` durability, and
   clean up temp files on failure. Never truncate the destination on a failed
   serialize or rename. Latest-read replacements carry the identity token
@@ -70,7 +76,8 @@ These are hard rules. Violating any of them is a stop condition, not a fix.
 Schema v2 is small and versioned. The UI renders common provider state without
 knowing provider-native formats. Full shape: `docs/architecture/collector-contract.md`.
 
-- Provider IDs: `claude`, `codex`, `grok`, `kimi`, `cursor`.
+- Provider IDs: `claude`, `codex`, `grok`, `kimi`, `cursor`, `opencode`,
+  `commandcode`.
 - States: `ok`, `stale`, `auth-needed`, `error`. `stale` is last-known-good with
   retained real data (≥1 window or a non-empty details object) — not an empty
   failure marker.
@@ -93,7 +100,8 @@ knowing provider-native formats. Full shape: `docs/architecture/collector-contra
   computed in QML from reset timestamps.
 - Provider-specific payloads are namespaced under their provider record
   (`details.claude` / `details.codex` / `details.grok` /
-  `details.kimi` / `details.cursor`). The TS `ProviderRecord`
+  `details.kimi` / `details.cursor` / `details.commandcode`; OpenCode has no
+  details namespace). The TS `ProviderRecord`
   is a discriminated union enforcing that correlation; runtime validation
   enforces the same.
 - Test-first slices for every provider adapter and all security-sensitive auth
@@ -111,7 +119,7 @@ knowing provider-native formats. Full shape: `docs/architecture/collector-contra
 | `npm test` | Clean test output, compile tests, run Node test runner. |
 | `npm run build:collector` | Clean collector output, emit runnable JS to `dist/`. |
 | `npm run validate:plasma` | `kpackagetool6 --appstream-metainfo` + `qmllint`. |
-| `npm run build:artifact` | Build collector, then package `dist/artifact/kuota-v0.1.0.plasmoid`. |
+| `npm run build:artifact` | Build collector, then package `dist/artifact/kuota-v<package.json version>.plasmoid`. |
 
 Test and collector builds clean only their own ignored output directory before
 emit, so stale compiled files can't survive source deletion and create
@@ -131,27 +139,28 @@ dist/                  Generated output (gitignored)
 PLAN.md                Milestone/gate plan — normative for scope and sequencing
 ```
 
-## Providers (V1 scope)
+## Providers
 
-| Provider | Source | Auth in `~/.pi/agent/auth.json` |
+| Provider | Source | Credential source |
 |---|---|---|
-| Claude | `api.anthropic.com/api/oauth/usage` | `auth.anthropic` (oauth) |
-| Codex | `chatgpt.com/backend-api/codex/usage` | `auth["openai-codex"]` (oauth, +accountId, refresh, expires) |
-| Grok | `cli-chat-proxy.grok.com/v1/billing` | `auth.xai` / `auth["xai-auth"]` / `auth["grok-cli"]` (oauth); `GROK_CLI_OAUTH_TOKEN` fallback |
-| Kimi | `api.kimi.com/coding/v1/usages` | `auth["kimi-coding"]` (oauth or api_key); `KIMI_API_KEY` fallback |
+| Claude | `api.anthropic.com/api/oauth/usage` | Claude Code `~/.claude/.credentials.json` `claudeAiOauth` only (read-only; never refreshed — refreshing would rotate Claude Code's refresh token). No Kuota Claude login (ToS risk). |
+| Codex | `chatgpt.com/backend-api/wham/usage` | store `codex` (oauth, +accountId, refresh, expires; `kuota login codex` device flow), then Codex CLI `~/.codex/auth.json` `tokens.access_token`+`account_id` read-only, no refresh |
+| Grok | `cli-chat-proxy.grok.com/v1/billing` | store `grok` (oauth; device flow; refreshed on expiry); `GROK_CLI_OAUTH_TOKEN` fallback |
+| Kimi | `api.kimi.com/coding/v1/usages` | store `kimi` (oauth device flow, refreshed on expiry, or api_key); `KIMI_API_KEY` fallback |
 | Cursor | `cursor.com/api/usage-summary` (unofficial dashboard) | Local `~/.config/Cursor/User/globalStorage/state.vscdb` (`cursorAuth/accessToken`); `CURSOR_SESSION_TOKEN` fallback. **Not** `auth.json`; session is never persisted by Kuota. Requires system `sqlite3` for local discovery. |
-| OpenCode | `opencode.ai/zen/go/v1/usage` (hosted OpenCode Go only, not Zen/other surfaces) | `auth["opencode-go"]` (cli-api `type` + `key`) first, `auth.opencode` alias second, `OPENCODE_API_KEY` env fallback |
-| CommandCode | `api.commandcode.ai/alpha/billing/credits` + optional `…/subscriptions` (plan name) | `auth.commandcode` (oauth-shaped: `type`, `access`/`refresh`, `expires`; `access` is the `user_…` session key) or `COMMANDCODE_API_KEY` env fallback |
+| OpenCode | `opencode.ai/zen/go/v1/usage` (hosted OpenCode Go only, not Zen/other surfaces) | store `opencode` (`api_key` + `key`), `OPENCODE_API_KEY` env fallback |
+| CommandCode | `api.commandcode.ai/alpha/billing/credits` + optional `…/subscriptions` (plan name) | store `commandcode` (`api_key` + `key`; the `user_…` key) or `COMMANDCODE_API_KEY` env fallback |
 
-Claude is aggressively rate-limited: prefer a fresh shared pi-hud cache, keep a
-last-known-good cache, honor `Retry-After` and a minimum 429 backoff, retain
+Claude is aggressively rate-limited: keep Kuota's own last-known-good cache
+(`~/.cache/kuota/claude.json`; the pi-hud shared cache is never read), honor `Retry-After` and a minimum 429 backoff, retain
 stale on failure. Codex uses normal HTTP first, falls back to stdin-configured
 curl on Cloudflare/TLS rejection, refreshes an expired OAuth token once, and
 persists refreshed auth atomically.
 
 Additional providers, cross-machine aggregation, history charts, notifications,
 account login/management, a permanent service, and KDE Store publication are
-**out of scope for V1**.
+**out of scope** unless the owner approves a spec and a PLAN.md milestone first.
+Deferred candidates (e.g. Meta Muse Code) are listed in PLAN.md *Deferred providers*.
 
 ## Workflow
 
@@ -210,3 +219,4 @@ questions (`which`, `--version`, `--help`) instead of asking.
 - 2026-07-22 (M13 compact layout — icons-mode semantic change): the historic "icons" mode hid ALL text (label + value) via a single `showText` flag. Product change: "icons" now means "icon + value, no caption". The monolithic `showText` was split into two independent flags: `showLabel` (text/icons+text) and `showValue` (always true). Tests that asserted `compact.showText === false` for icons mode are now wrong — assert on `showLabel === false` AND `showValue === true` instead. Spacers between icon→label and label→value are explicit `Item { width: ... }` blocks with `objectName:` (not just `id:`) so QML test helpers that walk `Item.children` and match `objectName` can find them — `id:` alone is invisible to that walk. configAppearance SpinBox controls for the two spacing values MUST use plain `cfg_` properties (not `property alias`) with `value:` reading from `cfg_*` and `onValueModified` writing back; the alias + `value:` bind-back pattern is a runtime binding loop that qmllint does NOT catch (only a live plasmoid or the QML test harness will).
 - 2026-07-22 (M13 compact layout — icon size binding + custom-icon path): provider and state icons now bind `width`/`height` to `compactRoot.iconSize` (`max(Kirigami.Units.iconSizes.small, round(fontPointSize * 1.3))`) instead of hardcoded `smallMedium`/`small`. This keeps custom PNG/SVG icons from dwarfing surrounding text and scales them with `fontScale`. Adding a new icon to the delegate? Bind its size to `iconSize` for consistency. Also, the `Kirigami.Icon` for custom local image paths (`/home/.../foo.png`) uses `icon.source = "file://" + path` (NOT `icon.name`) — `icon.name` cannot load absolute paths. configTheming.qml's "Change…" preview button mirrors this split via `providerIconName()` + `providerIconSource()`; `isLocalIconPath(value) = value.charAt(0) === "/"` is the shared predicate.
 - 2026-07-22 (M13 compact layout — per-gap spacing via explicit Items, not Row.spacing): two independent per-gap values (`iconLabelSpacing`, `labelValueSpacing`) cannot be expressed with a single `Row.spacing` — that property is uniform across all children. Solution used: insert `Item { width: ...; height: 1 }` spacers between the icon/label/value children, with `visible:` bound to the icon AND the next visible heading — `showIcons && (showLabel || (showValue && displayValue.length > 0))` for the iconLabelSpacer, `showLabel && showValue && displayValue.length > 0` for the labelValueSpacer. The iconLabelSpacer visibility rule is critical: in icons-only mode the label is hidden but the value is still rendered after the icon, so the spacer MUST stay visible to use `iconLabelSpacing` as the icon → percentage gap. The earlier draft (`showIcons && showLabel`) collapsed it and left icons-only mode with no gap between icon and value — caught by the user on the live panel. labelValueSpacer stays hidden in icons-only mode (nothing to space from). Defaults (2px, 1px) roughly reproduce the V1 `Kirigami.Units.smallSpacing/2` look; sanitize clamps to 0..64 + garbage fallback, the SpinBox UX clamps to 0..32.
+- 2026-09-25 (Claude usage-shape drift): Anthropic added `seven_day_breakdown` (a per-product report object, not a window) to `/api/oauth/usage`. The parser treated every `seven_day_*` key as a model window and rejected the WHOLE payload as `malformed-response`, so Claude silently showed `stale` for days while every fetch returned 200. Dynamic-prefix keys must be shape-gated: skip values with no metric key (`utilization`/`percent`/`resets_at`), stay strict on window-shaped ones. Diagnose stale-with-no-network-error by probing the live body's key/type SHAPE only (never values) through the real parser, then bisect top-level keys.

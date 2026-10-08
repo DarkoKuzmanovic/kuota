@@ -5,6 +5,12 @@ import {
   resolveGrokAuthPath,
   type GrokAuthResult,
 } from "./auth.js";
+import { GROK_OAUTH } from "../../credentials/oauth-clients.js";
+import {
+  refreshStoreOAuthIfExpired,
+  type RefreshStoreOAuthOptions,
+  type RefreshStoreOAuthResult,
+} from "../../credentials/refresh-store-oauth.js";
 import { fetchGrokUsage, type GrokFetchResult } from "./fetch.js";
 import { parseGrokUsageResponse, type GrokUsageParseResult } from "./usage.js";
 import {
@@ -20,6 +26,7 @@ export interface GrokAdapterDependencies extends Readonly<Record<string, unknown
   readonly fetchUsage?: (options: { readonly credential: Extract<GrokAuthResult, { readonly state: "available" }> ["credential"]; readonly signal: AbortSignal }) => Promise<GrokFetchResult>;
   readonly parseUsage?: (payload: unknown, observedAt: string) => GrokUsageParseResult;
   readonly now?: () => number;
+  readonly refreshIfExpired?: (options: RefreshStoreOAuthOptions) => Promise<RefreshStoreOAuthResult>;
 }
 
 function authNeeded(): ProviderNormalizedResult<"grok"> {
@@ -44,6 +51,7 @@ export function createGrokAdapter(
     readGrokAuth({ authPath: options.authPath, environment: process.env }));
   const fetchUsage = dependencies.fetchUsage ?? ((options: { readonly credential: Extract<GrokAuthResult, { readonly state: "available" }> ["credential"]; readonly signal: AbortSignal }) => fetchGrokUsage(options));
   const parseUsage = dependencies.parseUsage ?? parseGrokUsageResponse;
+  const refreshIfExpired = dependencies.refreshIfExpired ?? refreshStoreOAuthIfExpired;
   return {
     id: "grok",
     async collect(context: ProviderAdapterContext<GrokAdapterDependencies>): Promise<ProviderNormalizedResult<"grok">> {
@@ -53,7 +61,18 @@ export function createGrokAdapter(
         const auth = await readAuth({ authPath });
         if (auth.state === "auth-needed") return authNeeded();
         if (auth.state !== "available") return unavailable();
-        const fetched = await fetchUsage({ credential: auth.credential, signal: context.signal });
+        const fresh = await refreshIfExpired({
+          id: "grok",
+          client: GROK_OAUTH,
+          storePath: authPath,
+          credential: auth.credential,
+          now,
+          signal: context.signal,
+        });
+        if (fresh.state === "auth-needed") return authNeeded();
+        if (fresh.state !== "ok") return unavailable();
+        const credential = { kind: auth.credential.kind, value: fresh.access };
+        const fetched = await fetchUsage({ credential, signal: context.signal });
         if (fetched.outcome === "auth-needed") return authNeeded();
         if (fetched.outcome !== "ok") return unavailable();
         const observedAt = safeTimestamp(now);

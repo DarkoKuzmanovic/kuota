@@ -129,6 +129,9 @@ function parseResponse(input: PlainRecord): ParseOutcome | undefined {
 
     if (key.startsWith("seven_day_")) {
       if (value === null) continue;
+      // Non-window siblings (e.g. `seven_day_breakdown`, a per-product report) share the
+      // prefix but carry no metric keys; skip them. Window-shaped values stay strict below.
+      if (!isMetricShaped(value)) continue;
       const suffix = key.slice("seven_day_".length);
       // Unsafe or unusable dynamic identities drop this single entry so valid peers survive,
       // mirroring generic weekly-scoped handling. A malformed recognized metric still rejects.
@@ -349,12 +352,15 @@ function parseExtraUsage(value: unknown): ExtraUsage | undefined {
   return { details };
 }
 
+function isMetricShaped(value: unknown): value is PlainRecord {
+  return (
+    isPlainRecord(value) &&
+    (hasOwn(value, "utilization") || hasOwn(value, "percent") || hasOwn(value, "resets_at"))
+  );
+}
+
 function parseMetricWindow(value: unknown): MetricWindow | undefined {
-  if (!isPlainRecord(value)) return undefined;
-  const hasUtilization = hasOwn(value, "utilization");
-  const hasPercent = hasOwn(value, "percent");
-  const hasReset = hasOwn(value, "resets_at");
-  if (!hasUtilization && !hasPercent && !hasReset) return undefined;
+  if (!isMetricShaped(value)) return undefined;
 
   const utilization = parsePresentPercent(value, "utilization");
   const percent = parsePresentPercent(value, "percent");

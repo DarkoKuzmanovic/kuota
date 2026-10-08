@@ -1,11 +1,11 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
 
 import {
   JsonFileError,
   readJsonFile,
   type JsonFileErrorKind,
 } from "../../io/json-file.js";
+import { resolveKuotaCredentialsPath } from "../../credentials/store.js";
 
 export type OpencodeCredential =
   | { readonly kind: "oauth"; readonly value: string }
@@ -28,9 +28,7 @@ export interface OpencodeAuthOptions {
 type PlainRecord = Record<string, unknown>;
 const MISSING = Symbol("missing");
 
-// `opencode-go` is the provider id the OpenCode CLI writes
-// (`opencode auth login -p opencode-go`); `opencode` is the manual-setup alias.
-const ENTRY_KEYS = ["opencode-go", "opencode"] as const;
+const ENTRY_KEYS = ["opencode"] as const;
 const ENV_KEY = "OPENCODE_API_KEY";
 
 function isPlainRecord(value: unknown): value is PlainRecord {
@@ -100,11 +98,14 @@ function environmentCredential(
     : undefined;
 }
 
-export function resolveOpencodeAuthPath(homeDirectory: string): string {
-  return join(homeDirectory, ".pi", "agent", "auth.json");
+export function resolveOpencodeAuthPath(
+  homeDirectory: string,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): string {
+  return resolveKuotaCredentialsPath(homeDirectory, environment);
 }
 
-/** Reads auth["opencode-go"] (alias "opencode") and never exposes a rejected credential in its outcome. */
+/** Reads Kuota's `opencode` store entry and never exposes a rejected credential in its outcome. */
 export async function readOpencodeAuth(
   options: OpencodeAuthOptions = {},
 ): Promise<OpencodeAuthResult> {

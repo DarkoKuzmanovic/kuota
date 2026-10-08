@@ -14,6 +14,11 @@ import {
 import type { CodexOAuthCredential } from "./auth.js";
 import type { CodexRefreshedCredential } from "./refresh.js";
 
+/** The initiating store credential; accountId exists only for Codex. */
+export type StoredOAuthCredential = Omit<CodexOAuthCredential, "accountId"> & {
+  readonly accountId?: string;
+};
+
 export const CODEX_PERSIST_OUTCOMES = [
   "updated",
   "already-current",
@@ -27,13 +32,15 @@ export type CodexPersistOutcome = (typeof CODEX_PERSIST_OUTCOMES)[number];
 /** Inputs and filesystem seams for the latest-read Codex auth persistence boundary. */
 export interface CodexPersistOptions {
   readonly authPath: string;
-  readonly initiatingCredential: CodexOAuthCredential;
+  /** Kuota store entry; Codex by default. Grok/Kimi reuse this CAS merge. */
+  readonly entryKey?: string;
+  readonly initiatingCredential: StoredOAuthCredential;
   readonly refreshedCredential: CodexRefreshedCredential;
   readonly fs?: JsonFileSystem;
   readonly random?: RandomSource;
 }
 
-const CODEX_AUTH_ENTRY = "openai-codex";
+const CODEX_AUTH_ENTRY = "codex";
 const MISSING = Symbol("missing");
 
 type PlainJsonObject = { readonly [key: string]: JsonValue };
@@ -56,7 +63,7 @@ function validInputs(options: CodexPersistOptions): boolean {
   const refreshed = options.refreshedCredential;
   return (
     isNonEmptyString(options.authPath) &&
-    isNonEmptyString(initiating.accountId) &&
+    (initiating.accountId === undefined || isNonEmptyString(initiating.accountId)) &&
     isNonEmptyString(initiating.access) &&
     isNonEmptyString(initiating.refresh) &&
     isNonEmptyString(refreshed.access) &&
@@ -65,14 +72,19 @@ function validInputs(options: CodexPersistOptions): boolean {
   );
 }
 
+function sameAccount(entry: PlainJsonObject, accountId: string | undefined): boolean {
+  const stored = ownValue(entry, "accountId");
+  return accountId === undefined ? stored === MISSING : stored === accountId;
+}
+
 function isAlreadyCurrent(
   entry: PlainJsonObject,
-  initiating: CodexOAuthCredential,
+  initiating: StoredOAuthCredential,
   refreshed: CodexRefreshedCredential,
 ): boolean {
   if (
     ownValue(entry, "type") !== "oauth" ||
-    ownValue(entry, "accountId") !== initiating.accountId ||
+    !sameAccount(entry, initiating.accountId) ||
     ownValue(entry, "access") !== refreshed.access
   ) {
     return false;
@@ -84,10 +96,10 @@ function isAlreadyCurrent(
   return refreshed.expires === undefined || ownValue(entry, "expires") === refreshed.expires;
 }
 
-function matchesInitiatingCredential(entry: PlainJsonObject, initiating: CodexOAuthCredential): boolean {
+function matchesInitiatingCredential(entry: PlainJsonObject, initiating: StoredOAuthCredential): boolean {
   return (
     ownValue(entry, "type") === "oauth" &&
-    ownValue(entry, "accountId") === initiating.accountId &&
+    sameAccount(entry, initiating.accountId) &&
     ownValue(entry, "access") === initiating.access &&
     ownValue(entry, "refresh") === initiating.refresh
   );
@@ -116,12 +128,13 @@ export async function persistCodexRefreshedAuth(
   if (!validInputs(options)) return "error";
 
   const fs = options.fs ?? nodeFileSystem;
+  const entryKey = options.entryKey ?? CODEX_AUTH_ENTRY;
   let preimageResult: "already-current" | "conflict" | undefined;
   try {
     await updateJsonFile(
       options.authPath,
       (latest) => {
-        const entry = ownValue(latest, CODEX_AUTH_ENTRY);
+        const entry = ownValue(latest, entryKey);
         if (!isPlainJsonObject(entry)) {
           preimageResult = "conflict";
           throw new Error("conflict");
@@ -134,9 +147,9 @@ export async function persistCodexRefreshedAuth(
           preimageResult = "conflict";
           throw new Error("conflict");
         }
-        return { ...latest, [CODEX_AUTH_ENTRY]: refreshedEntry(entry, options.refreshedCredential) };
+        return { ...latest, [entryKey]: refreshedEntry(entry, options.refreshedCredential) };
       },
-      { fs, random: options.random, policy: "preserve-existing" },
+      { fs, random: options.random, policy: "new-cache" },
     );
     return "updated";
   } catch (error: unknown) {

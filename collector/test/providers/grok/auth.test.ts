@@ -9,7 +9,7 @@ import {
 } from "../../../src/providers/grok/auth.js";
 
 const HOME = "/synthetic-home";
-const AUTH_PATH = "/synthetic-home/.pi/agent/auth.json";
+const AUTH_PATH = "/synthetic-home/.config/kuota/credentials.json";
 const OAUTH_ACCESS = "synthetic-grok-oauth-access-not-real";
 const ENV_TOKEN = "synthetic-env-grok-token-not-real";
 
@@ -28,22 +28,29 @@ async function classify(
   });
 }
 
-test("resolves an injected auth path and accepts supported Grok OAuth entries", async () => {
-  assert.equal(resolveGrokAuthPath(HOME), AUTH_PATH);
+test("resolves the Kuota store path and accepts only Kuota's grok entry", async () => {
+  assert.equal(resolveGrokAuthPath(HOME, {}), AUTH_PATH);
 
-  const xai = await classify({ xai: { type: "oauth", access: OAUTH_ACCESS } });
-  const xaiAuth = await classify({ "xai-auth": { type: "oauth", access: OAUTH_ACCESS } });
-  const grokCli = await classify({ "grok-cli": { type: "oauth", access: OAUTH_ACCESS } });
+  const grok = await classify({ grok: { type: "oauth", access: OAUTH_ACCESS } });
+  assert.deepEqual(grok, { state: "available", credential: { kind: "oauth", value: OAUTH_ACCESS } });
 
-  for (const result of [xai, xaiAuth, grokCli]) {
-    assert.deepEqual(result, { state: "available", credential: { kind: "oauth", value: OAUTH_ACCESS } });
+  // Pi-era entry names are no longer read (spec 2026-10-02-standalone-credentials-design.md).
+  for (const key of ["xai", "xai-auth", "grok-cli"]) {
+    assert.deepEqual(await classify({ [key]: { type: "oauth", access: OAUTH_ACCESS } }), { state: "auth-needed", reason: "missing-entry" });
   }
 });
 
+test("carries refresh material from Kuota-store logins only when well-formed", async () => {
+  const full = await classify({ grok: { type: "oauth", access: OAUTH_ACCESS, refresh: "synthetic-r", expires: 5 } });
+  assert.deepEqual(full, { state: "available", credential: { kind: "oauth", value: OAUTH_ACCESS, refresh: "synthetic-r", expires: 5 } });
+  const junk = await classify({ grok: { type: "oauth", access: OAUTH_ACCESS, refresh: "", expires: "soon" } });
+  assert.deepEqual(junk, { state: "available", credential: { kind: "oauth", value: OAUTH_ACCESS } });
+});
+
 test("tries auth sources in order and uses environment fallback only when no supported file entry", async () => {
-  const fileWins = await classify({ xai: { type: "oauth", access: OAUTH_ACCESS } }, ENV_TOKEN);
+  const fileWins = await classify({ grok: { type: "oauth", access: OAUTH_ACCESS } }, ENV_TOKEN);
   const noEntryUsesEnv = await classify({}, ENV_TOKEN);
-  const unsupportedUsesEnv = await classify({ xai: { type: "unknown" } }, ENV_TOKEN);
+  const unsupportedUsesEnv = await classify({ grok: { type: "unknown" } }, ENV_TOKEN);
 
   assert.equal(fileWins.state, "available");
   if (fileWins.state === "available") assert.equal(fileWins.credential.value, OAUTH_ACCESS);
@@ -52,8 +59,8 @@ test("tries auth sources in order and uses environment fallback only when no sup
 });
 
 test("fails closed for malformed or unavailable file state without exposing values", async () => {
-  const malformed = await classify({ xai: { type: "oauth", access: "" } }, ENV_TOKEN);
-  const hostile = await classify({ xai: { type: "oauth", access: 42 } }, ENV_TOKEN);
+  const malformed = await classify({ grok: { type: "oauth", access: "" } }, ENV_TOKEN);
+  const hostile = await classify({ grok: { type: "oauth", access: 42 } }, ENV_TOKEN);
   const unsafe = await readGrokAuth({
     authPath: AUTH_PATH,
     readJsonFile: async () => { throw new JsonFileError("unsafe-file"); },

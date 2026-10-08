@@ -1,15 +1,18 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
 
 import {
   JsonFileError,
   readJsonFile,
   type JsonFileErrorKind,
 } from "../../io/json-file.js";
+import { refreshFields, resolveKuotaCredentialsPath } from "../../credentials/store.js";
 
 export interface GrokOAuthCredential {
   readonly kind: "oauth";
   readonly value: string;
+  /** Present only for Kuota-store logins; env tokens are never refreshed. */
+  readonly refresh?: string;
+  readonly expires?: number;
 }
 
 export type GrokCredential = GrokOAuthCredential;
@@ -64,7 +67,7 @@ function classifyEntry(entry: unknown): GrokAuthResult {
   if (type === "oauth") {
     const access = ownValue(entry, "access");
     return nonEmptyString(access)
-      ? { state: "available", credential: { kind: "oauth", value: access } }
+      ? { state: "available", credential: { kind: "oauth", value: access, ...refreshFields(entry) } }
       : { state: "auth-needed", reason: "malformed-entry" };
   }
   return { state: "auth-needed", reason: "unsupported-entry" };
@@ -89,7 +92,7 @@ function environmentCredential(environment: Readonly<Record<string, string | und
 
 function readSupportedFileCredential(document: unknown): GrokAuthResult | undefined {
   if (!isPlainRecord(document)) return undefined;
-  for (const key of ["xai", "xai-auth", "grok-cli"] as const) {
+  for (const key of ["grok"] as const) {
     const result = classifyEntry(ownValue(document, key));
     if (result.state === "available") return result;
     if (result.reason === "malformed-entry") return result;
@@ -102,7 +105,7 @@ function fileCredentialResult(document: unknown): GrokAuthResult | undefined {
   const credential = readSupportedFileCredential(document);
   if (credential !== undefined) return credential;
   // Check whether any supported entry exists at all, even if malformed, before falling through.
-  for (const key of ["xai", "xai-auth", "grok-cli"] as const) {
+  for (const key of ["grok"] as const) {
     if (ownValue(document, key) !== MISSING) {
       return { state: "auth-needed", reason: "unsupported-entry" };
     }
@@ -110,11 +113,14 @@ function fileCredentialResult(document: unknown): GrokAuthResult | undefined {
   return undefined;
 }
 
-export function resolveGrokAuthPath(homeDirectory: string): string {
-  return join(homeDirectory, ".pi", "agent", "auth.json");
+export function resolveGrokAuthPath(
+  homeDirectory: string,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): string {
+  return resolveKuotaCredentialsPath(homeDirectory, environment);
 }
 
-/** Reads only the xai auth entry and never exposes a rejected credential in its outcome. */
+/** Reads only Kuota's `grok` store entry and never exposes a rejected credential in its outcome. */
 export async function readGrokAuth(options: GrokAuthOptions = {}): Promise<GrokAuthResult> {
   const path = options.authPath ?? resolveGrokAuthPath(options.homeDirectory ?? homedir());
   const read = options.readJsonFile ?? ((filePath: string) => readJsonFile(filePath));

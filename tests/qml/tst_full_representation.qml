@@ -189,7 +189,7 @@ TestCase {
 
     function test_authNeededStateShowsLoginMessage() {
         full.snapshot = sampleSnapshot([Fixtures.validCodexProvider({ state: "auth-needed" })]);
-        compare(full.activeModel.stateMessage, "Login needed");
+        compare(full.activeModel.stateMessage, "Login needed — run in a terminal: kuota login codex");
     }
 
     function test_errorStateShowsErrorMessage() {

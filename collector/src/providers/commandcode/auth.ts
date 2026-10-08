@@ -1,11 +1,11 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
 
 import {
   JsonFileError,
   readJsonFile,
   type JsonFileErrorKind,
 } from "../../io/json-file.js";
+import { resolveKuotaCredentialsPath } from "../../credentials/store.js";
 
 export type CommandCodeCredential =
   | { readonly kind: "oauth"; readonly value: string }
@@ -62,7 +62,7 @@ function classifyEntry(entry: unknown): CommandCodeAuthResult {
   const access = ownValue(entry, "access");
   const key = ownValue(entry, "key");
   if (type === "oauth") {
-    // Pi writes the CommandCode API key as oauth-shaped `access`.
+    // Legacy oauth-shaped entries carry the API key as `access`.
     return nonEmptyString(access)
       ? { state: "available", credential: { kind: "oauth", value: access } }
       : { state: "auth-needed", reason: "malformed-entry" };
@@ -94,11 +94,14 @@ function environmentCredential(
     : undefined;
 }
 
-export function resolveCommandCodeAuthPath(homeDirectory: string): string {
-  return join(homeDirectory, ".pi", "agent", "auth.json");
+export function resolveCommandCodeAuthPath(
+  homeDirectory: string,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): string {
+  return resolveKuotaCredentialsPath(homeDirectory, environment);
 }
 
-/** Reads only auth.commandcode and never exposes a rejected credential in its outcome. */
+/** Reads only Kuota's `commandcode` store entry and never exposes a rejected credential in its outcome. */
 export async function readCommandCodeAuth(
   options: CommandCodeAuthOptions = {},
 ): Promise<CommandCodeAuthResult> {

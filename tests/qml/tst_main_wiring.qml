@@ -170,6 +170,26 @@ TestCase {
         loader.destroy();
     }
 
+    function test_windowSelectionsFlowIntoCompactDisplayConfig() {
+        var loader = mainComponent.createObject(null);
+        tryCompare(loader, "status", Loader.Ready);
+        var root = loader.item;
+
+        root.configOverride = {
+            grokWindow: "month",
+            kimiWindow: "5h",
+            opencodeWindow: "monthly",
+            commandcodeWindow: "weekly"
+        };
+
+        compare(root.compactDisplayConfig.window.grok, "month");
+        compare(root.compactDisplayConfig.window.kimi, "5h");
+        compare(root.compactDisplayConfig.window.opencode, "monthly");
+        compare(root.compactDisplayConfig.window.commandcode, "weekly");
+
+        loader.destroy();
+    }
+
     function test_customThresholdsFlowToCompactAndFullConfig() {
         var loader = mainComponent.createObject(null);
         tryCompare(loader, "status", Loader.Ready);

@@ -9,9 +9,51 @@ Config keys are a stable, additive-only contract (D7): later versions add keys
 but never rename or remove them within the compatibility window, so settings
 survive updates. Umans-only config keys (`umansVisible`, `umansAccentColor`,
 `umansCustomIcon`) are an approved exception — removed from the schema and
-left unread on disk (see **Removed** under [Unreleased]).
+left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
+
+## [2.0.0] - 2026-10-02
+
+Kuota no longer depends on Pi. **Breaking:** credentials in Pi's
+`~/.pi/agent/auth.json` are no longer read; run `kuota login <provider>` once
+(see README → Providers and credentials).
+
+### Added
+
+- **Own credential store and login commands.** `login`, `logout`, and `status`
+  subcommands of the bundled collector keep Kuota's logins in
+  `$XDG_CONFIG_HOME/kuota/credentials.json` (0700 directory, 0600 file).
+  Codex, Grok, and Kimi sign in with a device code; OpenCode, CommandCode, and
+  Kimi accept an API key typed hidden or piped on stdin, never as an argument.
+- **Codex CLI fallback.** With no Kuota Codex login, Kuota reads the Codex CLI's
+  `~/.codex/auth.json` read-only and never refreshes it.
+- **Grok and Kimi token renewal** for Kuota's own logins.
+- The widget's "Login needed" message now names the fix for each provider.
+
+### Changed
+
+- **Claude** reads only Claude Code's login (read-only); the Pi fallback is gone.
+- Kuota refreshes and writes only its own logins, never Pi's or any other tool's.
+
+### Fixed
+
+- **Codex showed "Authentication required"** after Pi 0.99.0 replaced its
+  `openai-codex` login, whose token Kuota needed.
+
+### Fixed (since 1.3.0, previously unreleased)
+
+- **Claude stuck on stale data.** Anthropic's usage response now includes a
+  `seven_day_breakdown` report that Kuota misread as a malformed model window,
+  rejecting every live response. Non-window `seven_day_*` entries are now
+  skipped; malformed real windows still reject.
+
+### Changed (since 1.3.0, previously unreleased)
+
+- **Claude credentials.** Kuota reads Claude Code's
+  `~/.claude/.credentials.json` (the interim Pi fallback was removed in 2.0.0).
+
+## [1.3.0] - 2026-09-01
 
 ### Added
 
@@ -29,6 +71,14 @@ left unread on disk (see **Removed** under [Unreleased]).
   dashboard `usage-summary` endpoint. Auth: local Cursor `state.vscdb` session
   first, else `CURSOR_SESSION_TOKEN`. Not an official individual API — may break
   without notice (see design + recon docs).
+- **Per-provider window selectors for all providers.** Settings → Providers →
+  "Usage window" now offers a selector for Grok (7d/30d), Kimi (Week/5h/Daily/
+  Month), OpenCode (5h/Weekly/Monthly), and CommandCode (5h/Weekly), matching
+  the existing Claude and Codex controls. Each defaults to "Default" (the
+  primary window), and a selection absent from the live account falls back to
+  it. Cursor shows a single window, so it has no selector. Additive config keys
+  `grokWindow`, `kimiWindow`, `opencodeWindow`, `commandcodeWindow`
+  (spec: `docs/specs/2026-09-05-window-selector-all-providers-design.md`).
 
 ### Fixed
 
