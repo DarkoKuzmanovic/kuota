@@ -524,7 +524,7 @@
 - **Released:** v1.3.0 (`913962b`, 2026-09-09). Seven providers: Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode.
 - **On `main`, unreleased:** M16 Claude hotfix (`5571900`, `f055da1`, `f92507b`), listed under CHANGELOG `[Unreleased]`. Installed locally from `dist/artifact/kuota-v1.3.0.plasmoid`. Cutting a release (e.g. 1.3.1) needs separate owner approval.
 - **Open GitHub issues:** #2 [P1] live Cursor WAL re-login smoke (code fix merged in PR #11; the owner-approved live smoke is pending), plus #5–#9 (P2/P3 enhancements, not started).
-- **Deferred:** Meta Muse Code provider (see *Deferred providers*); l10n/KI18n catalog choice; Q15 KDE-Store artifact naming.
+- **Deferred:** Meta Muse Code and OpenDesign providers (see *Deferred providers*); l10n/KI18n catalog choice; Q15 KDE-Store artifact naming.
 - **Remote:** `origin` = `github.com/DarkoKuzmanovic/kuota` (public). Push, PR, release, and KDE Store publication each need explicit owner approval.
 - **Executor rules:** Work milestone-by-milestone. Write tests first. Keep secrets out of all artifacts. Run gates sequentially under a synthetic `HOME`. Stop on contract/security ambiguity rather than guessing.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
@@ -1649,3 +1649,17 @@ need their own scope.
 **Revisit trigger:** A documented read-only endpoint (or response headers on a free call) that returns
 the Current/Weekly windows. It must be authenticated with the stored Muse credential and must not mint keys.
 Sources: dev.meta.ai/docs (overview, pricing-rate-limits, muse-code/auth); quota-axi#277; AgEnD#851.
+
+### OpenDesign (Go plan) — deferred 2026-10-11 (owner decision)
+
+**Request:** Add OpenDesign (open-design.ai) Go-plan usage to Kuota, with a version bump.
+**Decision:** Do not implement, and do not bump the version for it. Revisit when OpenDesign ships official Linux support.
+
+**Findings:** see `docs/specs/2026-10-11-opendesign-recon.md` (shape-only probes, no credential values recorded).
+- The inference API key (`amr-link.open-design.ai/v1`) reads only models. Every usage path returns 404.
+- Usage (wallet balance, Go-plan credit windows) needs a Cloud sign-in "control key". The closed-source `vela`
+  CLI writes it to `~/.amr/config.json`. OpenDesign ships no Linux desktop build, and this machine has no sign-in.
+
+**Revisit trigger:** An official Linux build or sign-in path that produces `~/.amr/config.json`, or an API-key usage
+endpoint. Then resume at the recon doc's *Next step*. The proprietary npm `@powerformer/vela-cli` may already run on
+Linux. It is untried and was not chosen.
