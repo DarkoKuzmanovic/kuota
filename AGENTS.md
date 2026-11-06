@@ -1,7 +1,7 @@
 # Agent Instructions — Kuota
 
 Kuota is a standalone KDE Plasma 6 widget that keeps Claude, Codex, Grok, Kimi,
-Cursor, OpenCode, and CommandCode account usage visible on the desktop without requiring Pi or any other agent harness. It
+Cursor, OpenCode, CommandCode, Mistral, and OpenDesign account usage visible on the desktop without requiring Pi or any other agent harness. It
 reports authoritative provider data — it does **not** estimate quota from local
 activity.
 
@@ -77,7 +77,7 @@ Schema v2 is small and versioned. The UI renders common provider state without
 knowing provider-native formats. Full shape: `docs/architecture/collector-contract.md`.
 
 - Provider IDs: `claude`, `codex`, `grok`, `kimi`, `cursor`, `opencode`,
-  `commandcode`.
+  `commandcode`, `mistral`, `opendesign` (the last two are opt-in).
 - States: `ok`, `stale`, `auth-needed`, `error`. `stale` is last-known-good with
   retained real data (≥1 window or a non-empty details object) — not an empty
   failure marker.
@@ -189,6 +189,23 @@ Assume other sessions may be working here right now.
   blocks these; documented recovery is run by the user.
 - Conflict in a file you didn't modify → abort and ask.
 - Push, PR, publish: explicit approval in this session.
+
+## Releases
+
+After the owner's live panel check: bump `package.json` and
+`plasmoid/metadata.json` `Version` (SemVer; dropping a credential source users
+rely on is MAJOR), turn `## [Unreleased]` into `## [X.Y.Z] - YYYY-MM-DD` with a
+fresh empty Unreleased above it, update the README version and artifact paths,
+run every gate plus `npm run build:artifact`, merge to `main`, then:
+
+```sh
+git tag -a vX.Y.Z -m vX.Y.Z && git push origin vX.Y.Z
+awk '/^## \[X.Y.Z\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md > "$TMPDIR/notes.md"
+gh release create vX.Y.Z dist/artifact/kuota-vX.Y.Z.plasmoid --title "Kuota X.Y.Z" --notes-file "$TMPDIR/notes.md"
+```
+
+The release asset is the README's Quick install path; never tag a revision
+whose artifact wasn't rebuilt and checked.
 
 ## Think, then act
 

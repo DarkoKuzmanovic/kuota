@@ -4,9 +4,8 @@
 
 Kuota shows the usage windows, reset times, and account limits reported by
 **Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, CommandCode, Mistral, and
-OpenDesign**. Keep a
-compact summary in your panel and open the detail view when you need the full
-picture. The same detail view works as a desktop widget.
+OpenDesign**. Keep a compact summary in your panel and open the detail view
+when you need the full picture. The same detail view works as a desktop widget.
 
 No Pi installation, permanent collector service, or runtime npm dependencies.
 Kuota reads existing credentials locally; it does not estimate account quota
@@ -14,9 +13,25 @@ from your prompts, token logs, or local activity.
 
 ![Kuota app screenshot](docs/assets/kuota-app.png)
 
-[Installation](#installation) · [Providers and credentials](#providers-and-credentials) ·
+[Quick install](#quick-install) · [Providers and credentials](#providers-and-credentials) ·
 [Troubleshooting](#troubleshooting) · [Development](#development) ·
-[Review and next steps](docs/reviews/2026-09-08-project-review.md)
+[Changelog](CHANGELOG.md)
+
+## Quick install
+
+Needs KDE Plasma 6 and Node.js ≥20 at `/usr/bin/node` (full list under
+[Requirements](#requirements)). Download the `.plasmoid` from the
+[latest release](https://github.com/DarkoKuzmanovic/kuota/releases/latest), then:
+
+```bash
+kpackagetool6 -t Plasma/Applet -i kuota-v2.1.0.plasmoid   # first install
+kpackagetool6 -t Plasma/Applet -u kuota-v2.1.0.plasmoid   # upgrade
+```
+
+Add **Kuota** from Plasma's **Add Widgets** dialog, then sign in to the
+providers you use ([below](#providers-and-credentials)). After an upgrade,
+restart Plasma (`systemctl --user restart plasma-plasmashell`) to load the new
+code. To build from source instead, see [Installation](#installation).
 
 ## What it does
 
@@ -39,13 +54,11 @@ bar.
 
 ## Project status
 
-The source is public on [GitHub](https://github.com/DarkoKuzmanovic/kuota).
-Package metadata currently says **2.1.0** (released 2026-11-06); the
-[changelog](CHANGELOG.md) tracks the full history back to 1.0.0.
-
-There are no GitHub release assets or tags as of this documentation review.
-Install from source below. KDE Store publication is a separate, uncompleted
-release step. See the [roadmap](ROADMAP.md) for candidate work, not promises.
+Current release: **2.1.0** (2026-11-06), with the installable `.plasmoid` on
+[GitHub Releases](https://github.com/DarkoKuzmanovic/kuota/releases). The
+[changelog](CHANGELOG.md) tracks the full history back to 1.0.0. Kuota is not
+on the KDE Store yet. See the [roadmap](ROADMAP.md) for candidate work, not
+promises.
 
 ## Requirements
 
@@ -58,13 +71,15 @@ release step. See the [roadmap](ROADMAP.md) for candidate work, not promises.
 | `flock` from util-linux | Collector locking uses **`/usr/bin/flock`**. |
 | `zip` | Required; a missing tool or failed archive build is an error, not an unpacked-only success. |
 | curl | Used when Codex's normal HTTP request needs the fallback transport. |
-| `sqlite3` | Needed at **`/usr/bin/sqlite3`** for local Cursor session discovery; not needed when a usable environment fallback is used. |
+| `sqlite3` | Needed at **`/usr/bin/sqlite3`** to read the local Cursor session and the Firefox login for Mistral/OpenDesign; not needed when a usable environment fallback is used. |
 
 For development, also install Qt 6's `qmllint`, Qt Quick Test, Kirigami, and the
 Plasma QML modules. The current QML runner expects
 `/usr/lib/qt6/bin/qmltestrunner`; distro paths may differ.
 
 ## Installation
+
+From source (the release `.plasmoid` above skips these steps):
 
 ```bash
 git clone https://github.com/DarkoKuzmanovic/kuota.git
@@ -140,6 +155,9 @@ kuota status             # which source each provider uses (never values)
 kuota logout codex
 ```
 
+Claude, Cursor, Mistral, and OpenDesign need no `kuota login`: Kuota reads the
+login you already have in Claude Code, Cursor, or Firefox.
+
 Keys are never accepted as command arguments (they would show in `ps`). Never
 put tokens in widget settings, issues, or screenshots. Kuota renews its own
 Codex, Grok, and Kimi logins; it never refreshes or writes another tool's
@@ -175,9 +193,9 @@ entries can fail closed instead of using the environment fallback. A variable
 exported in a terminal is not automatically inherited by the already-running
 Plasma session; do not put secrets in a launcher command to work around that.
 
-Only **Codex** may write refreshed credentials back to the shared auth file,
-using an atomic, permission-preserving merge. Other providers are read-only
-credential consumers.
+Kuota only ever writes its own `credentials.json` (refreshed Codex, Grok, and
+Kimi logins, merged atomically with the file mode kept at 0600). Claude Code,
+Codex CLI, Cursor, and Firefox logins are read-only.
 
 ## Configuration
 
@@ -191,8 +209,7 @@ Right-click Kuota and open its configuration dialog:
 - **Theming:** optional fonts, icons, text colors, accents, and opacity. Native
   Plasma styling remains the default.
 
-In this source revision, **“Show and collect usage”** controls both display and
-collection using the existing visibility setting. Disabled providers are excluded
+**“Show and collect usage”** controls both display and collection. Disabled providers are excluded
 from future collector invocations, including credential discovery and requests.
 Disabling all providers leaves the empty view and launches no collector; it does
 not create a fresh observation. Re-enabling a provider requests a refresh.
@@ -210,6 +227,7 @@ instances are preserved on disk but excluded from the current response.
 |---|---|
 | Widget missing or old code still shown | Confirm installation used `-t Plasma/Applet`, rebuild the archive, then reload the widget or log out/in. |
 | `auth-needed` | Check the correct credential source for that provider and sign in again. Do not paste the auth file into a bug report. |
+| Mistral/OpenDesign `auth-needed` | Sign in to admin.mistral.ai or open-design.ai in Firefox (the most recently used profile), then refresh. Other browsers aren't read; use the cookie env fallback instead. |
 | Cursor login appears stale | Confirm local Cursor login and `/usr/bin/sqlite3`. Kuota reads committed WAL updates; check DB/WAL/SHM access as described below. |
 | `stale` | Last successful data is retained. Check its timestamp; Claude may be in rate-limit backoff. Repeated Refresh clicks do not override that backoff. |
 | `error` | A provider may be unreachable or have changed its response; also check fixed runtime paths and the trusted local cache directory. Other providers can still update. |
@@ -295,8 +313,8 @@ Plasma views ↔ isolated CollectorBridge ↔ short-lived Node collector ↔ pro
 
 The collector owns all credentials and provider I/O. QML validates the complete
 snapshot before replacing its current data. Cross-process locking protects
-collection; cache writes use restrictive permissions; shared Codex auth updates
-preserve unrelated entries and file mode. Redaction and module-isolation tests
+collection; cache writes use restrictive permissions; updates to Kuota's own
+credentials file preserve unrelated entries and file mode. Redaction and module-isolation tests
 protect these boundaries.
 
 This is a local desktop integration, not a sandbox or an independent security
@@ -309,7 +327,6 @@ identifiers, tokens, environment values, and raw provider responses.
 - [Collector JSON contract](docs/architecture/collector-contract.md)
 - [Approved design and amendments](docs/specs/2026-07-10-kuota-design.md)
 - [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md)
-- [Project review and prioritized recommendations](docs/reviews/2026-09-08-project-review.md)
 - [Synthetic fixture policy](tests/fixtures/README.md)
 - [GitHub issues](https://github.com/DarkoKuzmanovic/kuota/issues)
 
