@@ -13,7 +13,7 @@ TestCase {
     }
 
     function test_exposesCanonicalProviderIdsInOrder() {
-        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 7);
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 9);
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[0], "claude");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[1], "codex");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[2], "grok");

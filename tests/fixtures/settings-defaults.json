@@ -8,7 +8,9 @@
       "kimi",
       "cursor",
       "opencode",
-      "commandcode"
+      "commandcode",
+      "mistral",
+      "opendesign"
     ]
   },
   "claudeVisible": {
@@ -39,6 +41,14 @@
     "type": "Bool",
     "default": true
   },
+  "mistralVisible": {
+    "type": "Bool",
+    "default": false
+  },
+  "opendesignVisible": {
+    "type": "Bool",
+    "default": false
+  },
   "claudeWindow": {
     "type": "String",
     "default": ""
@@ -60,6 +70,14 @@
     "default": ""
   },
   "commandcodeWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "mistralWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "opendesignWindow": {
     "type": "String",
     "default": ""
   },
@@ -172,6 +190,22 @@
     "default": ""
   },
   "commandcodeCustomIcon": {
+    "type": "String",
+    "default": ""
+  },
+  "mistralAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "mistralCustomIcon": {
+    "type": "String",
+    "default": ""
+  },
+  "opendesignAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "opendesignCustomIcon": {
     "type": "String",
     "default": ""
   }

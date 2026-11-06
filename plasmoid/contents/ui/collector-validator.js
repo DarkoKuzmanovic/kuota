@@ -51,6 +51,9 @@ var COMMANDCODE_DETAIL_KEYS = [
     "weeklyExceeded"
 ];
 
+var MISTRAL_DETAIL_KEYS = ["vibeBudget", "apiBudget", "currency", "paygEnabled"];
+var OPENDESIGN_DETAIL_KEYS = ["tier", "walletBalanceUsd"];
+
 var UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 var WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
@@ -286,6 +289,8 @@ function parseProviderDetails(input, id, state) {
         : id === "grok" ? GROK_DETAIL_KEYS
         : id === "kimi" ? KIMI_DETAIL_KEYS
         : id === "commandcode" ? COMMANDCODE_DETAIL_KEYS
+        : id === "mistral" ? MISTRAL_DETAIL_KEYS
+        : id === "opendesign" ? OPENDESIGN_DETAIL_KEYS
         : id === "opencode" ? null
         : CURSOR_DETAIL_KEYS;
     if (detailKeys === null) {
@@ -362,6 +367,14 @@ function parseDetailFields(input, allowedKeys, id, state) {
         assignIfDefined(details, "planName", parseOptionalSafeText(input, "planName", 50, state));
         assignIfDefined(details, "exceeded", parseOptionalBoolean(input, "exceeded", state));
         assignIfDefined(details, "weeklyExceeded", parseOptionalBoolean(input, "weeklyExceeded", state));
+    } else if (id === "mistral") {
+        assignIfDefined(details, "vibeBudget", parseOptionalNonNegativeNumber(input, "vibeBudget", state));
+        assignIfDefined(details, "apiBudget", parseOptionalNonNegativeNumber(input, "apiBudget", state));
+        assignIfDefined(details, "currency", parseOptionalSafeText(input, "currency", 10, state));
+        assignIfDefined(details, "paygEnabled", parseOptionalBoolean(input, "paygEnabled", state));
+    } else if (id === "opendesign") {
+        assignIfDefined(details, "tier", parseOptionalSafeText(input, "tier", 50, state));
+        assignIfDefined(details, "walletBalanceUsd", parseOptionalNonNegativeNumber(input, "walletBalanceUsd", state));
     } else {
         assignIfDefined(details, "membershipType", parseOptionalSafeText(input, "membershipType", 100, state));
         assignIfDefined(details, "onDemandUsed", parseOptionalCount(input, "onDemandUsed", state));

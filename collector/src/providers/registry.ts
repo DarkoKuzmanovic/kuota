@@ -15,6 +15,8 @@ import { createKimiAdapter } from "./kimi/adapter.js";
 import { createCursorAdapter } from "./cursor/adapter.js";
 import { createOpencodeAdapter } from "./opencode/adapter.js";
 import { createCommandCodeAdapter } from "./commandcode/adapter.js";
+import { createMistralAdapter } from "./mistral/adapter.js";
+import { createOpenDesignAdapter } from "./opendesign/adapter.js";
 
 export interface ConfiguredProvider {
   readonly id: string;
@@ -100,6 +102,8 @@ export const KIMI_ADAPTER = createKimiAdapter();
 export const CURSOR_ADAPTER = createCursorAdapter();
 export const OPENCODE_ADAPTER = createOpencodeAdapter();
 export const COMMANDCODE_ADAPTER = createCommandCodeAdapter();
+export const MISTRAL_ADAPTER = createMistralAdapter();
+export const OPENDESIGN_ADAPTER = createOpenDesignAdapter();
 
 /** Legacy name retained for collector test seams; all entries are real adapters. */
 export const PLACEHOLDER_ADAPTERS = [
@@ -110,6 +114,8 @@ export const PLACEHOLDER_ADAPTERS = [
   CURSOR_ADAPTER,
   OPENCODE_ADAPTER,
   COMMANDCODE_ADAPTER,
+  MISTRAL_ADAPTER,
+  OPENDESIGN_ADAPTER,
 ] as const satisfies readonly RegisteredProviderAdapter[];
 
 const CLAUDE_REGISTRATION = createProviderRegistration(CLAUDE_ADAPTER);
@@ -119,6 +125,8 @@ const KIMI_REGISTRATION = createProviderRegistration(KIMI_ADAPTER);
 const CURSOR_REGISTRATION = createProviderRegistration(CURSOR_ADAPTER);
 const OPENCODE_REGISTRATION = createProviderRegistration(OPENCODE_ADAPTER);
 const COMMANDCODE_REGISTRATION = createProviderRegistration(COMMANDCODE_ADAPTER);
+const MISTRAL_REGISTRATION = createProviderRegistration(MISTRAL_ADAPTER);
+const OPENDESIGN_REGISTRATION = createProviderRegistration(OPENDESIGN_ADAPTER);
 
 export const PLACEHOLDER_PROVIDER_REGISTRATIONS = [
   CLAUDE_REGISTRATION,
@@ -128,6 +136,8 @@ export const PLACEHOLDER_PROVIDER_REGISTRATIONS = [
   CURSOR_REGISTRATION,
   OPENCODE_REGISTRATION,
   COMMANDCODE_REGISTRATION,
+  MISTRAL_REGISTRATION,
+  OPENDESIGN_REGISTRATION,
 ] as const satisfies readonly ProviderRegistration[];
 
 export class ProviderRegistry {

@@ -30,6 +30,10 @@ Kirigami.FormLayout {
     property string cfg_opencodeCustomIcon: ""
     property string cfg_commandcodeAccentColor: ""
     property string cfg_commandcodeCustomIcon: ""
+    property string cfg_mistralAccentColor: ""
+    property string cfg_mistralCustomIcon: ""
+    property string cfg_opendesignAccentColor: ""
+    property string cfg_opendesignCustomIcon: ""
 
     readonly property var providerIds: ProviderCatalog.PROVIDER_IDS.slice()
 
@@ -49,6 +53,10 @@ Kirigami.FormLayout {
             return qsTr("OpenCode");
         case "commandcode":
             return qsTr("CommandCode");
+        case "mistral":
+            return qsTr("Mistral");
+        case "opendesign":
+            return qsTr("OpenDesign");
         default:
             return providerId;
         }
@@ -66,6 +74,10 @@ Kirigami.FormLayout {
             return "utilities-terminal";
         case "commandcode":
             return "run-build";
+        case "mistral":
+            return "weather-windy";
+        case "opendesign":
+            return "applications-graphics";
         default:
             return "network-server";
         }

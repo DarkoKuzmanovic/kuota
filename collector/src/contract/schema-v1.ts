@@ -1,6 +1,6 @@
 export const SCHEMA_VERSION = 2 as const;
 
-export const PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"] as const;
+export const PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 export const PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"] as const;
@@ -62,12 +62,26 @@ export interface CommandCodeDetails {
   readonly weeklyExceeded?: boolean;
 }
 
+export interface MistralDetails {
+  readonly vibeBudget?: number;
+  readonly apiBudget?: number;
+  readonly currency?: string;
+  readonly paygEnabled?: boolean;
+}
+
+export interface OpenDesignDetails {
+  readonly tier?: string;
+  readonly walletBalanceUsd?: number;
+}
+
 type ClaudeProviderDetails = { readonly claude: ClaudeDetails };
 type CodexProviderDetails = { readonly codex: CodexDetails };
 type GrokProviderDetails = { readonly grok: GrokDetails };
 type KimiProviderDetails = { readonly kimi: KimiDetails };
 type CursorProviderDetails = { readonly cursor: CursorDetails };
 type CommandCodeProviderDetails = { readonly commandcode: CommandCodeDetails };
+type MistralProviderDetails = { readonly mistral: MistralDetails };
+type OpenDesignProviderDetails = { readonly opendesign: OpenDesignDetails };
 
 export type ProviderDetails =
   | ClaudeProviderDetails
@@ -75,7 +89,9 @@ export type ProviderDetails =
   | GrokProviderDetails
   | KimiProviderDetails
   | CursorProviderDetails
-  | CommandCodeProviderDetails;
+  | CommandCodeProviderDetails
+  | MistralProviderDetails
+  | OpenDesignProviderDetails;
 
 type NonEmptyClaudeDetails =
   | (ClaudeDetails & { readonly model: string })
@@ -131,13 +147,26 @@ type NonEmptyCommandCodeDetails = {
   | { readonly weeklyExceeded: boolean }
 );
 
+type NonEmptyMistralDetails = MistralDetails & (
+  | { readonly vibeBudget: number }
+  | { readonly apiBudget: number }
+  | { readonly currency: string }
+  | { readonly paygEnabled: boolean }
+);
+type NonEmptyOpenDesignDetails = OpenDesignDetails & (
+  | { readonly tier: string }
+  | { readonly walletBalanceUsd: number }
+);
+
 type NonEmptyProviderDetails =
   | { readonly claude: NonEmptyClaudeDetails }
   | { readonly codex: NonEmptyCodexDetails }
   | { readonly grok: NonEmptyGrokDetails }
   | { readonly kimi: NonEmptyKimiDetails }
   | { readonly cursor: NonEmptyCursorDetails }
-  | { readonly commandcode: NonEmptyCommandCodeDetails };
+  | { readonly commandcode: NonEmptyCommandCodeDetails }
+  | { readonly mistral: NonEmptyMistralDetails }
+  | { readonly opendesign: NonEmptyOpenDesignDetails };
 
 interface ProviderRecordFields {
   readonly status?: string;
@@ -206,6 +235,14 @@ export type CommandCodeProviderRecord =
   | CurrentProviderRecord<"commandcode", CommandCodeProviderDetails>
   | StaleProviderRecord<"commandcode", CommandCodeProviderDetails, { readonly commandcode: NonEmptyCommandCodeDetails }>;
 
+export type MistralProviderRecord =
+  | CurrentProviderRecord<"mistral", MistralProviderDetails>
+  | StaleProviderRecord<"mistral", MistralProviderDetails, { readonly mistral: NonEmptyMistralDetails }>;
+
+export type OpenDesignProviderRecord =
+  | CurrentProviderRecord<"opendesign", OpenDesignProviderDetails>
+  | StaleProviderRecord<"opendesign", OpenDesignProviderDetails, { readonly opendesign: NonEmptyOpenDesignDetails }>;
+
 export type ProviderRecord =
   | ClaudeProviderRecord
   | CodexProviderRecord
@@ -213,7 +250,9 @@ export type ProviderRecord =
   | KimiProviderRecord
   | CursorProviderRecord
   | OpenCodeProviderRecord
-  | CommandCodeProviderRecord;
+  | CommandCodeProviderRecord
+  | MistralProviderRecord
+  | OpenDesignProviderRecord;
 
 export type ProviderRecordFor<TId extends ProviderId> = Extract<
   ProviderRecord,
@@ -230,6 +269,8 @@ type _AssertKimi = _AssertProviderRecordFor<"kimi">;
 type _AssertCursor = _AssertProviderRecordFor<"cursor">;
 type _AssertOpencode = _AssertProviderRecordFor<"opencode">;
 type _AssertCommandcode = _AssertProviderRecordFor<"commandcode">;
+type _AssertMistral = _AssertProviderRecordFor<"mistral">;
+type _AssertOpendesign = _AssertProviderRecordFor<"opendesign">;
 
 export interface CollectorDocument {
   readonly schemaVersion: typeof SCHEMA_VERSION;

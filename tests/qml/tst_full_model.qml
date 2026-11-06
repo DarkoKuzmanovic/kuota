@@ -552,4 +552,29 @@ TestCase {
         });
         compare(model.textColor, "");
     }
+
+    // 2026-11-06 Mistral/OpenDesign design: budget spend is shown in money, wallet in USD.
+    function test_mistralBudgetFactsShowSpendOfEachBudget() {
+        var model = FullModel.buildFullViewModel({
+            id: "mistral", state: "ok", lastSuccessAt: "2026-11-06T10:00:00.000Z",
+            windows: [
+                { id: "vibe", label: "Vibe Code", usedPercent: 0.2441 },
+                { id: "api", label: "API", usedPercent: 50 }
+            ],
+            details: { mistral: { vibeBudget: 300, apiBudget: 30, currency: "EUR", paygEnabled: true } }
+        });
+        compare(factValue(model, "Vibe Code budget"), "\u20ac0.73 of \u20ac300.00");
+        compare(factValue(model, "API budget"), "\u20ac15.00 of \u20ac30.00");
+        compare(factValue(model, "Pay-as-you-go"), "Yes");
+    }
+
+    function test_openDesignFactsShowPlanAndWallet() {
+        var model = FullModel.buildFullViewModel({
+            id: "opendesign", state: "ok", lastSuccessAt: "2026-11-06T10:00:00.000Z",
+            windows: [{ id: "5h", label: "5h", used: 120, limit: 2000, usedPercent: 6 }],
+            details: { opendesign: { tier: "go", walletBalanceUsd: 12.345 } }
+        });
+        compare(factValue(model, "Plan"), "go");
+        compare(factValue(model, "Wallet balance"), "$12.35");
+    }
 }

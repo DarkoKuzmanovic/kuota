@@ -3,7 +3,8 @@
 **AI account usage in your KDE Plasma panel.**
 
 Kuota shows the usage windows, reset times, and account limits reported by
-**Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, and CommandCode**. Keep a
+**Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, CommandCode, Mistral, and
+OpenDesign**. Keep a
 compact summary in your panel and open the detail view when you need the full
 picture. The same detail view works as a desktop widget.
 
@@ -39,7 +40,7 @@ bar.
 ## Project status
 
 The source is public on [GitHub](https://github.com/DarkoKuzmanovic/kuota).
-Package metadata currently says **2.0.0** (released 2026-10-02); the
+Package metadata currently says **2.1.0** (released 2026-11-06); the
 [changelog](CHANGELOG.md) tracks the full history back to 1.0.0.
 
 There are no GitHub release assets or tags as of this documentation review.
@@ -92,8 +93,8 @@ live-account smoke test. See the [approved reliability amendment](docs/specs/202
 The build produces:
 
 ```text
-dist/artifact/kuota-v2.0.0/           unpacked Plasma package
-dist/artifact/kuota-v2.0.0.plasmoid  verified installable archive
+dist/artifact/kuota-v2.1.0/           unpacked Plasma package
+dist/artifact/kuota-v2.1.0.plasmoid  verified installable archive
 ```
 
 The installer installs or upgrades the package for your user. Open Plasma's
@@ -153,6 +154,14 @@ login. Codex device sign-in must be allowed for your ChatGPT account.
 | **Cursor** | Included-plan spend share, billing reset, membership and on-demand usage facts. | Local Cursor `state.vscdb` session first, then `CURSOR_SESSION_TOKEN`. |
 | **OpenCode Go** | Hosted Go plan: rolling 5-hour, weekly, and monthly percentages with resets. Not arbitrary OpenCode/Zen/API spend. | `kuota login opencode` (API key); `OPENCODE_API_KEY` fallback. |
 | **CommandCode** | Five-hour and optional weekly windows; monthly/purchased/free credit facts and optional plan name. | `kuota login commandcode` (API key); `COMMANDCODE_API_KEY` fallback. |
+| **Mistral** *(off by default)* | Vibe Code and API monthly budgets (percent, reset, spend in money); pay-as-you-go flag. | Your Firefox login to admin.mistral.ai (session cookie, read-only); `MISTRAL_SESSION_COOKIE` fallback. |
+| **OpenDesign** *(off by default)* | Coding-plan 5-hour and weekly credit windows; plan tier and wallet balance. | Your Firefox login to open-design.ai (session cookie, read-only); `OPENDESIGN_COOKIE` fallback. |
+
+**Mistral and OpenDesign read your browser login.** Neither serves usage to an
+API key, so Kuota copies Firefox's cookie store (newest profile) into a private
+temp directory, reads only that site's session cookie, and deletes the copy. The
+cookie is used for that one request and never stored. Enable them in Settings →
+Providers; system `sqlite3` is required.
 
 **Provider limits matter:** CommandCode exposes monthly credit allowances, not a
 monthly-used total; Kuota therefore has no monthly utilization window for it.

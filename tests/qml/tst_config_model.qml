@@ -19,12 +19,13 @@ TestCase {
         settings.commandcodeVisible = false;
         compare(ConfigModel.enabledProviders(settings), []);
         var garbage = ConfigModel.sanitize({ claudeVisible: "false", providerOrder: ["synthetic-unknown"] });
-        compare(ConfigModel.enabledProviders(garbage), ConfigModel.KNOWN_PROVIDERS);
-        compare(ConfigModel.enabledProviders(ConfigModel.sanitize(null)), ConfigModel.KNOWN_PROVIDERS);
+        // Browser-session providers are opt-in: never collected by default or from garbage.
+        compare(ConfigModel.enabledProviders(garbage), ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
+        compare(ConfigModel.enabledProviders(ConfigModel.sanitize(null)), ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
     }
 
     function test_knownProvidersExcludeUmans() {
-        compare(ConfigModel.KNOWN_PROVIDERS, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
+        compare(ConfigModel.KNOWN_PROVIDERS, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]);
     }
 
     function test_sanitizeDropsUmansFromOrder() {
@@ -33,7 +34,7 @@ TestCase {
             umansVisible: true
         });
         verify(settings.providerOrder.indexOf("umans") === -1);
-        compare(settings.providerOrder, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]);
+        compare(settings.providerOrder, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]);
         verify(!("umansVisible" in settings));
     }
 
@@ -126,9 +127,11 @@ TestCase {
         compare(empty.cursorVisible, true);
         compare(empty.opencodeVisible, true);
         compare(empty.commandcodeVisible, true);
+        compare(empty.mistralVisible, false);
+        compare(empty.opendesignVisible, false);
         compare(empty.claudeWindow, "");
         compare(empty.codexWindow, "");
-        compare(JSON.stringify(empty.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]));
+        compare(JSON.stringify(empty.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]));
 
         var garbage = ConfigModel.sanitize({
             refreshIntervalMinutes: "soon",
@@ -155,7 +158,7 @@ TestCase {
         compare(garbage.separator, " · ");
         compare(garbage.fontScale, 1.0);
         compare(garbage.showCountdown, true);
-        compare(JSON.stringify(garbage.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]));
+        compare(JSON.stringify(garbage.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]));
         compare(garbage.claudeVisible, true);
         compare(garbage.codexVisible, true);
         compare(garbage.grokVisible, true);
@@ -168,7 +171,7 @@ TestCase {
 
         var nullInput = ConfigModel.sanitize(null);
         compare(nullInput.refreshIntervalMinutes, 5);
-        compare(JSON.stringify(nullInput.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]));
+        compare(JSON.stringify(nullInput.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]));
     }
 
     function test_displayConfigAssemblyCustomOrderAndVisibility() {
@@ -378,7 +381,7 @@ TestCase {
     function test_knownWindowsKeysMatchSelectableProviderKeys() {
         // Every KNOWN_WINDOWS entry maps to exactly one <id>Window key and to
         // a selectable provider; Cursor deliberately has no entry.
-        var selectable = ["claude", "codex", "grok", "kimi", "opencode", "commandcode"];
+        var selectable = ["claude", "codex", "grok", "kimi", "opencode", "commandcode", "mistral", "opendesign"];
         selectable.sort();
         var listed = [];
         for (var id in ConfigModel.KNOWN_WINDOWS) {
@@ -399,7 +402,7 @@ TestCase {
         });
         // sanitize keeps a clean unique order of known providers only,
         // appending every remaining known provider in canonical order.
-        compare(JSON.stringify(sanitized.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"]));
+        compare(JSON.stringify(sanitized.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]));
     }
 
     // ---- M-T1 theming schema ----

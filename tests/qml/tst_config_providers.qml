@@ -17,12 +17,12 @@ TestCase {
     // Provider ids with more than one genuinely meaningful usage window get a
     // selector; Cursor (single "plan" window) deliberately has none.
     // Spec: docs/specs/2026-09-05-window-selector-all-providers-design.md
-    readonly property var selectableProviders: ["claude", "codex", "grok", "kimi", "opencode", "commandcode"]
+    readonly property var selectableProviders: ["claude", "codex", "grok", "kimi", "opencode", "commandcode", "mistral", "opendesign"]
 
     function checkboxes(item) {
         var result = [];
         if (typeof item.checked === "boolean" &&
-                (item.text === "Show in widget" || item.text === "Show and collect usage")) result.push(item);
+                (item.text === "Show in widget" || String(item.text).indexOf("Show and collect usage") === 0)) result.push(item);
         var children = item.children || [];
         for (var i = 0; i < children.length; i++) result = result.concat(checkboxes(children[i]));
         return result;
@@ -58,12 +58,13 @@ TestCase {
         compare(component.status, Component.Ready, component.errorString());
         var page = component.createObject(testCase);
         try {
-            var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"];
-            var names = ["Claude", "Codex", "Grok", "Kimi", "Cursor", "OpenCode", "CommandCode"];
+            var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"];
+            var names = ["Claude", "Codex", "Grok", "Kimi", "Cursor", "OpenCode", "CommandCode", "Mistral", "OpenDesign"];
             var checks = checkboxes(page);
-            compare(checks.length, 7);
+            compare(checks.length, 9);
             for (var i = 0; i < checks.length; i++) {
-                compare(checks[i].text, "Show and collect usage");
+                // Opt-in browser-session providers say what enabling them reads.
+                compare(checks[i].text, i < 7 ? "Show and collect usage" : "Show and collect usage (reads your Firefox login)");
                 compare(checks[i].Accessible.name, names[i] + " display and collection enabled");
                 page["cfg_" + ids[i] + "Visible"] = true;
                 compare(checks[i].checked, true);

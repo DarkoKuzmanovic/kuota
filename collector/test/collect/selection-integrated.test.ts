@@ -17,6 +17,8 @@ import { createKimiAdapter } from "../../src/providers/kimi/adapter.js";
 import { createCursorAdapter } from "../../src/providers/cursor/adapter.js";
 import { createOpencodeAdapter } from "../../src/providers/opencode/adapter.js";
 import { createCommandCodeAdapter } from "../../src/providers/commandcode/adapter.js";
+import { createMistralAdapter } from "../../src/providers/mistral/adapter.js";
+import { createOpenDesignAdapter } from "../../src/providers/opendesign/adapter.js";
 
 const NOW = "2026-09-09T00:00:00.000Z";
 function success<TId extends ProviderId>(id: TId) {
@@ -96,6 +98,19 @@ function spiedRegistry() {
       fetchSubscription: spy("commandcode", "subscription", { outcome: "ok", value: {} }),
       parseUsage: () => ({ ok: true, record: success("commandcode") }),
     })),
+    createProviderRegistration(createMistralAdapter({
+      now,
+      readCookie: spy("mistral", "auth", { state: "available", cookie: "ory_session_synthetic=not-real" }),
+      fetchJson: spy("mistral", "fetch", { outcome: "ok", value: { vibe_budget: { usage_percentage: 1, initial_budget: 300 } } }),
+    })),
+    createProviderRegistration(createOpenDesignAdapter({
+      now,
+      readCookie: spy("opendesign", "auth", { state: "available", cookie: "synthetic-session=not-real" }),
+      // Workspace and wallet lookups count as "aux"; the coding-plan usage request is the "fetch".
+      fetchJson: async (options) => options.url.endsWith("/billing/coding-plan-usage")
+        ? spy("opendesign", "fetch", { outcome: "ok", value: { windows: [{ durationSeconds: 18000, usedCredits: "1", limitCredits: "10" }] } })()
+        : spy("opendesign", "aux", { outcome: "ok", value: { activeWorkspaceId: "synthetic-ws" } })(),
+    })),
   ]);
   return {
     registry,
@@ -120,7 +135,7 @@ function spiedRegistry() {
   };
 }
 
-const selections: readonly (readonly ProviderId[])[] = [["commandcode", "claude"], ["cursor", "codex"], []];
+const selections: readonly (readonly ProviderId[])[] = [["commandcode", "claude"], ["cursor", "codex"], ["opendesign", "mistral"], []];
 for (const selected of selections) {
   test(`explicit CLI subset ${selected.join(",") || "empty"} scopes real integrated auth/fetch and shared cache/lock fallback`, async () => {
     const home = await mkdtemp(join(tmpdir(), "kuota-issue7-synthetic-"));
@@ -131,7 +146,8 @@ for (const selected of selections) {
     try {
       // Positive control exercises every synthetic mechanism and seeds hidden
       // LKG records exactly as a different widget instance could have done.
-      const all = await collectIntegrated({ homeDirectory: home, registry: spies.registry });
+      const all = await collectIntegrated({ homeDirectory: home, registry: spies.registry,
+        config: parseCollectorConfig({ enabledProviders: [...PROVIDER_IDS] }) });
       assert.deepEqual(all.providers.map((p) => p.id), PROVIDER_IDS);
       assert.ok(all.providers.every((p) => p.state === "ok"));
       spies.assertWork(PROVIDER_IDS);

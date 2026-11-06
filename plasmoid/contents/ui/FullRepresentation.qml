@@ -102,6 +102,10 @@ FocusScope {
             return qsTr("OpenCode");
         case "commandcode":
             return qsTr("CommandCode");
+        case "mistral":
+            return qsTr("Mistral");
+        case "opendesign":
+            return qsTr("OpenDesign");
         default:
             return providerId;
         }

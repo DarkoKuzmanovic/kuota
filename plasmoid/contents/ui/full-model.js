@@ -232,6 +232,12 @@ function buildFacts(record) {
     if (id === "commandcode" && isRecord(details.commandcode)) {
         return commandCodeFacts(details.commandcode);
     }
+    if (id === "mistral" && isRecord(details.mistral)) {
+        return mistralFacts(details.mistral, record.windows);
+    }
+    if (id === "opendesign" && isRecord(details.opendesign)) {
+        return openDesignFacts(details.opendesign);
+    }
     return [];
 }
 
@@ -293,6 +299,59 @@ function commandCodeFacts(d) {
     pushFlagFact(facts, "5-hour window exceeded", d.exceeded);
     pushFlagFact(facts, "Weekly window exceeded", d.weeklyExceeded);
     return facts;
+}
+
+// Closed allowlist over details.mistral: spend of each monthly budget (the percent alone
+// reads 0% at low usage), plus pay-as-you-go.
+function mistralFacts(d, windows) {
+    var facts = [];
+    var currency = typeof d.currency === "string" ? d.currency : "";
+    pushBudgetFact(facts, "Vibe Code", d.vibeBudget, windowPercent(windows, "vibe"), currency);
+    pushBudgetFact(facts, "API", d.apiBudget, windowPercent(windows, "api"), currency);
+    pushFlagFact(facts, "Pay-as-you-go", d.paygEnabled);
+    return facts;
+}
+
+// Closed allowlist over details.opendesign: plan tier and wallet balance.
+function openDesignFacts(d) {
+    var facts = [];
+    pushStringFact(facts, "Plan", d.tier);
+    if (typeof d.walletBalanceUsd === "number" && isFinite(d.walletBalanceUsd)) {
+        facts.push({ label: "Wallet balance", value: formatMoney(d.walletBalanceUsd, "USD") });
+    }
+    return facts;
+}
+
+function windowPercent(windows, id) {
+    if (!Array.isArray(windows)) {
+        return undefined;
+    }
+    for (var i = 0; i < windows.length; i++) {
+        if (isRecord(windows[i]) && windows[i].id === id && typeof windows[i].usedPercent === "number") {
+            return windows[i].usedPercent;
+        }
+    }
+    return undefined;
+}
+
+function pushBudgetFact(facts, label, budget, usedPercent, currency) {
+    if (typeof budget !== "number" || !isFinite(budget)) {
+        return;
+    }
+    var value = formatMoney(budget, currency);
+    if (typeof usedPercent === "number" && isFinite(usedPercent)) {
+        value = formatMoney(budget * usedPercent / 100, currency) + " of " + value;
+    }
+    facts.push({ label: label + " budget", value: value });
+}
+
+function formatMoney(amount, currency) {
+    var symbols = { USD: "$", EUR: "\u20ac", GBP: "\u00a3" };
+    var text = amount.toFixed(2);
+    if (Object.prototype.hasOwnProperty.call(symbols, currency)) {
+        return symbols[currency] + text;
+    }
+    return currency.length > 0 ? text + " " + currency : text;
 }
 
 function pushFlagFact(facts, label, value) {
@@ -370,7 +429,9 @@ var LOGIN_HINTS = Object.freeze({
     grok: "run in a terminal: kuota login grok",
     kimi: "run in a terminal: kuota login kimi",
     opencode: "run in a terminal: kuota login opencode",
-    commandcode: "run in a terminal: kuota login commandcode"
+    commandcode: "run in a terminal: kuota login commandcode",
+    mistral: "sign in at admin.mistral.ai in Firefox",
+    opendesign: "sign in at open-design.ai in Firefox"
 });
 
 function stateMessageFor(state, providerId) {

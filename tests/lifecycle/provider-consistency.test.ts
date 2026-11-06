@@ -7,7 +7,7 @@ import { runInNewContext } from 'node:vm';
 import { PROVIDER_IDS } from '../../collector/src/contract/schema-v1.js';
 import { validateCollectorDocument } from '../../collector/src/contract/validate.js';
 import { scanForSecrets } from '../../collector/src/security/redact.js';
-import { DEFAULT_COLLECTOR_CONFIG } from '../../collector/src/collect/config.js';
+import { DEFAULT_COLLECTOR_CONFIG, OPT_IN_PROVIDER_IDS } from '../../collector/src/collect/config.js';
 import { PLACEHOLDER_ADAPTERS, PLACEHOLDER_PROVIDER_REGISTRATIONS } from '../../collector/src/providers/registry.js';
 
 let root = dirname(fileURLToPath(import.meta.url));
@@ -17,7 +17,7 @@ while (!existsSync(resolve(root, 'plasmoid/metadata.json'))) {
   root = parent;
 }
 const read = (path: string): string => readFileSync(resolve(root, path), 'utf8');
-const labels = ['Claude', 'Codex', 'Grok', 'Kimi', 'Cursor', 'OpenCode', 'CommandCode'];
+const labels = ['Claude', 'Codex', 'Grok', 'Kimi', 'Cursor', 'OpenCode', 'CommandCode', 'Mistral', 'OpenDesign'];
 
 function productionFiles(directory = 'plasmoid/contents'): string[] {
   return readdirSync(resolve(root, directory), { withFileTypes: true }).flatMap(entry => {
@@ -93,9 +93,9 @@ test('every persisted setting has exactly one config-page binding', () => {
 
 test('QML catalog, collector defaults and inert registrations cover the TS contract', () => {
   const catalog = read('plasmoid/contents/ui/provider-catalog.js').replace(/^\.pragma library\s*/, '');
-  const facts: unknown = JSON.parse(String(runInNewContext(catalog + '\nJSON.stringify([PROVIDER_IDS, PROVIDER_IDS.map(function(id) { return PROVIDER_LABELS[id]; })])')));
-  assert.deepEqual(facts, [PROVIDER_IDS, labels]);
-  assert.deepEqual(DEFAULT_COLLECTOR_CONFIG.providers, PROVIDER_IDS.map(id => ({ id, enabled: true })));
+  const facts: unknown = JSON.parse(String(runInNewContext(catalog + '\nJSON.stringify([PROVIDER_IDS, PROVIDER_IDS.map(function(id) { return PROVIDER_LABELS[id]; }), OPT_IN_PROVIDER_IDS])')));
+  assert.deepEqual(facts, [PROVIDER_IDS, labels, OPT_IN_PROVIDER_IDS]);
+  assert.deepEqual(DEFAULT_COLLECTOR_CONFIG.providers, PROVIDER_IDS.map(id => ({ id, enabled: !OPT_IN_PROVIDER_IDS.includes(id) })));
   assert.deepEqual(PLACEHOLDER_ADAPTERS.map(p => p.id), PROVIDER_IDS);
   assert.deepEqual(PLACEHOLDER_PROVIDER_REGISTRATIONS.map(p => p.id), PROVIDER_IDS);
   for (const registration of PLACEHOLDER_PROVIDER_REGISTRATIONS) {

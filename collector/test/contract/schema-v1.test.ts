@@ -43,11 +43,11 @@ test("normalized fixture inventory is explicit", () => {
   assert.deepEqual(fixtureNames(), expected);
 });
 
-test("schema v2 identity includes opencode and commandcode after cursor", () => {
+test("schema v2 identity appends mistral and opendesign after commandcode", () => {
   assert.equal(SCHEMA_VERSION, 2);
   assert.deepEqual(
     [...PROVIDER_IDS],
-    ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"],
+    ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"],
   );
   assert.equal((PROVIDER_IDS as readonly string[]).includes("umans"), false);
 });

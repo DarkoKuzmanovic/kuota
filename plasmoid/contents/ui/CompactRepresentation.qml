@@ -90,6 +90,10 @@ FocusScope {
             return "utilities-terminal";
         case "commandcode":
             return "run-build";
+        case "mistral":
+            return "weather-windy";
+        case "opendesign":
+            return "applications-graphics";
         default:
             return "network-server";
         }

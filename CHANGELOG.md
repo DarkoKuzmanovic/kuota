@@ -13,7 +13,19 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-06
+
+### Added
+
+- **Mistral and OpenDesign providers** (off by default; enable in Settings →
+  Providers). Mistral shows the Vibe Code and API monthly budgets; OpenDesign
+  shows the coding-plan 5-hour and weekly credit windows, plan tier and wallet
+  balance. Both read the session cookie from your Firefox login (read-only,
+  never stored), with `MISTRAL_SESSION_COOKIE` / `OPENDESIGN_COOKIE` fallbacks.
+
 ### Changed
+
+Carried over from [Unreleased] (landed after 2.0.0):
 
 - **Provider selection now controls collection, not just display.** Settings →
   Providers reads “Show and collect usage”: an unchecked provider is skipped
