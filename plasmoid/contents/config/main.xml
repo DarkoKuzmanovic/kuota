@@ -17,7 +17,7 @@
   <group name="General">
     <entry name="providerOrder" type="StringList">
       <label>Ordered list of provider IDs for compact and full views.</label>
-      <default>claude,codex,grok,kimi,cursor,opencode,commandcode</default>
+      <default>claude,codex,grok,kimi,cursor,opencode,commandcode,mistral,opendesign</default>
     </entry>
     <entry name="claudeVisible" type="Bool">
       <label>Whether Claude is shown in the widget.</label>
@@ -47,6 +47,15 @@
       <label>Whether CommandCode is shown in the widget.</label>
       <default>true</default>
     </entry>
+    <!-- 2026-11-06: browser-session providers (read Firefox cookies) are opt-in. -->
+    <entry name="mistralVisible" type="Bool">
+      <label>Whether Mistral is shown in the widget.</label>
+      <default>false</default>
+    </entry>
+    <entry name="opendesignVisible" type="Bool">
+      <label>Whether OpenDesign is shown in the widget.</label>
+      <default>false</default>
+    </entry>
     <entry name="claudeWindow" type="String">
       <label>Selected Claude usage window ID for the compact line. Empty uses the primary window.</label>
       <default></default>
@@ -69,6 +78,14 @@
     </entry>
     <entry name="commandcodeWindow" type="String">
       <label>Selected CommandCode usage window ID for the compact line. Empty uses the primary window.</label>
+      <default></default>
+    </entry>
+    <entry name="mistralWindow" type="String">
+      <label>Selected Mistral usage window ID for the compact line. Empty uses the primary window.</label>
+      <default></default>
+    </entry>
+    <entry name="opendesignWindow" type="String">
+      <label>Selected OpenDesign usage window ID for the compact line. Empty uses the primary window.</label>
       <default></default>
     </entry>
     <entry name="displayMode" type="String">
@@ -183,6 +200,22 @@
     </entry>
     <entry name="commandcodeCustomIcon" type="String">
       <label>CommandCode custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="mistralAccentColor" type="String">
+      <label>Mistral accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="mistralCustomIcon" type="String">
+      <label>Mistral custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="opendesignAccentColor" type="String">
+      <label>OpenDesign accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="opendesignCustomIcon" type="String">
+      <label>OpenDesign custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
   </group>

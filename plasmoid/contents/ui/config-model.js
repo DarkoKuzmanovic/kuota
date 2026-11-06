@@ -31,6 +31,8 @@ function buildDefaults() {
         kimiWindow: "",
         opencodeWindow: "",
         commandcodeWindow: "",
+        mistralWindow: "",
+        opendesignWindow: "",
         displayMode: "icons+text",
         separator: " · ",
         fontScale: 1.0,
@@ -48,7 +50,7 @@ function buildDefaults() {
     };
     for (var i = 0; i < KNOWN_PROVIDERS.length; i++) {
         var id = KNOWN_PROVIDERS[i];
-        defaults[id + "Visible"] = true;
+        defaults[id + "Visible"] = ProviderCatalog.OPT_IN_PROVIDER_IDS.indexOf(id) === -1;
         defaults[id + "AccentColor"] = "";
         defaults[id + "CustomIcon"] = "";
     }
@@ -96,6 +98,8 @@ function sanitize(rawConfig) {
     out.kimiWindow = sanitizeWindowSelection("kimi", rawConfig.kimiWindow);
     out.opencodeWindow = sanitizeWindowSelection("opencode", rawConfig.opencodeWindow);
     out.commandcodeWindow = sanitizeWindowSelection("commandcode", rawConfig.commandcodeWindow);
+    out.mistralWindow = sanitizeWindowSelection("mistral", rawConfig.mistralWindow);
+    out.opendesignWindow = sanitizeWindowSelection("opendesign", rawConfig.opendesignWindow);
     out.displayMode = sanitizeDisplayMode(rawConfig.displayMode);
     out.separator = sanitizeString(rawConfig.separator, DEFAULTS.separator);
     out.fontScale = sanitizeFontScale(rawConfig.fontScale);

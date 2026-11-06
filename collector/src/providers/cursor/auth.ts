@@ -39,7 +39,7 @@ function defaultStateDbCandidates(homeDirectory: string): readonly string[] {
   ];
 }
 
-const defaultRunSqlite: CursorSqliteRunner = async (args, signal) => {
+export const defaultRunSqlite: CursorSqliteRunner = async (args, signal) => {
   if (signal?.aborted) return { code: 1, stdout: "", stderr: "", terminated: true };
   return new Promise((resolve) => {
     const output: Buffer[] = [];

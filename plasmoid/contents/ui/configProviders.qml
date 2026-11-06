@@ -14,12 +14,16 @@ Kirigami.FormLayout {
     property alias cfg_cursorVisible: cursorVisibleCheck.checked
     property alias cfg_opencodeVisible: opencodeVisibleCheck.checked
     property alias cfg_commandcodeVisible: commandcodeVisibleCheck.checked
+    property alias cfg_mistralVisible: mistralVisibleCheck.checked
+    property alias cfg_opendesignVisible: opendesignVisibleCheck.checked
     property alias cfg_claudeWindow: claudeWindowCombo.currentValue
     property alias cfg_codexWindow: codexWindowCombo.currentValue
     property alias cfg_grokWindow: grokWindowCombo.currentValue
     property alias cfg_kimiWindow: kimiWindowCombo.currentValue
     property alias cfg_opencodeWindow: opencodeWindowCombo.currentValue
     property alias cfg_commandcodeWindow: commandcodeWindowCombo.currentValue
+    property alias cfg_mistralWindow: mistralWindowCombo.currentValue
+    property alias cfg_opendesignWindow: opendesignWindowCombo.currentValue
 
     // StringList has no 1:1 widget; the reorder Repeater below reads/writes
     // this plain array directly (matches the compact-model.js entries pattern).
@@ -41,6 +45,10 @@ Kirigami.FormLayout {
             return qsTr("OpenCode");
         case "commandcode":
             return qsTr("CommandCode");
+        case "mistral":
+            return qsTr("Mistral");
+        case "opendesign":
+            return qsTr("OpenDesign");
         default:
             return providerId;
         }
@@ -111,6 +119,20 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: qsTr("CommandCode:")
         text: qsTr("Show and collect usage")
         Accessible.name: qsTr("CommandCode display and collection enabled")
+    }
+
+    Controls.CheckBox {
+        id: mistralVisibleCheck
+        Kirigami.FormData.label: qsTr("Mistral:")
+        text: qsTr("Show and collect usage (reads your Firefox login)")
+        Accessible.name: qsTr("Mistral display and collection enabled")
+    }
+
+    Controls.CheckBox {
+        id: opendesignVisibleCheck
+        Kirigami.FormData.label: qsTr("OpenDesign:")
+        text: qsTr("Show and collect usage (reads your Firefox login)")
+        Accessible.name: qsTr("OpenDesign display and collection enabled")
     }
 
     Kirigami.Heading {
@@ -259,6 +281,34 @@ Kirigami.FormLayout {
             { text: qsTr("Default"), value: "" },
             { text: qsTr("5h"), value: ProviderCatalog.SELECTABLE_WINDOWS.commandcode[0] },
             { text: qsTr("Weekly"), value: ProviderCatalog.SELECTABLE_WINDOWS.commandcode[1] }
+        ]
+    }
+
+    Controls.ComboBox {
+        id: mistralWindowCombo
+        objectName: "mistralWindowCombo"
+        Kirigami.FormData.label: qsTr("Mistral:")
+        Accessible.name: qsTr("Mistral usage window")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: qsTr("Default"), value: "" },
+            { text: qsTr("Vibe Code"), value: ProviderCatalog.SELECTABLE_WINDOWS.mistral[0] },
+            { text: qsTr("API"), value: ProviderCatalog.SELECTABLE_WINDOWS.mistral[1] }
+        ]
+    }
+
+    Controls.ComboBox {
+        id: opendesignWindowCombo
+        objectName: "opendesignWindowCombo"
+        Kirigami.FormData.label: qsTr("OpenDesign:")
+        Accessible.name: qsTr("OpenDesign usage window")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: qsTr("Default"), value: "" },
+            { text: qsTr("5h"), value: ProviderCatalog.SELECTABLE_WINDOWS.opendesign[0] },
+            { text: qsTr("Weekly"), value: ProviderCatalog.SELECTABLE_WINDOWS.opendesign[1] }
         ]
     }
 }

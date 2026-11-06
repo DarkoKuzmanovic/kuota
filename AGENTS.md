@@ -150,6 +150,8 @@ PLAN.md                Milestone/gate plan — normative for scope and sequencin
 | Cursor | `cursor.com/api/usage-summary` (unofficial dashboard) | Local `~/.config/Cursor/User/globalStorage/state.vscdb` (`cursorAuth/accessToken`); `CURSOR_SESSION_TOKEN` fallback. **Not** `auth.json`; session is never persisted by Kuota. Requires system `sqlite3` for local discovery. |
 | OpenCode | `opencode.ai/zen/go/v1/usage` (hosted OpenCode Go only, not Zen/other surfaces) | store `opencode` (`api_key` + `key`), `OPENCODE_API_KEY` env fallback |
 | CommandCode | `api.commandcode.ai/alpha/billing/credits` + optional `…/subscriptions` (plan name) | store `commandcode` (`api_key` + `key`; the `user_…` key) or `COMMANDCODE_API_KEY` env fallback |
+| Mistral (opt-in) | `admin.mistral.ai/api/billing/v2/budget` (Admin Panel JSON) | Firefox `ory_session_*` cookie for `*.mistral.ai`, read from a private temp copy of the newest profile's `cookies.sqlite` (deleted after); `MISTRAL_SESSION_COOKIE` fallback. Never persisted. |
+| OpenDesign (opt-in) | `amr-api.open-design.ai/api/v1/workspaces/current` → `…/workspaces/{id}/billing/coding-plan-usage` + `…/wallet/balance` | Firefox `__Secure-better-auth.session_token` cookie (same reader); `OPENDESIGN_COOKIE` fallback. Workspace ID stays in the request, never in output. |
 
 Claude is aggressively rate-limited: keep Kuota's own last-known-good cache
 (`~/.cache/kuota/claude.json`; the pi-hud shared cache is never read), honor `Retry-After` and a minimum 429 backoff, retain

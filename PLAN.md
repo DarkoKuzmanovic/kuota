@@ -1625,6 +1625,21 @@ non-English translation runs, elapsed five-minute scheduling, and descendant
 reaping. The batch rides the next release; release, installation and #8/#9
 need their own scope.
 
+## Milestone 18 (v2.1.0) — Mistral + OpenDesign (browser-session, opt-in)
+
+**Approved 2026-11-06** (owner, clarify form). Spec: `docs/specs/2026-11-06-mistral-opendesign-provider-design.md`.
+Neither serves usage to an API key, so both read the Firefox session cookie (private temp copy of
+`cookies.sqlite`, deleted after; env fallback `MISTRAL_SESSION_COOKIE` / `OPENDESIGN_COOKIE`). Both are
+off by default (`OPT_IN_PROVIDER_IDS`). Mistral: `vibe` (primary) + `api` budget windows. OpenDesign:
+`5h` (primary) + `weekly` credit windows, tier + wallet facts. Supersedes the 2026-10-11 OpenDesign deferral.
+
+Counters: reviews 0 · correction rounds 0 · oracle 0 · direct edits 1.
+
+Gate (2026-11-06, worktree `feat/mistral-opendesign`): `npm test` 773/0 · `npm run test:qml` 397/0 ·
+`npm run typecheck` clean · `npm run validate:plasma` exit 0 · live `cli.js --enabled-providers=mistral,opendesign`
+→ both `ok` with real windows, no temp copies left · mutation (skip temp cleanup) → 3 tests fail.
+- [x] **Gate G-18 — PASSED 2026-11-06:** full gate set ✅ · owner live panel check ✅ ("Perfection!") with both providers enabled and custom icons set. Released as **2.1.0**.
+
 ## Deferred providers
 
 ### Meta Muse Code — deferred 2026-09-25 (owner decision)
@@ -1650,7 +1665,7 @@ need their own scope.
 the Current/Weekly windows. It must be authenticated with the stored Muse credential and must not mint keys.
 Sources: dev.meta.ai/docs (overview, pricing-rate-limits, muse-code/auth); quota-axi#277; AgEnD#851.
 
-### OpenDesign (Go plan) — deferred 2026-10-11 (owner decision)
+### OpenDesign (Go plan) — deferred 2026-10-11; superseded by Milestone 18 (2026-11-06, browser-session cookie)
 
 **Request:** Add OpenDesign (open-design.ai) Go-plan usage to Kuota, with a version bump.
 **Decision:** Do not implement, and do not bump the version for it. Revisit when OpenDesign ships official Linux support.

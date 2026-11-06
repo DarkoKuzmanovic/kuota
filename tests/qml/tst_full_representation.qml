@@ -51,7 +51,7 @@ TestCase {
     }
 
     function test_standaloneOffersEverySupportedProvider() {
-        var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode"];
+        var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"];
         full.snapshot = sampleSnapshot(ids.map(function(id) { return { id: id, state: "auth-needed" }; }));
         compare(full.providerOrder, ids);
         compare(full.availableProviderIds, ids);

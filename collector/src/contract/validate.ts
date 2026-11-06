@@ -9,6 +9,8 @@ import {
   type CursorDetails,
   type GrokDetails,
   type KimiDetails,
+  type MistralDetails,
+  type OpenDesignDetails,
   type ProviderDetails,
   type ProviderId,
   type ProviderRecord,
@@ -80,6 +82,8 @@ const COMMANDCODE_DETAIL_KEYS = new Set([
   "exceeded",
   "weeklyExceeded",
 ]);
+const MISTRAL_DETAIL_KEYS = new Set(["vibeBudget", "apiBudget", "currency", "paygEnabled"]);
+const OPENDESIGN_DETAIL_KEYS = new Set(["tier", "walletBalanceUsd"]);
 const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
@@ -426,6 +430,20 @@ function parseProviderDetails(
     }
     return details === undefined ? undefined : { commandcode: details };
   }
+  if (id === "mistral") {
+    const details = parseMistralDetails(input.mistral, `${path}.mistral`, errors);
+    if (errors.length !== initialErrorCount && details === undefined) {
+      return undefined;
+    }
+    return details === undefined ? undefined : { mistral: details };
+  }
+  if (id === "opendesign") {
+    const details = parseOpenDesignDetails(input.opendesign, `${path}.opendesign`, errors);
+    if (errors.length !== initialErrorCount && details === undefined) {
+      return undefined;
+    }
+    return details === undefined ? undefined : { opendesign: details };
+  }
   const details = parseCursorDetails(input.cursor, `${path}.cursor`, errors);
   if (errors.length !== initialErrorCount && details === undefined) {
     return undefined;
@@ -707,6 +725,54 @@ function parseCommandCodeDetails(
   if (planName !== undefined) details.planName = planName;
   if (exceeded !== undefined) details.exceeded = exceeded;
   if (weeklyExceeded !== undefined) details.weeklyExceeded = weeklyExceeded;
+  return details;
+}
+
+function parseMistralDetails(
+  input: unknown,
+  path: string,
+  errors: ValidationIssue[],
+): MistralDetails | undefined {
+  if (!isRecord(input)) {
+    addIssue(errors, path, "expected an object");
+    return undefined;
+  }
+  const initialErrorCount = errors.length;
+  validateObjectKeys(input, path, MISTRAL_DETAIL_KEYS, errors);
+  const vibeBudget = parseOptionalNonNegativeNumber(input, "vibeBudget", `${path}.vibeBudget`, errors);
+  const apiBudget = parseOptionalNonNegativeNumber(input, "apiBudget", `${path}.apiBudget`, errors);
+  const currency = parseOptionalSafeText(input, "currency", `${path}.currency`, 10, errors);
+  const paygEnabled = parseOptionalBoolean(input, "paygEnabled", `${path}.paygEnabled`, errors);
+  if (errors.length !== initialErrorCount) {
+    return undefined;
+  }
+  const details: { vibeBudget?: number; apiBudget?: number; currency?: string; paygEnabled?: boolean } = {};
+  if (vibeBudget !== undefined) details.vibeBudget = vibeBudget;
+  if (apiBudget !== undefined) details.apiBudget = apiBudget;
+  if (currency !== undefined) details.currency = currency;
+  if (paygEnabled !== undefined) details.paygEnabled = paygEnabled;
+  return details;
+}
+
+function parseOpenDesignDetails(
+  input: unknown,
+  path: string,
+  errors: ValidationIssue[],
+): OpenDesignDetails | undefined {
+  if (!isRecord(input)) {
+    addIssue(errors, path, "expected an object");
+    return undefined;
+  }
+  const initialErrorCount = errors.length;
+  validateObjectKeys(input, path, OPENDESIGN_DETAIL_KEYS, errors);
+  const tier = parseOptionalSafeText(input, "tier", `${path}.tier`, 50, errors);
+  const walletBalanceUsd = parseOptionalNonNegativeNumber(input, "walletBalanceUsd", `${path}.walletBalanceUsd`, errors);
+  if (errors.length !== initialErrorCount) {
+    return undefined;
+  }
+  const details: { tier?: string; walletBalanceUsd?: number } = {};
+  if (tier !== undefined) details.tier = tier;
+  if (walletBalanceUsd !== undefined) details.walletBalanceUsd = walletBalanceUsd;
   return details;
 }
 
@@ -993,6 +1059,12 @@ function hasRetainedData(
   }
   if ("commandcode" in details) {
     return Object.keys(details.commandcode).length > 0;
+  }
+  if ("mistral" in details) {
+    return Object.keys(details.mistral).length > 0;
+  }
+  if ("opendesign" in details) {
+    return Object.keys(details.opendesign).length > 0;
   }
   return Object.keys(details.cursor).length > 0;
 }

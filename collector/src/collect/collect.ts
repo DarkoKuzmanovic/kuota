@@ -5,6 +5,7 @@ import {
   type ProviderId,
 } from "../contract/schema-v1.js";
 import { validateCollectorDocument } from "../contract/validate.js";
+import { OPT_IN_PROVIDER_IDS } from "./config.js";
 import {
   createProviderRegistry,
   type ConfiguredProvider,
@@ -80,7 +81,7 @@ export class CollectorValidationError extends Error {
 }
 
 const DEFAULT_CONFIG: CollectorConfig = {
-  providers: PROVIDER_IDS.map((id) => ({ id, enabled: true })),
+  providers: PROVIDER_IDS.map((id) => ({ id, enabled: !OPT_IN_PROVIDER_IDS.includes(id) })),
   timeoutMs: DEFAULT_PROVIDER_TIMEOUT_MS,
   dependencies: {},
 };
@@ -299,6 +300,10 @@ async function collectAny(
     case "opencode":
       return collectOne(provider, options);
     case "commandcode":
+      return collectOne(provider, options);
+    case "mistral":
+      return collectOne(provider, options);
+    case "opendesign":
       return collectOne(provider, options);
   }
 }

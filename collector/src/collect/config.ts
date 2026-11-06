@@ -6,10 +6,14 @@ import type { CollectorConfig } from "./collect.js";
 
 // Every supported provider has a real adapter; the consistency gate enforces coverage.
 
+// Browser-session providers read Firefox cookies, so a no-flag run leaves them off
+// (docs/specs/2026-11-06-mistral-opendesign-provider-design.md D4).
+export const OPT_IN_PROVIDER_IDS: readonly ProviderId[] = Object.freeze(["mistral", "opendesign"]);
+
 export const DEFAULT_COLLECTOR_CONFIG: Readonly<CollectorConfig> = Object.freeze({
   providers: Object.freeze(
     PROVIDER_IDS.map((id) =>
-      Object.freeze({ id, enabled: true }),
+      Object.freeze({ id, enabled: !OPT_IN_PROVIDER_IDS.includes(id) }),
     ),
   ),
   timeoutMs: 10_000,
