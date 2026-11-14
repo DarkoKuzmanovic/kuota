@@ -8,7 +8,7 @@ import {
   type ProviderNormalizedResult,
 } from "../types.js";
 
-export const MISTRAL_BUDGET_ENDPOINT = "https://admin.mistral.ai/api/billing/v2/budget" as const;
+export const MISTRAL_BUDGET_ENDPOINT = "https://admin.mistral.ai/api/local-trpc/billing.budget" as const;
 
 export const MISTRAL_COOKIE_SPEC: SessionCookieSpec = {
   hosts: [".mistral.ai", "admin.mistral.ai", "console.mistral.ai", "chat.mistral.ai"],

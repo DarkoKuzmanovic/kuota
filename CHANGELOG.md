@@ -13,6 +13,15 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Mistral showed stale data.** The admin dashboard retired the REST budget path
+  (`api/billing/v2/budget`, now 404) and serves the same budgets through tRPC at
+  `api/local-trpc/billing.budget`, wrapped as `{result:{data:{json:…}}}`. The
+  collector reads that procedure and unwraps the envelope; `paygEnabled` is
+  omitted when the wire omits it instead of being reported as `false`. No
+  re-login is needed — the Firefox session was never the problem.
+
 ## [2.1.0] - 2026-11-06
 
 ### Added

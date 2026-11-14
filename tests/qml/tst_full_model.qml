@@ -568,6 +568,16 @@ TestCase {
         compare(factValue(model, "Pay-as-you-go"), "Yes");
     }
 
+    // 2026-11-15: the tRPC budget wire no longer reports payg_enabled; the row must vanish, not read "No".
+    function test_mistralPaygFactIsAbsentWhenTheWireOmitsIt() {
+        var model = FullModel.buildFullViewModel({
+            id: "mistral", state: "ok", lastSuccessAt: "2026-11-15T10:00:00.000Z",
+            windows: [{ id: "vibe", label: "Vibe Code", usedPercent: 17.4 }],
+            details: { mistral: { vibeBudget: 300, currency: "USD" } }
+        });
+        compare(factValue(model, "Pay-as-you-go"), null);
+    }
+
     function test_openDesignFactsShowPlanAndWallet() {
         var model = FullModel.buildFullViewModel({
             id: "opendesign", state: "ok", lastSuccessAt: "2026-11-06T10:00:00.000Z",

@@ -5,11 +5,25 @@ export type MistralUsageParseResult =
   | { readonly ok: true; readonly record: MistralProviderRecord & { readonly state: "ok" } }
   | { readonly ok: false; readonly reason: "malformed-response" };
 
-type Budget = { readonly usedPercent: number; readonly budget: number; readonly currency?: string; readonly resetAt?: string; readonly payg: boolean };
+type Budget = { readonly usedPercent: number; readonly budget: number; readonly currency?: string; readonly resetAt?: string; readonly payg?: boolean };
 const INVALID = Symbol("invalid");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * The dashboard answers through tRPC (superjson): `{"result":{"data":{"json": <payload>}}}`.
+ * Anything else — an error envelope, a bare payload, a batch array — is not the wire shape.
+ */
+function trpcPayload(input: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(input)) return undefined;
+  const result = input.result;
+  if (!isRecord(result)) return undefined;
+  const data = result.data;
+  if (!isRecord(data)) return undefined;
+  const json = data.json;
+  return isRecord(json) ? json : undefined;
 }
 
 /** Absent budget → undefined (skipped); a present but malformed one fails the whole response. */
@@ -25,7 +39,7 @@ function parseBudget(raw: unknown): Budget | typeof INVALID | undefined {
     budget,
     ...(typeof currency === "string" && /^[A-Z]{3}$/.test(currency) ? { currency } : {}),
     ...(Number.isFinite(reset) ? { resetAt: new Date(reset).toISOString() } : {}),
-    payg: payg === true,
+    ...(typeof payg === "boolean" ? { payg } : {}),
   };
 }
 
@@ -33,12 +47,13 @@ function window(id: string, label: string, budget: Budget): UsageWindow {
   return { id, label, usedPercent: budget.usedPercent, ...(budget.resetAt === undefined ? {} : { resetAt: budget.resetAt }) };
 }
 
-/** `GET admin.mistral.ai/api/billing/v2/budget`: Vibe Code (primary) and API monthly budgets. */
+/** `GET admin.mistral.ai/api/local-trpc/billing.budget`: Vibe Code (primary) and API monthly budgets. */
 export function parseMistralUsageResponse(input: unknown, observedAt: string): MistralUsageParseResult {
   const failure: MistralUsageParseResult = { ok: false, reason: "malformed-response" };
-  if (!isRecord(input)) return failure;
-  const vibe = parseBudget(input.vibe_budget);
-  const api = parseBudget(input.api_budget);
+  const payload = trpcPayload(input);
+  if (payload === undefined) return failure;
+  const vibe = parseBudget(payload.vibe_budget);
+  const api = parseBudget(payload.api_budget);
   if (vibe === INVALID || api === INVALID || (vibe === undefined && api === undefined)) return failure;
   const primary = vibe ?? api;
   const windows: UsageWindow[] = [];
@@ -48,7 +63,7 @@ export function parseMistralUsageResponse(input: unknown, observedAt: string): M
   if (vibe !== undefined) details.vibeBudget = vibe.budget;
   if (api !== undefined) details.apiBudget = api.budget;
   if (primary?.currency !== undefined) details.currency = primary.currency;
-  if (primary !== undefined) details.paygEnabled = primary.payg;
+  if (primary?.payg !== undefined) details.paygEnabled = primary.payg;
   const record: MistralProviderRecord & { readonly state: "ok" } = {
     id: "mistral",
     state: "ok",

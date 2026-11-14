@@ -10,12 +10,16 @@ Neither provider exposes usage to an API key. Both serve it to the signed-in web
 
 | Provider | Endpoint(s) (GET, JSON) | Session cookie |
 |---|---|---|
-| Mistral | `https://admin.mistral.ai/api/billing/v2/budget` | `ory_session_*` on `.mistral.ai` (and `admin.`/`console.`/`chat.mistral.ai`) |
+| Mistral | `https://admin.mistral.ai/api/local-trpc/billing.budget` | `ory_session_*` on `.mistral.ai` (and `admin.`/`console.`/`chat.mistral.ai`) |
 | OpenDesign | `https://amr-api.open-design.ai/api/v1/workspaces/current` → `activeWorkspaceId`; then `/api/v1/workspaces/{id}/billing/coding-plan-usage` and `/api/v1/workspaces/{id}/wallet/balance` (header `x-vela-workspace-id`) | `__Secure-better-auth.session_token` on `amr-api.open-design.ai` |
 
 Shape recon 2026-11-06 (key/type only, live 200s on the owner's account):
 
-- Mistral: `{vibe_budget:{usage_percentage:float, initial_budget:float, currency:str, reset_at:ISO, payg_enabled:bool}, api_budget:{same}, …}`. Source: pi-hud `providers/mistral.ts` (live-verified 2026-11-04).
+- Mistral: `{vibe_budget:{usage_percentage:float, initial_budget:float, currency:str, reset_at:ISO}, api_budget:{same}, …}`. Source: pi-hud `providers/mistral.ts` (live-verified 2026-11-04).
+  **2026-11-15:** the REST path `api/billing/v2/budget` was retired (404). The dashboard now answers
+  through tRPC on `api/local-trpc/billing.budget`, so the same budget object arrives wrapped as
+  `{result:{data:{json:{…}}}}`; `payg_enabled` is no longer sent and `details.mistral.paygEnabled`
+  is therefore omitted rather than defaulted to `false`.
 - OpenDesign usage: `{workspaceId, generatedAt, eligible:bool, tier:str, windows:[{policyId, durationSeconds:int, resetMode, usedCredits:"int", limitCredits:"int", remainingCredits:"int", windowStart, resetsAt}]}`; observed durations 18000 (5h) and 604800 (week). Wallet: `{balanceUsd:"decimal", expiresAt, updatedAt, billingScopeVersion, workspaceId, workspaceMemberId}`. Source: `dsh-cost-meter` docs (endpoint discovery) + this probe. This replaces the 2026-10-11 deferral (no desktop app or control key needed).
 
 ## Decisions
@@ -23,7 +27,7 @@ Shape recon 2026-11-06 (key/type only, live 200s on the owner's account):
 | # | Decision |
 |---|---|
 | D1 | Credential: read the session cookie from Firefox automatically. Pick the profile whose `cookies.sqlite` is newest under `~/.mozilla/firefox/*/`; copy it (+ `-wal`) into a fresh `mkdtemp` dir (0700), query only that provider's cookie names with the existing bounded `/usr/bin/sqlite3` runner, delete the copy in `finally`. Firefox holds an exclusive lock, so the live DB cannot be read in place. Fallback env: `MISTRAL_SESSION_COOKIE` / `OPENDESIGN_COOKIE` (full `Cookie` header value). Never persisted, never refreshed. |
-| D2 | Mistral windows: `vibe` ("Vibe Code", primary) and `api` ("API"), each `usedPercent` + `resetAt`. Window selector catalog `["vibe","api"]`. `details.mistral`: `vibeBudget`, `apiBudget`, `currency`, `paygEnabled`. |
+| D2 | Mistral windows: `vibe` ("Vibe Code", primary) and `api` ("API"), each `usedPercent` + `resetAt`. Window selector catalog `["vibe","api"]`. `details.mistral`: `vibeBudget`, `apiBudget`, `currency`, `paygEnabled` (only when the wire reports it). |
 | D3 | OpenDesign windows: `5h` (primary) and `weekly`, keyed by `durationSeconds` (other durations skipped), `used`/`limit` credits + `usedPercent` + `resetAt`. Selector catalog `["5h","weekly"]`. `details.opendesign`: `tier`, `walletBalanceUsd`. Wallet failure does not fail the record. |
 | D4 | Both providers are **off by default**: `<id>Visible` defaults `false`, and the collector's no-flag default excludes them. |
 | D5 | No cache/backoff beyond the common collector path; one bounded request per endpoint, no retries. 401/403/3xx (Mistral redirects to `auth.mistral.ai`) → `auth-needed`. |

@@ -101,7 +101,7 @@ function spiedRegistry() {
     createProviderRegistration(createMistralAdapter({
       now,
       readCookie: spy("mistral", "auth", { state: "available", cookie: "ory_session_synthetic=not-real" }),
-      fetchJson: spy("mistral", "fetch", { outcome: "ok", value: { vibe_budget: { usage_percentage: 1, initial_budget: 300 } } }),
+      fetchJson: spy("mistral", "fetch", { outcome: "ok", value: { result: { data: { json: { vibe_budget: { usage_percentage: 1, initial_budget: 300 } } } } } }),
     })),
     createProviderRegistration(createOpenDesignAdapter({
       now,
