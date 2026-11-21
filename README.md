@@ -38,7 +38,7 @@ code. To build from source instead, see [Installation](#installation).
 - **Panel summary:** provider icons, labels, usage values, and configurable
   caution/critical colors. “Icons only” hides the label, **not** the usage value.
 - **All overview:** enabled providers in your chosen order, each with its
-  tightest reported percentage window, earliest reset, and current state.
+  tightest reported percentage window, its reset, and current state.
   Select a row for all of that provider's windows and facts.
 - **Detail view:** compact usage cards, progress bars, reset countdowns,
   last-successful update time, and provider-specific facts. A bar's time tick

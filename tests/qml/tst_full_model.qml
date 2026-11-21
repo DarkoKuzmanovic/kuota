@@ -653,7 +653,6 @@ TestCase {
         compare(waiting.rows[0].pending, true);
         compare(waiting.rows[1].pending, true);
         verify(waiting.rows[0].primary === undefined);
-        compare(waiting.rows[0].resets.length, 0);
         compare(waiting.rows[0].stateBadge, "");
     }
 
@@ -741,7 +740,7 @@ TestCase {
         }]), "kimi");
         compare(capped.primary.used, 21);
         compare(capped.primary.limit, 100);
-        verify(capped.primary.progressFraction === undefined);
+        compare(capped.primary.progressFraction, 0.21);
     }
 
     function test_overviewWithoutAnyMetricOmitsPrimary() {
@@ -752,24 +751,17 @@ TestCase {
             windows: [{ id: "weekly", label: "Weekly", resetAt: "2026-07-15T00:00:00.000Z" }]
         }]), "claude");
         verify(row.primary === undefined);
-        compare(row.resets.length, 1);
-        compare(row.resets[0].isPrimary, false);
     }
 
-    function test_overviewResetsAreSortedIndependentlyOfTightest() {
+    function test_overviewPrimaryKeepsItsOwnReset() {
         var row = overviewRow(FullModel.buildOverviewModel(["claude"], [Fixtures.validClaudeProvider({
             windows: [
                 Fixtures.validWindow({ id: "weekly", label: "Weekly", usedPercent: 80, resetAt: "2026-07-20T00:00:00.000Z" }),
-                Fixtures.validWindow({ id: "session", label: "Session", usedPercent: 20, resetAt: "2026-07-14T12:00:00.000Z" }),
-                Fixtures.validWindow({ id: "none", label: "No reset", usedPercent: 5, resetAt: undefined }),
-                Fixtures.validWindow({ id: "bad", label: "Bad reset", usedPercent: 5, resetAt: "not a time" }),
-                Fixtures.validWindow({ id: "same", label: "Same time", usedPercent: 5, resetAt: "2026-07-14T12:00:00.000Z" })
+                Fixtures.validWindow({ id: "session", label: "Session", usedPercent: 20, resetAt: "2026-07-14T12:00:00.000Z" })
             ]
         })]), "claude");
         compare(row.primary.label, "Weekly");
-        compare(row.resets.map(function (r) { return r.label; }), ["Session", "Same time", "Weekly"]);
-        compare(row.resets.map(function (r) { return r.isPrimary; }), [false, false, true]);
-        compare(row.resets[0].resetAt, "2026-07-14T12:00:00.000Z");
+        compare(row.primary.resetAt, "2026-07-20T00:00:00.000Z");
     }
 
     function test_overviewPrimaryCarriesReportedDurationForPace() {

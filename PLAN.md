@@ -1683,7 +1683,7 @@ the full popup design, addresses #9 and G-RL deferred item 3, and adds an
 optional provider-reported duration to schema v2.
 
 - [x] Test and implement ordered All overview, deterministic tightest reported
-  percentage, independent earliest reset, state and navigation.
+  percentage, matching window reset, state and navigation.
 - [x] Test and implement compact accessible detail cards, elapsed-time marker,
   and distinct no-providers-enabled view.
 - [x] Validate optional duration at both boundaries and map only wire-reported
@@ -1703,7 +1703,16 @@ passed after the fix. Isolated virtual-KWin captures of All, detail and empty
 in Breeze Dark and Light are in `.cache/overview-screenshots/` (synthetic
 records only). No live widget/account check or independent review is claimed.
 
-Counters: reviews 0 · correction rounds 0 · oracle 0 · direct edits 2.
+After the owner reviewed the six screenshots, the 2026-11-22 correction
+merged Muse from `main`, confined reset text to the displayed window, added
+count-based bars and pace descriptions, and made the tab strip scroll without
+overlapping Refresh. Focused RED/GREEN checks covered the affected behaviors.
+With the same clean-`dist`, disposable-HOME method, typecheck passed; Node
+tests passed 786/0; QML tests passed 462/0; Plasma validation and artifact
+build passed. New synthetic dark/light captures, including default- and
+narrow-width overviews with Muse, are in `.cache/overview-muse/`.
+
+Counters: reviews 1 (owner screenshots) · correction rounds 1 · oracle 0 · direct edits 3.
 
 ## Deferred providers
 

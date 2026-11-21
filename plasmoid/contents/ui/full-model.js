@@ -135,7 +135,6 @@ function buildOverviewRow(providerId, record, thresholds, appearance) {
         pending: true,
         state: "",
         stateBadge: "",
-        resets: [],
         textColor: resolvedAppearance.customTextColor,
         labelOpacity: resolvedAppearance.labelOpacity
     };
@@ -165,7 +164,6 @@ function buildOverviewRow(providerId, record, thresholds, appearance) {
     if (primaryIndex !== -1) {
         row.primary = overviewPrimary(detail.windows[primaryIndex]);
     }
-    row.resets = resetsByTime(detail.windows, primaryIndex);
     return row;
 }
 
@@ -206,10 +204,13 @@ function overviewPrimary(windowRow) {
         primary.remainingPercent = Math.max(0, Math.min(100, 100 - windowRow.usedPercent));
         primary.progressFraction = clamp01(windowRow.usedPercent / 100);
     } else {
-        // Count-only: genuine values, no bar (it would need a synthesized percent).
+        // Count-only: retain genuine values and the same capped ratio as detail.
         primary.used = windowRow.used;
         if (windowRow.limit !== undefined) {
             primary.limit = windowRow.limit;
+        }
+        if (windowRow.progressFraction !== undefined) {
+            primary.progressFraction = windowRow.progressFraction;
         }
     }
     if (windowRow.resetAt !== undefined) {
@@ -221,31 +222,6 @@ function overviewPrimary(windowRow) {
     return primary;
 }
 
-// Every valid reported reset, earliest first (stable on ties). QML picks the
-// soonest one still in the future against its live clock. `isPrimary` lets the
-// view name the window whenever the reset belongs to a different window than
-// the one displayed.
-function resetsByTime(windows, primaryIndex) {
-    var resets = [];
-    for (var i = 0; i < windows.length; i++) {
-        if (windows[i].resetAt === undefined) {
-            continue;
-        }
-        var timeMs = Date.parse(windows[i].resetAt);
-        if (isNaN(timeMs)) {
-            continue;
-        }
-        resets.push({ label: windows[i].label, resetAt: windows[i].resetAt, isPrimary: i === primaryIndex, order: i, timeMs: timeMs });
-    }
-    resets.sort(function (a, b) {
-        return a.timeMs !== b.timeMs ? a.timeMs - b.timeMs : a.order - b.order;
-    });
-    var result = [];
-    for (var r = 0; r < resets.length; r++) {
-        result.push({ label: resets[r].label, resetAt: resets[r].resetAt, isPrimary: resets[r].isPrimary });
-    }
-    return result;
-}
 
 // Defensive reader for the sanitized theming settings (same contract as
 // compact-model.js): custom text color only when enabled, "" / 1.0 = V1 look.

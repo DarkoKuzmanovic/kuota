@@ -38,7 +38,10 @@ export function parseMuseUsageResponse(input: unknown, observedAt: string): Muse
     "window_weighted_limit" in quota ? quota.window_weighted_limit : undefined, "window_resets_at" in quota ? quota.window_resets_at : undefined);
   const weekly = window("weekly", "Weekly", "weekly_weighted_used" in quota ? quota.weekly_weighted_used : undefined,
     "weekly_weighted_limit" in quota ? quota.weekly_weighted_limit : undefined, "weekly_resets_at" in quota ? quota.weekly_resets_at : undefined);
-  const windows = [current, weekly].filter((item): item is UsageWindow => item !== undefined);
+  const currentWithDuration = current !== undefined && duration !== undefined &&
+    Number.isSafeInteger(duration) && duration > 0
+    ? { ...current, durationSeconds: duration } : current;
+  const windows = [currentWithDuration, weekly].filter((item): item is UsageWindow => item !== undefined);
   const tier = "tier" in quota && typeof quota.tier === "string" && /^[A-Za-z0-9 _-]{1,50}$/.test(quota.tier) ? quota.tier : undefined;
   if (windows.length === 0 && tier === undefined) return failure;
   const record: MuseProviderRecord & { readonly state: "ok" } = {

@@ -23,7 +23,7 @@ test("fetch to parser bridge normalizes real-shaped synthetic quota without expo
   const calls: SessionFetchOptions[] = [];
   const record = await adapter(ok({ teams: [{ team_id: 12345 }] }), { "12345": ok(quota) }, calls).collect(context);
   assert.deepEqual(record, { id: "muse", state: "ok", lastSuccessAt: new Date(now).toISOString(), windows: [
-    { id: "current", label: "5-hour", usedPercent: 25, resetAt: new Date(1795341600 * 1000).toISOString() },
+    { id: "current", label: "5-hour", usedPercent: 25, resetAt: new Date(1795341600 * 1000).toISOString(), durationSeconds: 18000 },
     { id: "weekly", label: "Weekly", usedPercent: 8, resetAt: new Date(1795860000 * 1000).toISOString() },
   ], details: { muse: { tier: "Pro" } } });
   assert.equal(calls.length, 2);
@@ -37,7 +37,7 @@ test("fetch to parser bridge normalizes real-shaped synthetic quota without expo
 test("parser omits missing and invalid optional values and caps over-limit percentage", () => {
   const parsed = parseMuseUsageResponse({ subscription_quota: { window_weighted_used: "22", window_weighted_limit: "10", window_duration_secs: 3599, weekly_weighted_used: "invalid", weekly_weighted_limit: 0 } }, new Date(now).toISOString());
   assert.ok(parsed.ok);
-  if (parsed.ok) assert.deepEqual(parsed.record.windows, [{ id: "current", label: "Current window", usedPercent: 100 }]);
+  if (parsed.ok) assert.deepEqual(parsed.record.windows, [{ id: "current", label: "Current window", usedPercent: 100, durationSeconds: 3599 }]);
   assert.equal(parseMuseUsageResponse({ subscription_quota: {} }, new Date(now).toISOString()).ok, false);
 
   assert.equal(parseMuseUsageResponse({ subscription_quota: null }, new Date(now).toISOString()).ok, false);
@@ -68,6 +68,8 @@ test("real session fetch decodes the synthetic wire response into the real parse
   assert.equal(record.state, "ok");
   assert.equal(record.windows?.[0]?.usedPercent, 25);
   assert.equal(record.windows?.[1]?.usedPercent, 8);
+  assert.equal(record.windows?.[0]?.durationSeconds, 18000);
+  assert.equal(record.windows?.[1]?.durationSeconds, undefined);
   assert.equal(requests.length, 2);
 });
 

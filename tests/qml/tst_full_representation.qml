@@ -1,5 +1,6 @@
 import QtQuick
 import QtTest
+import QtQuick.Controls as Controls
 import org.kde.kirigami 2.20 as Kirigami
 
 import "helpers/collector-fixtures.js" as Fixtures
@@ -89,6 +90,32 @@ TestCase {
         for (var i = 0; i < ids.length; i++) {
             full.providerSwitcherItem.currentIndex = i + 1;
             compare(full.activeModel.providerId, ids[i]);
+        }
+    }
+
+    function test_tabsStayReachableAndRefreshNeverOverlaps() {
+        var bar = full.providerSwitcherItem;
+        for (var widthIndex = 0; widthIndex < 2; widthIndex++) {
+            fullLoader.width = widthIndex === 0 ? 360 : 240;
+            tryVerify(function() {
+                return bar.width > 0 && bar.mapToItem(full, 0, 0).x + bar.width
+                    <= full.refreshButtonItem.mapToItem(full, 0, 0).x;
+            });
+            verify(bar.clip, "overflowing tab content must not paint over Refresh");
+            verify(full.refreshButtonItem.mapToItem(full, 0, 0).x + full.refreshButtonItem.width <= full.width);
+            compare(bar.count, 11);
+            bar.currentIndex = 0;
+            bar.itemAt(0).forceActiveFocus();
+            for (var i = 1; i < bar.count; i++) {
+                keyClick(Qt.Key_Right);
+                compare(bar.currentIndex, i);
+            }
+            compare(full.effectiveProviderId, "muse");
+            tryVerify(function() {
+                var tab = bar.itemAt(bar.count - 1);
+                var x = tab.mapToItem(bar, 0, 0).x;
+                return x >= -1 && x + tab.width <= bar.width + 1;
+            });
         }
     }
 
@@ -235,7 +262,7 @@ TestCase {
         compare(full.overviewLeftText(overviewRow("kimi")), "", "no remaining percent without a reported percent");
     }
 
-    function test_overviewResetNamesADifferentWindow() {
+    function test_overviewResetBelongsToDisplayedWindow() {
         full.nowMs = nineUtc;
         full.snapshot = sampleSnapshot([Fixtures.validClaudeProvider({
             windows: [
@@ -245,8 +272,8 @@ TestCase {
         })]);
         var row = overviewRow("claude");
         compare(row.primary.label, "Weekly");
-        compare(full.overviewResetText(row), "Session resets in 3h 0m");
-        verify(full.overviewAccessibleName(row).indexOf("Session resets in 3h 0m") !== -1);
+        compare(full.overviewResetText(row), "resets in 5d 15h");
+        verify(full.overviewAccessibleName(row).indexOf("resets in 5d 15h") !== -1);
     }
 
     function test_overviewResetOfTheTightestWindowNeedsNoName() {
@@ -257,7 +284,7 @@ TestCase {
         compare(full.overviewResetText(overviewRow("claude")), "resets in 5d 15h");
     }
 
-    function test_overviewSoonestResetSkipsPassedResetsWithTheClock() {
+    function test_overviewResetStaysWithDisplayedWindowAfterItPasses() {
         full.snapshot = sampleSnapshot([Fixtures.validClaudeProvider({
             windows: [
                 Fixtures.validWindow({ id: "weekly", label: "Weekly", usedPercent: 80, resetAt: "2026-07-20T00:00:00.000Z" }),
@@ -268,7 +295,7 @@ TestCase {
         full.nowMs = Date.parse("2026-07-14T13:00:00.000Z");
         compare(full.overviewResetText(row), "resets in 5d 11h");
         full.nowMs = Date.parse("2026-07-21T00:00:00.000Z");
-        compare(full.overviewResetText(row), "Session resets now");
+        compare(full.overviewResetText(row), "resets now");
     }
 
     function test_overviewResetWithoutCountdownShowsTimestamp() {
@@ -285,6 +312,16 @@ TestCase {
     function test_overviewMissingResetStaysAbsent() {
         full.snapshot = sampleSnapshot([Fixtures.validClaudeProvider({
             windows: [Fixtures.validWindow({ resetAt: undefined })]
+        })]);
+        compare(full.overviewResetText(overviewRow("claude")), "");
+    }
+
+    function test_overviewDoesNotBorrowAnotherWindowsReset() {
+        full.snapshot = sampleSnapshot([Fixtures.validClaudeProvider({
+            windows: [
+                Fixtures.validWindow({ id: "weekly", usedPercent: 80, resetAt: undefined }),
+                Fixtures.validWindow({ id: "session", usedPercent: 20, resetAt: "2026-07-14T12:00:00.000Z" })
+            ]
         })]);
         compare(full.overviewResetText(overviewRow("claude")), "");
     }
@@ -358,7 +395,6 @@ TestCase {
         })]);
         var item = full.overviewRowsItem.itemAt(0);
         compare(full.overviewAccessibleName(overviewRow("claude")), "Claude, Weekly window, 79% used, 21% left, resets in 3h 0m");
-        compare(item.modelData.resets.length, 1);
         compare(full.overviewResetText(item.modelData), "resets in 3h 0m");
         compare(item.resetText, "resets in 3h 0m");
         tryCompare(item.Accessible, "name", "Claude, Weekly window, 79% used, 21% left, resets in 3h 0m");
@@ -421,8 +457,16 @@ TestCase {
         verify(full.overviewAccessibleName(overviewRow("claude")).indexOf("elapsed") === -1);
         compare(full.overviewRowsItem.itemAt(0).pace, 0.5);
         compare(full.overviewRowsItem.itemAt(1).pace, -1);
+        var overviewBar = findChild(full.overviewRowsItem.itemAt(0), "overviewProgressBar");
+        verify(overviewBar !== null);
+        compare(overviewBar.Accessible.description, "40% used · 50% of window time elapsed");
+        compare(overviewBar.Controls.ToolTip.text, overviewBar.Accessible.description);
 
         show("codex");
+        var detailBar = findChild(full, "detailProgressBar");
+        verify(detailBar !== null);
+        compare(detailBar.Accessible.description, "40% used · 50% of window time elapsed");
+        compare(detailBar.Controls.ToolTip.text, detailBar.Accessible.description);
         var row = full.activeModel.windows[0];
         compare(row.durationSeconds, 18000);
         verify(full.windowAccessibleName(row).indexOf("50% of window time elapsed") !== -1);

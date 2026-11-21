@@ -47,8 +47,7 @@ FocusScope {
     readonly property var resolvedAppearance: appearance !== undefined && appearance !== null ? appearance : ({})
 
     // All overview rows: one per enabled provider, user order, pending rows
-    // included. Every data decision (tightest window, reset ordering) lives in
-    // full-model.js; this file only applies the live clock.
+    // included. Data decisions live in full-model.js; this file applies the clock.
     readonly property var overviewModel: FullModel.buildOverviewModel(
         fullRoot.providerOrder, fullRoot.providerRecords, fullRoot.thresholds, fullRoot.resolvedAppearance)
     // Depends only on providerOrder, so a snapshot refresh never rebuilds the
@@ -303,21 +302,15 @@ FocusScope {
         return pace >= 0 ? qsTr("%1% of window time elapsed").arg(Math.round(pace * 100)) : "";
     }
 
-    // The model sorts resets earliest-first; the soonest one still ahead of the
-    // live clock wins. When every reset has passed, the earliest reads "now".
-    // Repeater model data can expose nested arrays as QVariantList, not JS arrays.
-    function soonestReset(resets) {
-        if (!resets || resets.length === 0) {
-            return null;
-        }
-        for (var i = 0; i < resets.length; i++) {
-            var time = Date.parse(resets[i].resetAt);
-            if (!isNaN(time) && time > fullRoot.nowMs) {
-                return resets[i];
-            }
-        }
-        return resets[0];
+    function progressDescription(row, pace) {
+        var used = row.usedPercent !== undefined
+            ? qsTr("%1% used").arg(Math.floor(row.usedPercent))
+            : windowCountsText(row);
+        var elapsed = paceAccessibleText(pace);
+        if (used.length === 0) return elapsed;
+        return elapsed.length > 0 ? qsTr("%1 · %2").arg(used).arg(elapsed) : used;
     }
+
 
     // ---- Overview row text ----
 
@@ -356,23 +349,13 @@ FocusScope {
     }
 
     function overviewResetText(row) {
-        var reset = soonestReset(row.resets);
-        if (reset === null) {
+        if (row.primary === undefined || row.primary.resetAt === undefined) {
             return "";
         }
-        var when = fullRoot.showCountdown ? countdownDurationText(reset.resetAt) : formatTimestamp(reset.resetAt);
-        if (when.length === 0) {
-            return "";
-        }
-        if (reset.isPrimary) {
-            return qsTr("resets %1").arg(when);
-        }
-        // A different window resets first: name it, never borrow the label
-        // of the window displayed on the row.
-        if (typeof reset.label === "string" && reset.label.length > 0) {
-            return qsTr("%1 resets %2").arg(reset.label).arg(when);
-        }
-        return qsTr("another window resets %1").arg(when);
+        var when = fullRoot.showCountdown
+            ? countdownDurationText(row.primary.resetAt)
+            : formatTimestamp(row.primary.resetAt);
+        return when.length > 0 ? qsTr("resets %1").arg(when) : "";
     }
 
     function capitalizeFirst(text) {
@@ -504,8 +487,11 @@ FocusScope {
             Controls.TabBar {
                 id: providerSwitcher
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                clip: true
 
                 Controls.TabButton {
+                    width: implicitWidth
                     text: qsTr("All")
                     Accessible.name: qsTr("All providers overview")
                     font.family: fullRoot.effectiveFontFamily
@@ -516,6 +502,7 @@ FocusScope {
 
                     delegate: Controls.TabButton {
                         required property string modelData
+                        width: implicitWidth
                         text: fullRoot.providerDisplayName(modelData)
                         Accessible.name: text
                         font.family: fullRoot.effectiveFontFamily
@@ -682,6 +669,16 @@ FocusScope {
                                 visible: overviewRow.hasBar || overviewRow.resetText.length > 0
 
                                 Item {
+                                    objectName: "overviewProgressBar"
+                                    Accessible.role: Accessible.ProgressBar
+                                    Accessible.name: overviewRow.primary !== null
+                                        ? qsTr("%1 progress").arg(overviewRow.primary.label) : ""
+                                    Accessible.description: overviewRow.primary !== null
+                                        ? fullRoot.progressDescription(overviewRow.primary, overviewRow.pace) : ""
+                                    Controls.ToolTip.text: Accessible.description
+                                    Controls.ToolTip.visible: paceHover.hovered && overviewRow.pace >= 0
+                                    Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
+                                    HoverHandler { id: paceHover }
                                     visible: overviewRow.hasBar
                                     Layout.fillWidth: true
                                     Layout.alignment: Qt.AlignVCenter
@@ -878,6 +875,12 @@ FocusScope {
 
                                 Controls.ProgressBar {
                                     id: windowBar
+                                    objectName: "detailProgressBar"
+                                    hoverEnabled: true
+                                    Accessible.description: fullRoot.progressDescription(windowRow.modelData, windowRow.pace)
+                                    Controls.ToolTip.text: Accessible.description
+                                    Controls.ToolTip.visible: hovered && windowRow.pace >= 0
+                                    Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
                                     anchors.fill: parent
                                     from: 0
                                     to: 1

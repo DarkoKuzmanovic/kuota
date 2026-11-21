@@ -77,9 +77,11 @@ Muse Code (`muse`) is opt-in and off by default. Windows are `current` (primary;
 label `N-hour` for a positive whole-hour duration, otherwise `Current window`)
 and `weekly` (label `Weekly`). Each `usedPercent` is calculated from the finite
 weighted usage and positive weighted limit and must satisfy the schema's 0–100
-range; `resetAt` is UTC ISO 8601 converted from epoch seconds. Weighted amounts
-are not integer counts, so the windows omit `used` and `limit` rather than
-rounding or inventing counts. `details.muse` may contain only the bounded
+range; `resetAt` is UTC ISO 8601 converted from epoch seconds. The `current`
+window retains a positive safe-integer `window_duration_secs` as
+`durationSeconds`; the weekly duration is omitted because the wire does not
+report it. Weighted amounts are not integer counts, so the windows omit `used`
+and `limit` rather than rounding or inventing counts. `details.muse` may contain only the bounded
 provider-supplied `tier`. Team IDs and session cookies are secret and never
 enter the contract or cache. Authentication rejection remains `auth-needed`;
 other failures may use the common last-known-good cache as `stale`. Spec:
