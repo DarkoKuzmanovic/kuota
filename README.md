@@ -156,6 +156,7 @@ kuota login kimi         # Kimi Code (or: kuota login kimi --api-key)
 kuota login opencode     # paste an API key (hidden), or pipe it on stdin
 kuota login commandcode  # paste an API key
 kuota status             # which source each provider uses (never values)
+kuota doctor             # offline credential, cache, and runtime diagnostics
 kuota logout codex
 ```
 
@@ -236,13 +237,21 @@ instances are preserved on disk but excluded from the current response.
 
 ## Troubleshooting
 
+Run `kuota doctor` first. It reports local classifications without sending
+requests, refreshing credentials, or printing credential values. A successful
+local credential check does not prove that the provider will accept it.
+Firefox checks use the collector's private temporary cookie-database copy,
+including its WAL, and remove it afterward. Unconfigured providers are
+informational; doctor exits nonzero for local safety or environment problems.
+The caches retain successful observations, not the latest failed refresh.
+
 | Symptom | Check |
 |---|---|
 | Widget missing or old code still shown | Confirm installation used `-t Plasma/Applet`, rebuild the archive, then reload the widget or log out/in. |
 | `auth-needed` | Check the correct credential source for that provider and sign in again. Do not paste the auth file into a bug report. |
 | Mistral/OpenDesign/Muse `auth-needed` | Sign in to admin.mistral.ai, open-design.ai, or dev.meta.ai in Firefox (the most recently used profile), then refresh. Other browsers aren't read; use the cookie env fallback instead. |
 | Cursor login appears stale | Confirm local Cursor login and `/usr/bin/sqlite3`. Kuota reads committed WAL updates; check DB/WAL/SHM access as described below. |
-| `stale` | Last successful data is retained. Check its timestamp; Claude may be in rate-limit backoff. Repeated Refresh clicks do not override that backoff. |
+| `stale` | Last successful data is retained. Re-login will not help unless the state is `auth-needed`; check for endpoint drift. Claude may be in rate-limit backoff, which repeated Refresh clicks do not override. |
 | `error` | A provider may be unreachable or have changed its response; also check fixed runtime paths and the trusted local cache directory. Other providers can still update. |
 | Settings seem ignored | Reload after adding new config keys. Invalid values are sanitized to safe defaults; “Icons only” intentionally keeps the usage value. |
 | Build has no `.plasmoid` file | Install `zip` and resolve any compiler/checker/zip failure, then rebuild. An unpacked directory alone is not a successful build. |

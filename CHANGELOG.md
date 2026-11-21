@@ -15,6 +15,9 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ### Added
 
+- **Offline `kuota doctor` diagnostics:** local provider credential-source
+  classifications, cache/backoff context, and runtime and permission checks,
+  without provider requests, token refreshes, or credential output.
 - **Muse Code provider** (off by default; enable in Settings → Providers).
   Shows current and weekly subscription quota percentages and resets, and the
   plan tier when available. Uses the read-only Firefox `dev.meta.ai` session
