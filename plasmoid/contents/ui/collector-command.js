@@ -61,9 +61,15 @@ function validateCollectorPath(path) {
     return path;
 }
 
-function buildProviderToken(enabledProviders) {
+// Validates and canonically orders a provider list without building any
+// argv fragment, so the bridge never has to re-parse a command-string
+// token to recover the selection it just canonicalized. Returns
+// { defaultAll: true, ids: <full set> } for omitted providers (undefined
+// or null), or { defaultAll: false, ids: [...] } in canonical ID order;
+// undefined for any invalid list. "umans" entries are silently skipped.
+function canonicalizeProviders(enabledProviders) {
     if (enabledProviders === undefined || enabledProviders === null) {
-        return "";
+        return { defaultAll: true, ids: CANONICAL_PROVIDER_IDS.slice() };
     }
     if (!Array.isArray(enabledProviders)) {
         return undefined;
@@ -93,7 +99,18 @@ function buildProviderToken(enabledProviders) {
             canonicalOrder.push(CANONICAL_PROVIDER_IDS[c]);
         }
     }
-    return " --enabled-providers=" + canonicalOrder.join(",");
+    return { defaultAll: false, ids: canonicalOrder };
+}
+
+function buildProviderToken(enabledProviders) {
+    var canonical = canonicalizeProviders(enabledProviders);
+    if (canonical === undefined) {
+        return undefined;
+    }
+    if (canonical.defaultAll) {
+        return "";
+    }
+    return " --enabled-providers=" + canonical.ids.join(",");
 }
 
 function quotePosixSingle(text) {

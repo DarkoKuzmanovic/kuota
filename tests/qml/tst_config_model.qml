@@ -291,6 +291,19 @@ TestCase {
         verify(!("cursorWindow" in empty));
     }
 
+    function test_windowDefaultsAndSanitizerFollowTheWindowCatalog() {
+        // Defaults and the sanitizer loop over the window catalog, so a
+        // catalog addition is covered without a new per-key literal here.
+        var empty = ConfigModel.sanitize({});
+        for (var providerId in ConfigModel.KNOWN_WINDOWS) {
+            if (!Object.prototype.hasOwnProperty.call(ConfigModel.KNOWN_WINDOWS, providerId)) continue;
+            compare(empty[providerId + "Window"], "");
+            var raw = {};
+            raw[providerId + "Window"] = ConfigModel.KNOWN_WINDOWS[providerId][0];
+            compare(ConfigModel.sanitize(raw)[providerId + "Window"], ConfigModel.KNOWN_WINDOWS[providerId][0]);
+        }
+    }
+
     function test_windowSelectionGarbageFallsBackToEmpty() {
         var garbage = ConfigModel.sanitize({
             grokWindow: 12,

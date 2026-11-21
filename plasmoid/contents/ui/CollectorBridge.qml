@@ -30,10 +30,7 @@ QtObject {
     property var snapshotState: SnapshotState.createInitialSnapshotState()
 
     property var _requestState: BridgeLifecycle.createRequestState()
-    property var _selectionKey: null
-    property var _enabledProviders: undefined
-    property bool _discardActiveResult: false
-    property bool _pendingRefresh: false
+    property var _selectionState: BridgeLifecycle.createSelectionState()
 
     function _defaultCollectorPath() {
         var url = Qt.resolvedUrl("../code/collector/cli.js").toString();
@@ -44,27 +41,13 @@ QtObject {
     // snapshot and any active result at once, before (and without) a launch.
     // Returns the selection key, or undefined for an invalid list.
     function select(enabledProviders) {
-        var providerToken = CollectorCommand.buildProviderToken(enabledProviders);
-        if (providerToken === undefined) return undefined;
-        var selectionKey = providerToken === ""
-            ? CollectorCommand.CANONICAL_PROVIDER_IDS.join(",")
-            : providerToken.slice(" --enabled-providers=".length);
-        if (selectionKey !== _selectionKey) {
-            _selectionKey = selectionKey;
-            // Store a canonical copy, never a caller-owned mutable array.
-            _enabledProviders = providerToken === "" ? undefined
-                : (selectionKey.length === 0 ? [] : selectionKey.split(","));
-            if (snapshotState.lifecycleStatus !== SnapshotState.LIFECYCLE_STATUS.INITIAL) {
-                snapshotState = SnapshotState.createInitialSnapshotState();
-            }
-            if (inFlight) {
-                // Selection invalidation is permanent, even A→B→A. Keep the
-                // active source and deadline: disconnect is not child reaping.
-                _discardActiveResult = true;
-                _pendingRefresh = selectionKey.length > 0;
-            }
+        var result = BridgeLifecycle.updateSelection(_selectionState, enabledProviders, inFlight);
+        if (result.selectionKey === undefined) return undefined;
+        _selectionState = result.state;
+        if (result.changed && snapshotState.lifecycleStatus !== SnapshotState.LIFECYCLE_STATUS.INITIAL) {
+            snapshotState = SnapshotState.createInitialSnapshotState();
         }
-        return selectionKey;
+        return result.selectionKey;
     }
 
     // undefined/null retain standalone default-all compatibility. Empty
@@ -84,7 +67,7 @@ QtObject {
 
         var built = CollectorCommand.buildCollectorCommand({
             collectorPath: collectorPath,
-            enabledProviders: enabledProviders,
+            enabledProviders: _selectionState.enabledProviders,
             sourceId: attempt.sourceId
         });
         if (!built.ok) {
@@ -108,15 +91,14 @@ QtObject {
         _deadlineTimer.stop();
         _executable.disconnectSource(sourceName);
         _requestState = BridgeLifecycle.clearIfActive(_requestState, sourceName);
-        if (!_discardActiveResult) _settle(data);
+        if (!_selectionState.discardActiveResult) _settle(data);
         _refreshAfterSelectionChange();
     }
 
     function _refreshAfterSelectionChange() {
-        var pending = _pendingRefresh;
-        _pendingRefresh = false;
-        _discardActiveResult = false;
-        if (pending) refresh(_enabledProviders);
+        var pending = _selectionState.pendingRefresh;
+        _selectionState = BridgeLifecycle.clearRefreshGate(_selectionState);
+        if (pending) refresh(_selectionState.enabledProviders);
     }
 
     function _settle(data) {
@@ -146,7 +128,7 @@ QtObject {
         _deadlineTimer.stop();
         _executable.disconnectSource(token);
         _requestState = BridgeLifecycle.clearIfActive(_requestState, token);
-        if (!_discardActiveResult) snapshotState = SnapshotState.retainOnTimeout(snapshotState);
+        if (!_selectionState.discardActiveResult) snapshotState = SnapshotState.retainOnTimeout(snapshotState);
         _refreshAfterSelectionChange();
     }
 

@@ -264,4 +264,33 @@ TestCase {
             verify(result.ok === false || result.ok === true);
         }
     }
+
+    // --- Canonicalization (the selection-state source) ------------------
+
+    function test_canonicalizeDefaultsToFullSetForUndefinedAndNull() {
+        var fromUndefined = CollectorCommand.canonicalizeProviders(undefined);
+        compare(fromUndefined.defaultAll, true);
+        compare(fromUndefined.ids.length, 9);
+        var fromNull = CollectorCommand.canonicalizeProviders(null);
+        compare(fromNull.defaultAll, true);
+    }
+
+    function test_canonicalizeOrdersAndSkipsUmans() {
+        var canonical = CollectorCommand.canonicalizeProviders(["codex", "umans", "claude"]);
+        compare(canonical.defaultAll, false);
+        compare(canonical.ids, ["claude", "codex"]);
+    }
+
+    function test_canonicalizeEmptyArrayIsExplicitEmptySelection() {
+        var canonical = CollectorCommand.canonicalizeProviders([]);
+        compare(canonical.defaultAll, false);
+        compare(canonical.ids.length, 0);
+    }
+
+    function test_canonicalizeRejectsInvalidLists() {
+        compare(CollectorCommand.canonicalizeProviders(["claude", "claude"]), undefined);
+        compare(CollectorCommand.canonicalizeProviders(["claude", "gemini"]), undefined);
+        compare(CollectorCommand.canonicalizeProviders("claude"), undefined);
+        compare(CollectorCommand.canonicalizeProviders([42]), undefined);
+    }
 }
