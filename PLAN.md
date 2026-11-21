@@ -1640,6 +1640,27 @@ Gate (2026-11-06, worktree `feat/mistral-opendesign`): `npm test` 773/0 · `npm 
 → both `ok` with real windows, no temp copies left · mutation (skip temp cleanup) → 3 tests fail.
 - [x] **Gate G-18 — PASSED 2026-11-06:** full gate set ✅ · owner live panel check ✅ ("Perfection!") with both providers enabled and custom icons set. Released as **2.1.0**.
 
+## Milestone 20 — Overview tab and popup redesign
+
+**Approved 2026-11-22** by the owner. Spec:
+`docs/specs/2026-11-22-overview-popup-redesign-design.md`. This amends
+the full popup design, addresses #9 and G-RL deferred item 3, and adds an
+optional provider-reported duration to schema v2.
+
+- [ ] Test and implement ordered All overview, deterministic tightest reported
+  percentage, independent earliest reset, state and navigation.
+- [ ] Test and implement compact accessible detail cards, elapsed-time marker,
+  and distinct no-providers-enabled view.
+- [ ] Validate optional duration at both boundaries and map only wire-reported
+  durations; cover existing providers with synthetic fixtures.
+- [ ] Refresh README, changelog and synthetic light/dark screenshots.
+- [ ] **Gate G-20:** independent review and owner live acceptance; clean `dist`
+  before each of typecheck, Node tests, QML tests, Plasma validation and artifact
+  build with a disposable synthetic HOME; capture All, detail and disabled views
+  in both light and dark. Record commands and counts before marking passed.
+
+Counters: reviews 0 · correction rounds 0 · oracle 0 · direct edits 1.
+
 ## Deferred providers
 
 ### Meta Muse Code — deferred 2026-09-25 (owner decision)
