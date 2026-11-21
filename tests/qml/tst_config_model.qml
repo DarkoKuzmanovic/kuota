@@ -25,7 +25,7 @@ TestCase {
     }
 
     function test_knownProvidersExcludeUmans() {
-        compare(ConfigModel.KNOWN_PROVIDERS, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]);
+        compare(ConfigModel.KNOWN_PROVIDERS, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"]);
     }
 
     function test_sanitizeDropsUmansFromOrder() {
@@ -34,7 +34,7 @@ TestCase {
             umansVisible: true
         });
         verify(settings.providerOrder.indexOf("umans") === -1);
-        compare(settings.providerOrder, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]);
+        compare(settings.providerOrder, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"]);
         verify(!("umansVisible" in settings));
     }
 
@@ -129,9 +129,11 @@ TestCase {
         compare(empty.commandcodeVisible, true);
         compare(empty.mistralVisible, false);
         compare(empty.opendesignVisible, false);
+        compare(empty.museVisible, false);
+        compare(empty.museWindow, "");
         compare(empty.claudeWindow, "");
         compare(empty.codexWindow, "");
-        compare(JSON.stringify(empty.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]));
+        compare(JSON.stringify(empty.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"]));
 
         var garbage = ConfigModel.sanitize({
             refreshIntervalMinutes: "soon",
@@ -158,7 +160,7 @@ TestCase {
         compare(garbage.separator, " · ");
         compare(garbage.fontScale, 1.0);
         compare(garbage.showCountdown, true);
-        compare(JSON.stringify(garbage.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]));
+        compare(JSON.stringify(garbage.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"]));
         compare(garbage.claudeVisible, true);
         compare(garbage.codexVisible, true);
         compare(garbage.grokVisible, true);
@@ -171,7 +173,7 @@ TestCase {
 
         var nullInput = ConfigModel.sanitize(null);
         compare(nullInput.refreshIntervalMinutes, 5);
-        compare(JSON.stringify(nullInput.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]));
+        compare(JSON.stringify(nullInput.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"]));
     }
 
     function test_displayConfigAssemblyCustomOrderAndVisibility() {
@@ -373,6 +375,14 @@ TestCase {
         // Weekly is optional live (not every account reports it) — absent → primary fallback.
         compare(ConfigModel.resolveWindow("commandcode", commandcode, ["fiveHour"]), undefined);
 
+        var muse = ConfigModel.sanitize({ museVisible: true, museWindow: "weekly" });
+        compare(ConfigModel.enabledProviders(muse).indexOf("muse") !== -1, true);
+        compare(ConfigModel.assembleDisplayConfig(muse).window.muse, "weekly");
+        compare(ConfigModel.resolveWindow("muse", muse, ["current", "weekly"]), "weekly");
+        compare(ConfigModel.resolveWindow("muse", muse, ["current"]), undefined);
+        compare(ConfigModel.sanitize({ museWindow: "5h" }).museWindow, "");
+        compare(ConfigModel.sanitize({ museWindow: "current" }).museWindow, "current");
+
         // Cursor has no selector: a hand-injected key must not resolve.
         var cursor = ConfigModel.sanitize({ cursorWindow: "plan" });
         compare(ConfigModel.resolveWindow("cursor", cursor, ["plan"]), undefined);
@@ -381,7 +391,7 @@ TestCase {
     function test_knownWindowsKeysMatchSelectableProviderKeys() {
         // Every KNOWN_WINDOWS entry maps to exactly one <id>Window key and to
         // a selectable provider; Cursor deliberately has no entry.
-        var selectable = ["claude", "codex", "grok", "kimi", "opencode", "commandcode", "mistral", "opendesign"];
+        var selectable = ["claude", "codex", "grok", "kimi", "opencode", "commandcode", "mistral", "opendesign", "muse"];
         selectable.sort();
         var listed = [];
         for (var id in ConfigModel.KNOWN_WINDOWS) {
@@ -402,7 +412,7 @@ TestCase {
         });
         // sanitize keeps a clean unique order of known providers only,
         // appending every remaining known provider in canonical order.
-        compare(JSON.stringify(sanitized.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]));
+        compare(JSON.stringify(sanitized.providerOrder), JSON.stringify(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"]));
     }
 
     // ---- M-T1 theming schema ----

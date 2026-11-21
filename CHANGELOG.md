@@ -13,6 +13,13 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
 
+### Added
+
+- **Muse Code provider** (off by default; enable in Settings → Providers).
+  Shows current and weekly subscription quota percentages and resets, and the
+  plan tier when available. Uses the read-only Firefox `dev.meta.ai` session
+  cookie, with `MUSE_SESSION_COOKIE` fallback; no API key is minted.
+
 ### Fixed
 
 - **Mistral showed stale data.** The admin dashboard retired the REST budget path

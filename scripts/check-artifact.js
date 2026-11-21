@@ -77,6 +77,9 @@ function checkNormalInvocation() {
   if (JSON.stringify(providerIds) !== JSON.stringify(PROVIDER_IDS.filter((id) => !OPT_IN_PROVIDER_IDS.includes(id)))) {
     fail('normal invocation did not use canonical provider IDs');
   }
+  if (!PROVIDER_IDS.includes('muse') || !OPT_IN_PROVIDER_IDS.includes('muse') || providerIds.includes('muse')) {
+    fail('Muse Code must be available but omitted by default');
+  }
 }
 
 function checkCredentialArgv() {
@@ -96,8 +99,8 @@ function checkCredentialArgv() {
   }
 }
 
-function checkEnabledProvidersSubset() {
-  const result = runCli(['--enabled-providers=claude']);
+function checkEnabledProvidersSubset(id) {
+  const result = runCli([`--enabled-providers=${id}`]);
   if (result.status !== 0) {
     fail('enabled-providers subset invocation did not succeed');
   }
@@ -116,7 +119,7 @@ function checkEnabledProvidersSubset() {
     fail('enabled-providers subset invocation violated the collector schema');
   }
   const providerIds = validation.value.providers.map((provider) => provider.id);
-  if (JSON.stringify(providerIds) !== JSON.stringify(['claude'])) {
+  if (JSON.stringify(providerIds) !== JSON.stringify([id])) {
     fail('enabled-providers subset invocation did not select only the requested provider');
   }
 }
@@ -147,5 +150,6 @@ function checkEmptyEnabledProviders() {
 
 checkNormalInvocation();
 checkCredentialArgv();
-checkEnabledProvidersSubset();
+checkEnabledProvidersSubset('claude');
+checkEnabledProvidersSubset('muse');
 checkEmptyEnabledProviders();

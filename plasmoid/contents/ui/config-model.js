@@ -33,6 +33,7 @@ function buildDefaults() {
         commandcodeWindow: "",
         mistralWindow: "",
         opendesignWindow: "",
+        museWindow: "",
         displayMode: "icons+text",
         separator: " · ",
         fontScale: 1.0,
@@ -100,6 +101,7 @@ function sanitize(rawConfig) {
     out.commandcodeWindow = sanitizeWindowSelection("commandcode", rawConfig.commandcodeWindow);
     out.mistralWindow = sanitizeWindowSelection("mistral", rawConfig.mistralWindow);
     out.opendesignWindow = sanitizeWindowSelection("opendesign", rawConfig.opendesignWindow);
+    out.museWindow = sanitizeWindowSelection("muse", rawConfig.museWindow);
     out.displayMode = sanitizeDisplayMode(rawConfig.displayMode);
     out.separator = sanitizeString(rawConfig.separator, DEFAULTS.separator);
     out.fontScale = sanitizeFontScale(rawConfig.fontScale);

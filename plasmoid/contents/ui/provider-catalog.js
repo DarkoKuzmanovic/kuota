@@ -3,9 +3,9 @@
 // Bundled provider facts, not a configurable registry. PROVIDER_IDS is also
 // the allowlist for the collector command and the response validator, so a
 // new ID widens both.
-var PROVIDER_IDS = Object.freeze(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]);
+var PROVIDER_IDS = Object.freeze(["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"]);
 // Browser-session providers read Firefox cookies, so they start hidden (not collected).
-var OPT_IN_PROVIDER_IDS = Object.freeze(["mistral", "opendesign"]);
+var OPT_IN_PROVIDER_IDS = Object.freeze(["mistral", "opendesign", "muse"]);
 var PROVIDER_LABELS = Object.freeze({
     claude: "Claude",
     codex: "Codex",
@@ -15,7 +15,8 @@ var PROVIDER_LABELS = Object.freeze({
     opencode: "OpenCode",
     commandcode: "CommandCode",
     mistral: "Mistral",
-    opendesign: "OpenDesign"
+    opendesign: "OpenDesign",
+    muse: "Muse Code"
 });
 
 // Static known window IDs per selectable provider (M15). Cursor exposes a
@@ -32,7 +33,8 @@ var SELECTABLE_WINDOWS = Object.freeze({
     opencode: Object.freeze(["rolling", "weekly", "monthly"]),
     commandcode: Object.freeze(["fiveHour", "weekly"]),
     mistral: Object.freeze(["vibe", "api"]),
-    opendesign: Object.freeze(["5h", "weekly"])
+    opendesign: Object.freeze(["5h", "weekly"]),
+    muse: Object.freeze(["current", "weekly"])
 });
 
 function defaultVisibility() {

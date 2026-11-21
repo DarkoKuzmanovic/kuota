@@ -8,7 +8,7 @@ import type { CollectorConfig } from "./collect.js";
 
 // Browser-session providers read Firefox cookies, so a no-flag run leaves them off
 // (docs/specs/2026-11-06-mistral-opendesign-provider-design.md D4).
-export const OPT_IN_PROVIDER_IDS: readonly ProviderId[] = Object.freeze(["mistral", "opendesign"]);
+export const OPT_IN_PROVIDER_IDS: readonly ProviderId[] = Object.freeze(["mistral", "opendesign", "muse"]);
 
 export const DEFAULT_COLLECTOR_CONFIG: Readonly<CollectorConfig> = Object.freeze({
   providers: Object.freeze(

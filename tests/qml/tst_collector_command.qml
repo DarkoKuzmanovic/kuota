@@ -13,7 +13,7 @@ TestCase {
     }
 
     function test_exposesCanonicalProviderIdsInOrder() {
-        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 9);
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 10);
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[0], "claude");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[1], "codex");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[2], "grok");
@@ -21,6 +21,7 @@ TestCase {
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[4], "cursor");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[5], "opencode");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[6], "commandcode");
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS[9], "muse");
     }
 
     // --- Defaults / providers omitted ---------------------------------
@@ -56,6 +57,14 @@ TestCase {
         });
         compare(result.ok, true);
         compare(result.value, "/usr/bin/node '" + samplePath + "' --enabled-providers=claude,codex # 2");
+    }
+
+    function test_buildsMuseOptInProviderFlag() {
+        var result = CollectorCommand.buildCollectorCommand({
+            collectorPath: samplePath, enabledProviders: ["muse"], sourceId: 2
+        });
+        compare(result.ok, true);
+        compare(result.value, "/usr/bin/node '" + samplePath + "' --enabled-providers=muse # 2");
     }
 
     function test_buildsFullCanonicalSetInCanonicalOrder() {

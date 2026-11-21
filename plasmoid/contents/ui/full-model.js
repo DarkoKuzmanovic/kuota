@@ -238,6 +238,11 @@ function buildFacts(record) {
     if (id === "opendesign" && isRecord(details.opendesign)) {
         return openDesignFacts(details.opendesign);
     }
+    if (id === "muse" && isRecord(details.muse)) {
+        var facts = [];
+        pushStringFact(facts, "Plan", details.muse.tier);
+        return facts;
+    }
     return [];
 }
 
@@ -431,7 +436,8 @@ var LOGIN_HINTS = Object.freeze({
     opencode: "run in a terminal: kuota login opencode",
     commandcode: "run in a terminal: kuota login commandcode",
     mistral: "sign in at admin.mistral.ai in Firefox",
-    opendesign: "sign in at open-design.ai in Firefox"
+    opendesign: "sign in at open-design.ai in Firefox",
+    muse: "sign in at dev.meta.ai in Firefox"
 });
 
 function stateMessageFor(state, providerId) {

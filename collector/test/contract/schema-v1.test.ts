@@ -43,13 +43,20 @@ test("normalized fixture inventory is explicit", () => {
   assert.deepEqual(fixtureNames(), expected);
 });
 
-test("schema v2 identity appends mistral and opendesign after commandcode", () => {
+test("schema v2 identity appends Muse after the existing providers", () => {
   assert.equal(SCHEMA_VERSION, 2);
   assert.deepEqual(
     [...PROVIDER_IDS],
-    ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"],
+    ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"],
   );
   assert.equal((PROVIDER_IDS as readonly string[]).includes("umans"), false);
+});
+
+test("Muse details accept only the tier and retain stale data", () => {
+  const record = { id: "muse", state: "stale", lastSuccessAt: "2026-07-10T10:00:00.000Z", details: { muse: { tier: "Pro" } } };
+  assert.equal(validateCollectorDocument({ ...minimalDocument, providers: [record] }).ok, true);
+  assert.equal(validateCollectorDocument({ ...minimalDocument, providers: [{ ...record, details: { muse: { tier: "Pro", teamId: "123" } } }] }).ok, false);
+  assert.equal(validateCollectorDocument({ ...minimalDocument, providers: [{ ...record, details: { muse: {} } }] }).ok, false);
 });
 
 const minimalDocument = {

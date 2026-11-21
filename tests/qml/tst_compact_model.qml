@@ -342,6 +342,24 @@ TestCase {
         compare(claude.thresholdLevel, "caution");
     }
 
+    function test_museWindowSelectionAndFallback() {
+        var record = { id: "muse", state: "ok", windows: [
+            { id: "current", label: "Current", usedPercent: 10 },
+            { id: "weekly", label: "Weekly", usedPercent: 88 }
+        ] };
+        var config = defaultConfig();
+        config.visibility.muse = true;
+        var entry = providerEntry(CompactModel.buildCompactEntries(sampleSnapshot([record]), config), "muse");
+        compare(entry.label, "Muse Code");
+        compare(entry.displayValue, "10%");
+        config.window.muse = "weekly";
+        entry = providerEntry(CompactModel.buildCompactEntries(sampleSnapshot([record]), config), "muse");
+        compare(entry.displayValue, "88%");
+        record.windows.pop();
+        entry = providerEntry(CompactModel.buildCompactEntries(sampleSnapshot([record]), config), "muse");
+        compare(entry.displayValue, "10%");
+    }
+
     // Selection is provider-generic (spec 2026-09-05): regression coverage for
     // the providers that gained selectors after M9.
     function test_selectedWindowHonoredForGrokAndCommandCode() {

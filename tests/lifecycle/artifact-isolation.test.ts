@@ -64,7 +64,7 @@ for (const behavior of ['normal', 'hang', 'overflow', 'stderr-overflow', 'failed
       assert.equal(existsSync(join(root, 'preloaded')), false, 'no parent preload in packaged child');
       assert.equal(existsSync(transport), false, 'no provider transport');
       const records: unknown[] = readFileSync(trace, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
-      assert.equal(records.length, behavior === 'normal' ? 4 : 1);
+      assert.equal(records.length, behavior === 'normal' ? 5 : 1);
       for (const record of records) {
         assert.ok(typeof record === 'object' && record !== null && 'env' in record && 'mode' in record && 'cacheMode' in record && 'pid' in record && typeof record.pid === 'number');
         const pid = record.pid;

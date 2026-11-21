@@ -35,6 +35,7 @@ test("default config enables seven providers and leaves the opt-in browser-sessi
       ["commandcode", true],
       ["mistral", false],
       ["opendesign", false],
+      ["muse", false],
     ],
   );
 });
@@ -51,6 +52,7 @@ test("normalizes enabled provider IDs to canonical order", () => {
       { id: "commandcode", enabled: false },
       { id: "mistral", enabled: false },
       { id: "opendesign", enabled: false },
+      { id: "muse", enabled: false },
     ],
     timeoutMs: 10_000,
   });
@@ -70,7 +72,7 @@ test("umans-only enabledProviders yields all disabled", () => {
   const config = parseCollectorConfig({ enabledProviders: ["umans"] });
   assert.deepEqual(
     config.providers.map((provider) => provider.enabled),
-    [false, false, false, false, false, false, false, false, false],
+    [false, false, false, false, false, false, false, false, false, false],
   );
 });
 
