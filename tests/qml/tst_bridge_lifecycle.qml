@@ -225,7 +225,7 @@ TestCase {
         var state = BridgeLifecycle.createSelectionState();
         var result = BridgeLifecycle.updateSelection(state, undefined, false);
         compare(result.changed, true);
-        compare(result.selectionKey, "claude,codex,grok,kimi,cursor,opencode,commandcode,mistral,opendesign");
+        compare(result.selectionKey, "claude,codex,grok,kimi,cursor,opencode,commandcode,mistral,opendesign,muse");
         verify(result.state.enabledProviders === undefined);
     }
 

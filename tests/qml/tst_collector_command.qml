@@ -279,7 +279,7 @@ TestCase {
     function test_canonicalizeDefaultsToFullSetForUndefinedAndNull() {
         var fromUndefined = CollectorCommand.canonicalizeProviders(undefined);
         compare(fromUndefined.defaultAll, true);
-        compare(fromUndefined.ids.length, 9);
+        compare(fromUndefined.ids.length, 10);
         var fromNull = CollectorCommand.canonicalizeProviders(null);
         compare(fromNull.defaultAll, true);
     }
