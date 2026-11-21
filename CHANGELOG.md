@@ -13,6 +13,8 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-11-22
+
 ### Fixed
 
 - **Mistral showed stale data.** The admin dashboard retired the REST budget path

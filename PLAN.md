@@ -1,7 +1,7 @@
 # Kuota Project Plan
 
 **Source of truth:** `docs/specs/2026-07-10-kuota-design.md` (approved for implementation by the project owner on 2026-07-10)  
-**Plan status (2026-09-25):** v1.3.0 released 2026-09-09 (M14 OpenCode + CommandCode, M15 window selectors, Cursor, Umans removal). M16 Claude hotfix merged to `main`, unreleased. Meta Muse Code deferred (see *Deferred providers*). Current state: *Handoff Block*.
+**Plan status (2026-11-22):** v2.1.1 released 2026-11-22 (Mistral moved to the tRPC budget procedure; stale-data fix). v2.1.0 (2026-11-06) added Mistral + OpenDesign (M18, gate G-18 passed); M17 standalone credentials shipped as v2.0.0 (2026-10-02). Nine providers: Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral (opt-in), OpenDesign (opt-in). Open GitHub issues: only #8 (offline doctor) and #9 (headroom overview). Now starting: Muse Code provider (M19), overview tab + popup redesign, kuota doctor, G-RL follow-up cleanups. Current state: *Handoff Block*.
 **Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, Cursor, OpenCode, and CommandCode. Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
 
 ## Approved Decisions
@@ -519,12 +519,12 @@
 
 ## Handoff Block
 
-*Refreshed 2026-09-25. It replaces the G11-era block; earlier handoff notes are historical, and the Gate Log is the evidence of record.*
+*Refreshed 2026-11-22. It replaces the 2026-09-25 block; earlier handoff notes are historical, and the Gate Log is the evidence of record.*
 
-- **Released:** v1.3.0 (`913962b`, 2026-09-09). Seven providers: Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode.
-- **On `main`, unreleased:** M16 Claude hotfix (`5571900`, `f055da1`, `f92507b`), listed under CHANGELOG `[Unreleased]`. Installed locally from `dist/artifact/kuota-v1.3.0.plasmoid`. Cutting a release (e.g. 1.3.1) needs separate owner approval.
-- **Open GitHub issues:** #2 [P1] live Cursor WAL re-login smoke (code fix merged in PR #11; the owner-approved live smoke is pending), plus #5–#9 (P2/P3 enhancements, not started).
-- **Deferred:** Meta Muse Code and OpenDesign providers (see *Deferred providers*); l10n/KI18n catalog choice; Q15 KDE-Store artifact naming.
+- **Released:** v2.1.1 (2026-11-22) — Mistral stale-data fix: the collector reads the admin dashboard's tRPC `billing.budget` procedure instead of the retired REST budget path. v2.1.0 (2026-11-06) added the Mistral + OpenDesign providers (M18, gate G-18 passed). M17 standalone credentials (drop Pi auth, `kuota login`) shipped as v2.0.0 (2026-10-02).
+- **Providers (nine):** Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral (opt-in), OpenDesign (opt-in).
+- **Open GitHub issues:** only #8 ([P2] offline doctor diagnostics) and #9 ([P3] reset-aware headroom overview). All others are closed.
+- **Now starting:** Muse Code provider (M19; previously deferred, see *Deferred providers*), the headroom overview tab + popup redesign (#9), the offline `kuota doctor` (#8), and the G-RL follow-up cleanups (bridge selection state in `bridge-lifecycle.js`, loop window defaults/sanitizer over `KNOWN_WINDOWS`, a distinct "no providers enabled" view, dropping `atomic-write`'s `isJsonValue` re-export, `check-artifact` comparing against the build's own `PROVIDER_IDS`). Each needs its own scope; none is a regression.
 - **Remote:** `origin` = `github.com/DarkoKuzmanovic/kuota` (public). Push, PR, release, and KDE Store publication each need explicit owner approval.
 - **Executor rules:** Work milestone-by-milestone. Write tests first. Keep secrets out of all artifacts. Run gates sequentially under a synthetic `HOME`. Stop on contract/security ambiguity rather than guessing.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
