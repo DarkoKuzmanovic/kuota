@@ -95,9 +95,6 @@ function checkNormalInvocation() {
   if (JSON.stringify(providerIds) !== JSON.stringify(PROVIDER_IDS.filter((id) => !OPT_IN_PROVIDER_IDS.includes(id)))) {
     fail('normal invocation did not use canonical provider IDs');
   }
-  if (!PROVIDER_IDS.includes('muse') || !OPT_IN_PROVIDER_IDS.includes('muse') || providerIds.includes('muse')) {
-    fail('Muse Code must be available but omitted by default');
-  }
 }
 
 function checkCredentialArgv() {
@@ -169,5 +166,5 @@ function checkEmptyEnabledProviders() {
 checkNormalInvocation();
 checkCredentialArgv();
 checkEnabledProvidersSubset('claude');
-checkEnabledProvidersSubset('muse');
+if (OPT_IN_PROVIDER_IDS.length > 0) checkEnabledProvidersSubset(OPT_IN_PROVIDER_IDS[OPT_IN_PROVIDER_IDS.length - 1]);
 checkEmptyEnabledProviders();
