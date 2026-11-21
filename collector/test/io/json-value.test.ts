@@ -38,8 +38,15 @@ test("legacy JSON types and predicate narrowing remain usable", () => {
   assert.equal(pureGuard({ purePrimitive, pureObject }), true);
 });
 
-test("accepted deep graph serialization fails before every filesystem mechanism", async () => {
-  const value = deepJsonGraph();
+test("accepted deep graph serialization failure precedes every filesystem mechanism", async () => {
+  const graph = deepJsonGraph();
+  assert.ok(typeof graph === "object" && graph !== null);
+  const value = new Proxy(graph, {
+    get(target, key, receiver) {
+      if (key === "child") throw new RangeError("synthetic serialization failure");
+      return Reflect.get(target, key, receiver);
+    },
+  });
   assert.equal(fileGuard(value), true);
   assert.throws(() => JSON.stringify(value), RangeError);
   const calls: string[] = [];

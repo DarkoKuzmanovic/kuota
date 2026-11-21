@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,9 +9,35 @@ import test from "node:test";
 
 import { PROVIDER_IDS } from "../src/contract/schema-v1.js";
 import { scanForSecrets } from "../src/security/redact.js";
-import { runDoctor } from "../src/doctor/command.js";
+import { cachedStateExplanation, runDoctor } from "../src/doctor/command.js";
 
 const cli = fileURLToPath(new URL("../src/cli.js", import.meta.url));
+
+test("cached state explanations match the state and provider", () => {
+  assert.equal(cachedStateExplanation("codex", "ok"), "");
+  assert.match(cachedStateExplanation("mistral", "stale"), /re-login will NOT help.*endpoint drift/i);
+  assert.match(cachedStateExplanation("muse", "auth-needed"), /sign in at dev\.meta\.ai in Firefox/);
+  assert.match(cachedStateExplanation("grok", "error"), /unreachable.*other providers are unaffected/i);
+});
+
+test("Claude-only cache is reported as the successful observation stored on disk", async () => {
+  const home = mkdtempSync(join(tmpdir(), "kuota-doctor-claude-cache-"));
+  const cache = join(home, ".cache", "kuota");
+  mkdirSync(cache, { recursive: true, mode: 0o700 });
+  const stamp = "2026-11-22T11:59:00.000Z";
+  try {
+    writeFileSync(join(cache, "claude.json"), JSON.stringify({
+      schemaVersion: 1, provider: "claude", savedAt: stamp,
+      record: { id: "claude", state: "ok", lastSuccessAt: stamp, windows: [{ id: "session", label: "Session", usedPercent: 20 }] },
+    }));
+    const out: string[] = [];
+    await runDoctor({ write: (line) => { out.push(line); } }, home, {}, Date.parse("2026-11-22T12:00:00.000Z"));
+    assert.match(out.join(""), /claude.*\n  Last cached observation: ok; last success 60s ago\./i);
+    assert.doesNotMatch(out.join(""), /endpoint drift/i);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
 
 test("doctor reports every provider offline without revealing environment credentials", () => {
   const home = mkdtempSync(join(tmpdir(), "kuota-doctor-synthetic-"));
@@ -19,7 +46,7 @@ test("doctor reports every provider offline without revealing environment creden
     const result = spawnSync(process.execPath, [cli, "doctor"], {
       env: { HOME: home, PATH: "/usr/bin:/bin", KIMI_API_KEY: secret }, encoding: "utf8", timeout: 10000,
     });
-    assert.equal(result.status, 1);
+    assert.equal(result.status, 0);
     assert.match(result.stdout, /offline/i);
     for (const id of PROVIDER_IDS) assert.match(result.stdout, new RegExp(`\\b${id}\\b`));
     assert.match(result.stdout, /kimi.*environment.*present/i);
@@ -44,7 +71,56 @@ test("doctor classifies the browser environment fallback without exposing it", (
   }
 });
 
-test("doctor reads a Firefox cookie without creating a private copy or disclosing it", () => {
+test("doctor reports Muse as opt-in and classifies its environment fallback without revealing it", () => {
+  const home = mkdtempSync(join(tmpdir(), "kuota-doctor-muse-"));
+  const secret = "synthetic-muse-cookie-not-real";
+  try {
+    const result = spawnSync(process.execPath, [cli, "doctor"], {
+      env: { HOME: home, PATH: "/usr/bin:/bin", MUSE_SESSION_COOKIE: secret }, encoding: "utf8", timeout: 10000,
+    });
+    assert.match(result.stdout, /muse.*opt-in.*environment.*present/i);
+    assert.doesNotMatch(result.stdout + result.stderr, new RegExp(secret));
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("doctor finds Firefox cookies committed in a live WAL using the collector's copy path", async () => {
+  const home = mkdtempSync(join(tmpdir(), "kuota-doctor-wal-"));
+  const profile = join(home, ".mozilla", "firefox", "profile.default");
+  const temp = join(home, "tmp");
+  mkdirSync(profile, { recursive: true });
+  mkdirSync(temp);
+  const db = join(profile, "cookies.sqlite");
+  const script = [
+    "import sqlite3,sys",
+    "db=sqlite3.connect(sys.argv[1])",
+    "db.execute('PRAGMA journal_mode=WAL')",
+    "db.execute('CREATE TABLE moz_cookies(host TEXT,name TEXT,value TEXT,expiry INTEGER)')",
+    "db.commit()",
+    "db.execute('PRAGMA wal_checkpoint(TRUNCATE)')",
+    "db.execute(\"INSERT INTO moz_cookies VALUES('.mistral.ai','ory_session_test','synthetic-wal-secret-not-real',4102444800)\")",
+    "db.commit()",
+    "print('ready',flush=True)",
+    "sys.stdin.readline()",
+  ].join("\n");
+  const writer = spawn("/usr/bin/python3", ["-u", "-c", script, db], { stdio: ["pipe", "pipe", "pipe"] });
+  try {
+    await once(writer.stdout, "data", { signal: AbortSignal.timeout(3000) });
+    const result = spawnSync(process.execPath, [cli, "doctor"], {
+      env: { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: temp }, encoding: "utf8", timeout: 10000,
+    });
+    assert.match(result.stdout, /mistral.*Firefox cookie.*present/i);
+    assert.doesNotMatch(result.stdout + result.stderr, /synthetic-wal-secret-not-real/);
+    assert.deepEqual(readdirSync(temp), []);
+  } finally {
+    writer.stdin.end("\n");
+    if (writer.exitCode === null && writer.signalCode === null) await once(writer, "exit");
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("doctor removes private Firefox cookie copies without disclosing or modifying the source", () => {
   const home = mkdtempSync(join(tmpdir(), "kuota-doctor-browser-"));
   const profile = join(home, ".mozilla", "firefox", "profile.default");
   const temp = join(home, "tmp");
@@ -125,8 +201,29 @@ test("doctor distinguishes cached success from current state and reports active 
     assert.match(text, /backoff: 60s remaining/);
     assert.match(text, /Last cached observation: ok; last success 60s ago/);
     assert.match(text, /not the last refresh attempt/i);
-    assert.match(text, /re-login will NOT help unless the state is auth-needed/i);
-    assert.match(text, /endpoint drift/i);
+    assert.doesNotMatch(text, /re-login will NOT help|endpoint drift/i);
+    assert.match(text, /Last cached observation: ok; last success 60s ago\.\n/);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("doctor treats unused providers without credentials or cached records as informational", async () => {
+  const home = mkdtempSync(join(tmpdir(), "kuota-doctor-unconfigured-"));
+  const config = join(home, ".config", "kuota");
+  const cache = join(home, ".cache", "kuota");
+  mkdirSync(config, { recursive: true, mode: 0o700 });
+  mkdirSync(cache, { recursive: true, mode: 0o700 });
+  try {
+    writeFileSync(join(config, "credentials.json"), "{}", { mode: 0o600 });
+    const out: string[] = [];
+    const result = await runDoctor({ write: (line) => { out.push(line); } }, home, {});
+    const text = out.join("");
+    assert.equal(result, 0);
+    assert.match(text, /grok.*not set up/i);
+    assert.match(text, /kimi.*not set up/i);
+    assert.match(text, /cursor.*not set up/i);
+    assert.equal((text.match(/Local presence does not establish server acceptance\./g) ?? []).length, 1);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
@@ -197,18 +294,18 @@ test("doctor checks curl on the inherited PATH rather than assuming /usr/bin is 
   }
 });
 
-test("doctor classifies a symlinked Firefox cookie database as unsafe", () => {
+test("doctor follows the collector's existing Firefox symlink behavior", () => {
   const home = mkdtempSync(join(tmpdir(), "kuota-doctor-symlink-"));
   const profile = join(home, ".mozilla", "firefox", "profile.default");
   mkdirSync(profile, { recursive: true });
   try {
     const target = join(home, "target.sqlite");
-    assert.equal(spawnSync("/usr/bin/sqlite3", [target, "CREATE TABLE moz_cookies(host TEXT, name TEXT, value TEXT, expiry INTEGER);"]).status, 0);
+    assert.equal(spawnSync("/usr/bin/sqlite3", [target, "CREATE TABLE moz_cookies(host TEXT, name TEXT, value TEXT, expiry INTEGER); INSERT INTO moz_cookies VALUES('.mistral.ai','ory_session_test','synthetic-symlink-not-real',4102444800);"]).status, 0);
     symlinkSync(target, join(profile, "cookies.sqlite"));
     const result = spawnSync(process.execPath, [cli, "doctor"], {
       env: { HOME: home, PATH: "/usr/bin:/bin" }, encoding: "utf8", timeout: 10000,
     });
-    assert.match(result.stdout, /mistral.*Firefox cookie.*unsafe/i);
+    assert.match(result.stdout, /mistral.*Firefox cookie.*present/i);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }

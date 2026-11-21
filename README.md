@@ -236,6 +236,10 @@ instances are preserved on disk but excluded from the current response.
 Run `kuota doctor` first. It reports local classifications without sending
 requests, refreshing credentials, or printing credential values. A successful
 local credential check does not prove that the provider will accept it.
+Firefox checks use the collector's private temporary cookie-database copy,
+including its WAL, and remove it afterward. Unconfigured providers are
+informational; doctor exits nonzero for local safety or environment problems.
+The caches retain successful observations, not the latest failed refresh.
 
 | Symptom | Check |
 |---|---|

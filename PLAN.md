@@ -1682,7 +1682,7 @@ deferral below; no release or live-account test is approved by this milestone.
 Offline diagnostic CLI only; no widget launch, provider requests, refresh, or
 credential writes. `status` remains unchanged.
 
-**Counters:** reviews 0 · correction rounds 0 · oracle 0 · direct edits 1.
+**Counters:** reviews 0 · correction rounds 1 · oracle 0 · direct edits 2.
 
 - [x] Record the approved output, security and exit-code contract.
 - [x] Implement the registry-driven human report and read-only discovery, with
@@ -1696,6 +1696,15 @@ credential writes. `status` remains unchanged.
   An initial run with `/usr/bin/node` 26.13.1 had 789/790 tests pass:
   the pre-existing deep-graph test assumes `JSON.stringify` throws on a
   20,000-level graph, which no longer holds on that runtime.
+  Owner corrections after merging Muse: state-specific advice, informational
+  unconfigured providers, and Firefox's normal private SQLite+WAL copy path.
+  Sequential clean-dist gates with disposable HOME: typecheck passed; Node
+  tests 803/803 under both Node 24.15.0 and `/usr/bin/node` 26.13.1; QML
+  tests 414/414; Plasma validation and artifact build passed. One real-HOME
+  offline doctor run under Node 26 exited 0 and passed the secret scanner.
+  The Node 26 failure was test-only: production catches serialization
+  failures before filesystem I/O and does not rely on depth causing one.
+  The test now induces the same failure deterministically on both runtimes.
 - [x] **Issue #8 close-the-loop note:** the offline command slice and its
   verification are recorded here; the issue remains open, and UI
   freshness/retry provenance is a separate approved slice.

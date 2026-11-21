@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { DEFAULT_COLLECTOR_CONFIG } from "../collect/config.js";
 import { resolveCollectorLockPath } from "../collect/lock.js";
 import { readCollectorCache } from "../collect/cache.js";
-import { PROVIDER_IDS, SCHEMA_VERSION, type ProviderId } from "../contract/schema-v1.js";
+import { PROVIDER_IDS, SCHEMA_VERSION, type ProviderId, type ProviderState } from "../contract/schema-v1.js";
 import { resolveKuotaCredentialsPath } from "../credentials/store.js";
 import { readJsonFile } from "../io/json-file.js";
 import { readClaudeAuth } from "../providers/claude/auth.js";
@@ -23,6 +23,7 @@ import { readCommandCodeAuth } from "../providers/commandcode/auth.js";
 import { readSessionCookie, type SessionCookieSpec } from "../providers/firefox-cookies.js";
 import { MISTRAL_COOKIE_SPEC } from "../providers/mistral/adapter.js";
 import { OPENDESIGN_COOKIE_SPEC } from "../providers/opendesign/adapter.js";
+import { MUSE_COOKIE_SPEC } from "../providers/muse/adapter.js";
 import { redact } from "../security/redact.js";
 
 interface AuthResult {
@@ -41,11 +42,21 @@ const HINTS: Readonly<Record<ProviderId, string>> = {
   cursor: "sign in to the Cursor app", opencode: "run in a terminal: kuota login opencode",
   commandcode: "run in a terminal: kuota login commandcode",
   mistral: "sign in at admin.mistral.ai in Firefox", opendesign: "sign in at open-design.ai in Firefox",
+  muse: "sign in at dev.meta.ai in Firefox",
 };
+
+export function cachedStateExplanation(id: ProviderId, state: ProviderState): string {
+  switch (state) {
+    case "ok": return "";
+    case "stale": return " Retained last-known-good data; re-login will NOT help unless the state is auth-needed. Check for endpoint drift.";
+    case "auth-needed": return ` Login needed — ${HINTS[id]}.`;
+    case "error": return " Provider unreachable or response changed; other providers are unaffected.";
+  }
+}
 
 function advice(id: ProviderId, diagnosis: Diagnosis): string {
   switch (diagnosis.classification) {
-    case "present": return "Local presence does not establish server acceptance.";
+    case "present": return "";
     case "unsafe": return "Check ownership, permissions and symlinks before using this source.";
     case "unavailable": return "Check local file access, SQLite and active WAL files; retry when safe.";
     case "expired": return diagnosis.source === "Kuota store"
@@ -78,10 +89,7 @@ async function fallback(read: Reader, primary: Source, environment: Readonly<Rec
 }
 
 async function browserCookie(spec: SessionCookieSpec, home: string, environment: Readonly<Record<string, string | undefined>>, now: number): Promise<Diagnosis> {
-  const local = await readSessionCookie(spec, { homeDirectory: home, environment: {}, noWrites: true });
-  if (local.state === "available" || local.state === "error") return { source: "Firefox cookie", classification: classify(local, now) };
-  const actual = await readSessionCookie(spec, { homeDirectory: home, environment, noWrites: true });
-  return { source: actual.state === "available" ? "environment fallback" : "Firefox cookie", classification: classify(actual, now) };
+  return fallback((env) => readSessionCookie(spec, { homeDirectory: home, environment: env }), "Firefox cookie", environment, now);
 }
 
 const readOnlySqlite: CursorSqliteRunner = async (args, signal) => {
@@ -175,7 +183,7 @@ export async function runDoctor(stdout: { write(chunk: string): void }, home = h
     ["Kuota credentials file (0600)", storeSafety],
   ] as const) {
     lines.push(`${label}: ${result}`);
-    if (result !== "present") failed = true;
+    if (result === "unsafe" || result === "unavailable") failed = true;
   }
   const lock = await directory(resolveCollectorLockPath(home), 0o600, true);
   lines.push(`Collector lock (0600): ${lock}${lock === "missing" ? " (created on collection)" : ""}`);
@@ -202,6 +210,7 @@ export async function runDoctor(stdout: { write(chunk: string): void }, home = h
     cursor: () => fallback((env) => readCursorAuth({ homeDirectory: home, environment: env, runSqlite: readOnlySqlite }), "Cursor file", environment, now),
     mistral: () => browserCookie(MISTRAL_COOKIE_SPEC, home, environment, now),
     opendesign: () => browserCookie(OPENDESIGN_COOKIE_SPEC, home, environment, now),
+    muse: () => browserCookie(MUSE_COOKIE_SPEC, home, environment, now),
   };
   for (const id of PROVIDER_IDS) {
     const enabled = DEFAULT_COLLECTOR_CONFIG.providers.some((provider) => provider.id === id && provider.enabled);
@@ -209,13 +218,21 @@ export async function runDoctor(stdout: { write(chunk: string): void }, home = h
     const diagnosis = discovered.source === "Kuota store" && (configSafety === "unsafe" || storeSafety === "unsafe")
       ? { ...discovered, classification: "unsafe" as const }
       : discovered;
-    if (enabled && diagnosis.classification !== "present") failed = true;
-    lines.push(`${id} (${enabled ? "default" : "opt-in"}): ${diagnosis.source} — ${diagnosis.classification}. ${advice(id, diagnosis)}`);
+    if (diagnosis.classification === "unsafe" || diagnosis.classification === "malformed") failed = true;
     const record = collector.state === "available" ? collector.envelope.records.find((r) => r.id === id) : undefined;
     const cached = record ?? (id === "claude" && claudeCache.state === "available" ? claudeCache.record : undefined);
-    if (cached !== undefined) lines.push(`  Last cached observation: ${cached.state}; last success ${age(cached.lastSuccessAt, now)}. Cached data may be stale; re-login will NOT help unless the state is auth-needed. Check for endpoint drift.`);
-    else lines.push("  Last cached observation: unavailable; no success time known.");
+    const notSetUp = diagnosis.classification === "missing" && cached === undefined;
+    const detail = notSetUp ? "not set up (credential missing)" : diagnosis.classification;
+    const next = notSetUp ? "" : advice(id, diagnosis);
+    lines.push(`${id} (${enabled ? "default" : "opt-in"}): ${diagnosis.source} — ${detail}.${next ? ` ${next}` : ""}`);
+    if (cached !== undefined) {
+      // Claude's reader reconstructs a stale record from an on-disk successful observation.
+      const state = record?.state ?? "ok";
+      if (state !== "ok") failed = true;
+      lines.push(`  Last cached observation: ${state}; last success ${age(cached.lastSuccessAt, now)}.${cachedStateExplanation(id, state)}`);
+    } else lines.push("  Last cached observation: unavailable; no success time known.");
   }
+  lines.push("Local presence does not establish server acceptance.");
   for (const line of lines) {
     const safe = redact(line);
     stdout.write(`${typeof safe === "string" ? safe : "[REDACTED]"}\n`);
