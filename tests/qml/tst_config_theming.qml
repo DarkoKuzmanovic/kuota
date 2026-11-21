@@ -22,12 +22,12 @@ TestCase {
         compare(page.cfg_labelOpacity, 1.0);
         compare(page.cfg_separatorOpacity, 1.0);
 
-        var providers = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"];
+        var providers = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"];
         for (var i = 0; i < providers.length; i++) {
             compare(page["cfg_" + providers[i] + "AccentColor"], "");
             compare(page["cfg_" + providers[i] + "CustomIcon"], "");
         }
-        compare(page.providerIds.length, 9);
+        compare(page.providerIds.length, 10);
 
         // Every control maps to a real sanitized key (no dead controls).
         page.destroy();

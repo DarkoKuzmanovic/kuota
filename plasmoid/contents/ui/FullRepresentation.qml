@@ -106,6 +106,8 @@ FocusScope {
             return qsTr("Mistral");
         case "opendesign":
             return qsTr("OpenDesign");
+        case "muse":
+            return qsTr("Muse Code");
         default:
             return providerId;
         }

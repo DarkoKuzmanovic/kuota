@@ -10,7 +10,8 @@
       "opencode",
       "commandcode",
       "mistral",
-      "opendesign"
+      "opendesign",
+      "muse"
     ]
   },
   "claudeVisible": {
@@ -49,6 +50,10 @@
     "type": "Bool",
     "default": false
   },
+  "museVisible": {
+    "type": "Bool",
+    "default": false
+  },
   "claudeWindow": {
     "type": "String",
     "default": ""
@@ -78,6 +83,10 @@
     "default": ""
   },
   "opendesignWindow": {
+    "type": "String",
+    "default": ""
+  },
+  "museWindow": {
     "type": "String",
     "default": ""
   },
@@ -206,6 +215,14 @@
     "default": ""
   },
   "opendesignCustomIcon": {
+    "type": "String",
+    "default": ""
+  },
+  "museAccentColor": {
+    "type": "String",
+    "default": ""
+  },
+  "museCustomIcon": {
     "type": "String",
     "default": ""
   }

@@ -1,4 +1,5 @@
 .pragma library
+.import "collector-command.js" as CollectorCommand
 
 // Plasma-independent request tracking and process-result normalization for
 // the executable compatibility bridge. This module never imports the
@@ -93,4 +94,48 @@ function readNumericKey(data, spacedKey, camelKey) {
 function readStringKey(data, key) {
     var value = data[key];
     return typeof value === "string" ? value : undefined;
+}
+
+// --- Provider selection state -------------------------------------------
+//
+// The bridge's collection selection (which providers are collected) lives
+// here so the QML bridge stays a thin view over pure state transitions,
+// the same rule the request state above follows. A selection is keyed by
+// its canonical comma-joined ID list — recovered from the provider list
+// itself, never by re-parsing an argv token. While a request is in flight,
+// a membership change discards the active result and schedules one
+// refresh with the new selection once that run settles or times out;
+// an empty selection discards but schedules nothing.
+
+function createSelectionState() {
+    return { selectionKey: null, enabledProviders: undefined, discardActiveResult: false, pendingRefresh: false };
+}
+
+function updateSelection(state, enabledProviders, inFlight) {
+    var canonical = CollectorCommand.canonicalizeProviders(enabledProviders);
+    if (canonical === undefined) {
+        return { state: state, changed: false, selectionKey: undefined };
+    }
+    var selectionKey = canonical.defaultAll
+        ? CollectorCommand.CANONICAL_PROVIDER_IDS.join(",")
+        : canonical.ids.join(",");
+    if (selectionKey === state.selectionKey) {
+        return { state: state, changed: false, selectionKey: selectionKey };
+    }
+    var nextState = {
+        selectionKey: selectionKey,
+        enabledProviders: canonical.defaultAll ? undefined : canonical.ids.slice(),
+        discardActiveResult: inFlight ? true : state.discardActiveResult,
+        pendingRefresh: inFlight ? (selectionKey.length > 0) : state.pendingRefresh
+    };
+    return { state: nextState, changed: true, selectionKey: selectionKey };
+}
+
+function clearRefreshGate(state) {
+    return {
+        selectionKey: state.selectionKey,
+        enabledProviders: state.enabledProviders,
+        discardActiveResult: false,
+        pendingRefresh: false
+    };
 }

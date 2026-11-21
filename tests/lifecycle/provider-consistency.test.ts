@@ -17,7 +17,7 @@ while (!existsSync(resolve(root, 'plasmoid/metadata.json'))) {
   root = parent;
 }
 const read = (path: string): string => readFileSync(resolve(root, path), 'utf8');
-const labels = ['Claude', 'Codex', 'Grok', 'Kimi', 'Cursor', 'OpenCode', 'CommandCode', 'Mistral', 'OpenDesign'];
+const labels = ['Claude', 'Codex', 'Grok', 'Kimi', 'Cursor', 'OpenCode', 'CommandCode', 'Mistral', 'OpenDesign', 'Muse Code'];
 
 function productionFiles(directory = 'plasmoid/contents'): string[] {
   return readdirSync(resolve(root, directory), { withFileTypes: true }).flatMap(entry => {

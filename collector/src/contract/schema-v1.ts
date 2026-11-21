@@ -1,6 +1,6 @@
 export const SCHEMA_VERSION = 2 as const;
 
-export const PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"] as const;
+export const PROVIDER_IDS = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 export const PROVIDER_STATES = ["ok", "stale", "auth-needed", "error"] as const;
@@ -74,6 +74,10 @@ export interface OpenDesignDetails {
   readonly walletBalanceUsd?: number;
 }
 
+export interface MuseDetails {
+  readonly tier?: string;
+}
+
 type ClaudeProviderDetails = { readonly claude: ClaudeDetails };
 type CodexProviderDetails = { readonly codex: CodexDetails };
 type GrokProviderDetails = { readonly grok: GrokDetails };
@@ -82,6 +86,7 @@ type CursorProviderDetails = { readonly cursor: CursorDetails };
 type CommandCodeProviderDetails = { readonly commandcode: CommandCodeDetails };
 type MistralProviderDetails = { readonly mistral: MistralDetails };
 type OpenDesignProviderDetails = { readonly opendesign: OpenDesignDetails };
+type MuseProviderDetails = { readonly muse: MuseDetails };
 
 export type ProviderDetails =
   | ClaudeProviderDetails
@@ -91,7 +96,8 @@ export type ProviderDetails =
   | CursorProviderDetails
   | CommandCodeProviderDetails
   | MistralProviderDetails
-  | OpenDesignProviderDetails;
+  | OpenDesignProviderDetails
+  | MuseProviderDetails;
 
 type NonEmptyClaudeDetails =
   | (ClaudeDetails & { readonly model: string })
@@ -157,6 +163,7 @@ type NonEmptyOpenDesignDetails = OpenDesignDetails & (
   | { readonly tier: string }
   | { readonly walletBalanceUsd: number }
 );
+type NonEmptyMuseDetails = MuseDetails & { readonly tier: string };
 
 type NonEmptyProviderDetails =
   | { readonly claude: NonEmptyClaudeDetails }
@@ -166,7 +173,8 @@ type NonEmptyProviderDetails =
   | { readonly cursor: NonEmptyCursorDetails }
   | { readonly commandcode: NonEmptyCommandCodeDetails }
   | { readonly mistral: NonEmptyMistralDetails }
-  | { readonly opendesign: NonEmptyOpenDesignDetails };
+  | { readonly opendesign: NonEmptyOpenDesignDetails }
+  | { readonly muse: NonEmptyMuseDetails };
 
 interface ProviderRecordFields {
   readonly status?: string;
@@ -243,6 +251,10 @@ export type OpenDesignProviderRecord =
   | CurrentProviderRecord<"opendesign", OpenDesignProviderDetails>
   | StaleProviderRecord<"opendesign", OpenDesignProviderDetails, { readonly opendesign: NonEmptyOpenDesignDetails }>;
 
+export type MuseProviderRecord =
+  | CurrentProviderRecord<"muse", MuseProviderDetails>
+  | StaleProviderRecord<"muse", MuseProviderDetails, { readonly muse: NonEmptyMuseDetails }>;
+
 export type ProviderRecord =
   | ClaudeProviderRecord
   | CodexProviderRecord
@@ -252,7 +264,8 @@ export type ProviderRecord =
   | OpenCodeProviderRecord
   | CommandCodeProviderRecord
   | MistralProviderRecord
-  | OpenDesignProviderRecord;
+  | OpenDesignProviderRecord
+  | MuseProviderRecord;
 
 export type ProviderRecordFor<TId extends ProviderId> = Extract<
   ProviderRecord,
@@ -271,6 +284,7 @@ type _AssertOpencode = _AssertProviderRecordFor<"opencode">;
 type _AssertCommandcode = _AssertProviderRecordFor<"commandcode">;
 type _AssertMistral = _AssertProviderRecordFor<"mistral">;
 type _AssertOpendesign = _AssertProviderRecordFor<"opendesign">;
+type _AssertMuse = _AssertProviderRecordFor<"muse">;
 
 export interface CollectorDocument {
   readonly schemaVersion: typeof SCHEMA_VERSION;

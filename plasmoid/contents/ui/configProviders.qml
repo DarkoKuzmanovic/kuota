@@ -16,6 +16,7 @@ Kirigami.FormLayout {
     property alias cfg_commandcodeVisible: commandcodeVisibleCheck.checked
     property alias cfg_mistralVisible: mistralVisibleCheck.checked
     property alias cfg_opendesignVisible: opendesignVisibleCheck.checked
+    property alias cfg_museVisible: museVisibleCheck.checked
     property alias cfg_claudeWindow: claudeWindowCombo.currentValue
     property alias cfg_codexWindow: codexWindowCombo.currentValue
     property alias cfg_grokWindow: grokWindowCombo.currentValue
@@ -24,6 +25,7 @@ Kirigami.FormLayout {
     property alias cfg_commandcodeWindow: commandcodeWindowCombo.currentValue
     property alias cfg_mistralWindow: mistralWindowCombo.currentValue
     property alias cfg_opendesignWindow: opendesignWindowCombo.currentValue
+    property alias cfg_museWindow: museWindowCombo.currentValue
 
     // StringList has no 1:1 widget; the reorder Repeater below reads/writes
     // this plain array directly (matches the compact-model.js entries pattern).
@@ -49,6 +51,8 @@ Kirigami.FormLayout {
             return qsTr("Mistral");
         case "opendesign":
             return qsTr("OpenDesign");
+        case "muse":
+            return qsTr("Muse Code");
         default:
             return providerId;
         }
@@ -133,6 +137,13 @@ Kirigami.FormLayout {
         Kirigami.FormData.label: qsTr("OpenDesign:")
         text: qsTr("Show and collect usage (reads your Firefox login)")
         Accessible.name: qsTr("OpenDesign display and collection enabled")
+    }
+
+    Controls.CheckBox {
+        id: museVisibleCheck
+        Kirigami.FormData.label: qsTr("Muse Code:")
+        text: qsTr("Show and collect usage (reads your Firefox login)")
+        Accessible.name: qsTr("Muse Code display and collection enabled")
     }
 
     Kirigami.Heading {
@@ -309,6 +320,20 @@ Kirigami.FormLayout {
             { text: qsTr("Default"), value: "" },
             { text: qsTr("5h"), value: ProviderCatalog.SELECTABLE_WINDOWS.opendesign[0] },
             { text: qsTr("Weekly"), value: ProviderCatalog.SELECTABLE_WINDOWS.opendesign[1] }
+        ]
+    }
+
+    Controls.ComboBox {
+        id: museWindowCombo
+        objectName: "museWindowCombo"
+        Kirigami.FormData.label: qsTr("Muse Code:")
+        Accessible.name: qsTr("Muse Code usage window")
+        textRole: "text"
+        valueRole: "value"
+        model: [
+            { text: qsTr("Default"), value: "" },
+            { text: qsTr("Current"), value: ProviderCatalog.SELECTABLE_WINDOWS.muse[0] },
+            { text: qsTr("Weekly"), value: ProviderCatalog.SELECTABLE_WINDOWS.muse[1] }
         ]
     }
 }

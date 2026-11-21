@@ -30,6 +30,9 @@ for (const behavior of ['normal', 'hang', 'overflow', 'stderr-overflow', 'failed
       writeFileSync(join(root, 'package.json'), JSON.stringify({ type: 'module', version: 'synthetic' }));
       const packaged = join(root, 'dist/artifact/kuota-vsynthetic/contents/code/collector');
       cpSync(join(root, 'dist/collector'), packaged, { recursive: true });
+      // check-artifact reads provider expectations from the packaged QML catalog.
+      mkdirSync(join(packaged, '..', '..', 'ui'), { recursive: true });
+      cpSync(join(repo, 'plasmoid/contents/ui/provider-catalog.js'), join(packaged, '..', '..', 'ui/provider-catalog.js'));
       const parentHome = join(root, 'parent-home');
       mkdirSync(join(parentHome, '.pi/agent'), { recursive: true });
       mkdirSync(join(parentHome, '.cache'), { mode: 0o700 });
@@ -64,7 +67,7 @@ for (const behavior of ['normal', 'hang', 'overflow', 'stderr-overflow', 'failed
       assert.equal(existsSync(join(root, 'preloaded')), false, 'no parent preload in packaged child');
       assert.equal(existsSync(transport), false, 'no provider transport');
       const records: unknown[] = readFileSync(trace, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
-      assert.equal(records.length, behavior === 'normal' ? 4 : 1);
+      assert.equal(records.length, behavior === 'normal' ? 5 : 1);
       for (const record of records) {
         assert.ok(typeof record === 'object' && record !== null && 'env' in record && 'mode' in record && 'cacheMode' in record && 'pid' in record && typeof record.pid === 'number');
         const pid = record.pid;

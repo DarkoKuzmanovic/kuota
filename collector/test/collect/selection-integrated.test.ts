@@ -19,6 +19,7 @@ import { createOpencodeAdapter } from "../../src/providers/opencode/adapter.js";
 import { createCommandCodeAdapter } from "../../src/providers/commandcode/adapter.js";
 import { createMistralAdapter } from "../../src/providers/mistral/adapter.js";
 import { createOpenDesignAdapter } from "../../src/providers/opendesign/adapter.js";
+import { createMuseAdapter } from "../../src/providers/muse/adapter.js";
 
 const NOW = "2026-09-09T00:00:00.000Z";
 function success<TId extends ProviderId>(id: TId) {
@@ -111,6 +112,13 @@ function spiedRegistry() {
         ? spy("opendesign", "fetch", { outcome: "ok", value: { windows: [{ durationSeconds: 18000, usedCredits: "1", limitCredits: "10" }] } })()
         : spy("opendesign", "aux", { outcome: "ok", value: { activeWorkspaceId: "synthetic-ws" } })(),
     })),
+    createProviderRegistration(createMuseAdapter({
+      now,
+      readCookie: spy("muse", "auth", { state: "available", cookie: "llama_dev_sess=synthetic-not-real" }),
+      fetchJson: async (options) => options.url.endsWith("/teams")
+        ? spy("muse", "aux", { outcome: "ok", value: { teams: [{ team_id: 12345 }] } })()
+        : spy("muse", "fetch", { outcome: "ok", value: { subscription_quota: { tier: "Pro", window_weighted_used: "1", window_weighted_limit: "10" } } })(),
+    })),
   ]);
   return {
     registry,
@@ -135,7 +143,7 @@ function spiedRegistry() {
   };
 }
 
-const selections: readonly (readonly ProviderId[])[] = [["commandcode", "claude"], ["cursor", "codex"], ["opendesign", "mistral"], []];
+const selections: readonly (readonly ProviderId[])[] = [["commandcode", "claude"], ["cursor", "codex"], ["opendesign", "mistral"], ["muse"], []];
 for (const selected of selections) {
   test(`explicit CLI subset ${selected.join(",") || "empty"} scopes real integrated auth/fetch and shared cache/lock fallback`, async () => {
     const home = await mkdtemp(join(tmpdir(), "kuota-issue7-synthetic-"));

@@ -305,6 +305,8 @@ async function collectAny(
       return collectOne(provider, options);
     case "opendesign":
       return collectOne(provider, options);
+    case "muse":
+      return collectOne(provider, options);
   }
 }
 

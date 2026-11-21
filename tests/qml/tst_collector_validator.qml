@@ -448,6 +448,32 @@ TestCase {
         compare(result.ok, true);
     }
 
+    function test_museDetailsAreClosedAndNamespaced() {
+        var provider = {
+            id: "muse", state: "ok", lastSuccessAt: "2026-11-22T10:00:00.000Z",
+            windows: [{ id: "current", label: "Current", usedPercent: 20 },
+                      { id: "weekly", label: "Weekly", usedPercent: 30 }],
+            details: { muse: { tier: "pro" } }
+        };
+        function validate() {
+            return CollectorValidator.validateCollectorResponse(json(Fixtures.minimalDocument({ providers: [provider] })));
+        }
+        var valid = validate();
+        compare(valid.ok, true);
+        compare(valid.value.providers[0].details.muse.tier, "pro");
+        provider.details.muse.teamId = "synthetic-team";
+        compare(validate().ok, false);
+        delete provider.details.muse.teamId;
+        provider.details.muse.windowDurationSecs = 18000;
+        compare(validate().ok, false);
+        provider.details = { opendesign: { tier: "pro" } };
+        compare(validate().ok, false);
+        provider.details = { muse: { tier: 123 } };
+        compare(validate().ok, false);
+        provider.details = { muse: { tier: new Array(52).join("a") } };
+        compare(validate().ok, false);
+    }
+
     // --- No secret/raw-value diagnostics ---------------------------------------
 
     function test_failureCodesAreConstantStrings() {

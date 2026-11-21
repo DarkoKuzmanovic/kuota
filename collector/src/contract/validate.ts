@@ -11,6 +11,7 @@ import {
   type KimiDetails,
   type MistralDetails,
   type OpenDesignDetails,
+  type MuseDetails,
   type ProviderDetails,
   type ProviderId,
   type ProviderRecord,
@@ -84,6 +85,7 @@ const COMMANDCODE_DETAIL_KEYS = new Set([
 ]);
 const MISTRAL_DETAIL_KEYS = new Set(["vibeBudget", "apiBudget", "currency", "paygEnabled"]);
 const OPENDESIGN_DETAIL_KEYS = new Set(["tier", "walletBalanceUsd"]);
+const MUSE_DETAIL_KEYS = new Set(["tier"]);
 const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
@@ -444,6 +446,10 @@ function parseProviderDetails(
     }
     return details === undefined ? undefined : { opendesign: details };
   }
+  if (id === "muse") {
+    const details = parseMuseDetails(input.muse, `${path}.muse`, errors);
+    return details === undefined ? undefined : { muse: details };
+  }
   const details = parseCursorDetails(input.cursor, `${path}.cursor`, errors);
   if (errors.length !== initialErrorCount && details === undefined) {
     return undefined;
@@ -776,6 +782,18 @@ function parseOpenDesignDetails(
   return details;
 }
 
+function parseMuseDetails(input: unknown, path: string, errors: ValidationIssue[]): MuseDetails | undefined {
+  if (!isRecord(input)) {
+    addIssue(errors, path, "expected an object");
+    return undefined;
+  }
+  const initialErrorCount = errors.length;
+  validateObjectKeys(input, path, MUSE_DETAIL_KEYS, errors);
+  const tier = parseOptionalSafeText(input, "tier", `${path}.tier`, 50, errors);
+  if (errors.length !== initialErrorCount) return undefined;
+  return tier === undefined ? {} : { tier };
+}
+
 function parseProviderId(
   input: unknown,
   path: string,
@@ -1065,6 +1083,9 @@ function hasRetainedData(
   }
   if ("opendesign" in details) {
     return Object.keys(details.opendesign).length > 0;
+  }
+  if ("muse" in details) {
+    return Object.keys(details.muse).length > 0;
   }
   return Object.keys(details.cursor).length > 0;
 }
