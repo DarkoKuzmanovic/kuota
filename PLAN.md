@@ -1620,6 +1620,8 @@ npm 9.6.4 both pass: every gate exits 0, `npm test` 760 pass / 0 fail, QML
 **G-RL counters:** panel reviews 1 (2 models) · review-driven fix cycles 1 ·
 code commits 1 · test commits 1 · doc commits 1 · deferred findings 5.
 
+**G-RL follow-ups (2026-11-22, branch `chore/grl-cleanups`, code commit `77403dd7dec11b786c8f9cf764a89e58d1904c5b`).** Item (1): bridge selection state moved into `bridge-lifecycle.js` (`createSelectionState`/`updateSelection`/`clearRefreshGate`); `canonicalizeProviders()` in `collector-command.js` replaces the argv-token re-parse in `CollectorBridge.select()`, which is now a thin wrapper. Item (2): `config-model.js` window defaults and sanitizer loop over `KNOWN_WINDOWS` instead of eight per-provider literals (catalog-loop test added). Item (5): `check-artifact` derives expected provider IDs from the packaged `provider-catalog.js` instead of the build's own `PROVIDER_IDS` (artifact-isolation fixture stages the catalog). Item (4) skipped as a design judgment: dropping the `atomic-write` `isJsonValue` re-export reverses approved decision D-R6.2 (`docs/specs/2026-09-09-json-value-guard-design.md`), which deliberately preserves callable compatibility at atomic-write and is guarded by the compatibility-export identity test; it needs explicit owner approval. Item (3) untouched (another worker). Gates in the worktree: typecheck 0 · Node 775/775 · QML 409/409 (11 new) · validate:plasma 0 · build:artifact 0.
+
 Not claimed, as in the batch's own verdict: live widget/account acceptance,
 non-English translation runs, elapsed five-minute scheduling, and descendant
 reaping. The batch rides the next release; release, installation and #8/#9
