@@ -37,8 +37,12 @@ code. To build from source instead, see [Installation](#installation).
 
 - **Panel summary:** provider icons, labels, usage values, and configurable
   caution/critical colors. “Icons only” hides the label, **not** the usage value.
-- **Detail view:** provider tabs, genuine usage windows, progress bars, reset
-  countdowns, last-successful update time, and provider-specific facts.
+- **All overview:** enabled providers in your chosen order, each with its
+  tightest reported percentage window, earliest reset, and current state.
+  Select a row for all of that provider's windows and facts.
+- **Detail view:** compact usage cards, progress bars, reset countdowns,
+  last-successful update time, and provider-specific facts. A bar's time tick
+  appears only when the provider reports both a reset and window duration.
 - **Appearance settings:** provider visibility/order, font family/scale,
   separators, spacing, custom icons, accents, text color, and opacity.
 - **Independent refresh:** a short-lived Node collector fetches providers

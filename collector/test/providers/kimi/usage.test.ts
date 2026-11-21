@@ -28,7 +28,7 @@ test("normalizes genuine weekly, short, and concurrency facts", () => {
     lastSuccessAt: OBSERVED_AT,
     windows: [
       { id: "week", label: "Week", used: 25, limit: 100, usedPercent: 25, resetAt: "2026-07-20T20:00:00.000Z" },
-      { id: "5h", label: "5h", used: 10, limit: 50, usedPercent: 20, resetAt: "2026-07-13T20:05:00.000Z" },
+      { id: "5h", label: "5h", durationSeconds: 18000, used: 10, limit: 50, usedPercent: 20, resetAt: "2026-07-13T20:05:00.000Z" },
     ],
     details: { kimi: { concurrency: 3, concurrencyLimit: 4 } },
   });
@@ -80,7 +80,34 @@ test("labels short windows by duration", () => {
     assert.equal(daily.record.windows?.[1]?.id, "daily");
     assert.equal(weekly.record.windows?.[1]?.id, "week");
     assert.equal(hourly.record.windows?.[1]?.id, "5h");
+    assert.equal(daily.record.windows?.[1]?.durationSeconds, 86400);
+    assert.equal(weekly.record.windows?.[1]?.durationSeconds, 604800);
+    assert.equal(hourly.record.windows?.[1]?.durationSeconds, 3600);
   }
+});
+
+test("does not invent short or weekly durations from labels or malformed duration values", () => {
+  for (const window of [
+    undefined,
+    { duration: "5" },
+    { duration: "5", timeUnit: "unknown" },
+    { duration: "0", timeUnit: "TIME_UNIT_HOUR" },
+    { duration: "0.00001", timeUnit: "TIME_UNIT_HOUR" },
+    { duration: "9007199254740991", timeUnit: "TIME_UNIT_HOUR" },
+  ]) {
+    const result = parse({ usage: { used: "1" }, limits: [{ window, detail: { used: "2" } }] });
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.record.windows?.[0]?.durationSeconds, undefined);
+      assert.equal(result.record.windows?.[1]?.durationSeconds, undefined);
+    }
+  }
+});
+
+test("converts an explicitly reported fractional duration when it is a whole number of seconds", () => {
+  const result = parse({ usage: { used: "1" }, limits: [{ window: { duration: "1.5", timeUnit: "TIME_UNIT_HOUR" }, detail: { used: "2" } }] });
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.record.windows?.[1]?.durationSeconds, 5400);
 });
 
 test("omits invented percentages and limits for unlimited or partial data", () => {

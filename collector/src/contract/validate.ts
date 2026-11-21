@@ -48,6 +48,7 @@ const PROVIDER_KEYS = new Set([
 const WINDOW_KEYS = new Set([
   "id",
   "label",
+  "durationSeconds",
   "usedPercent",
   "used",
   "limit",
@@ -315,6 +316,10 @@ function parseWindow(
     100,
     errors,
   );
+  const durationSeconds = parseOptionalCount(input, "durationSeconds", `${path}.durationSeconds`, errors);
+  if (durationSeconds === 0) {
+    addIssue(errors, `${path}.durationSeconds`, "duration must be a positive safe integer");
+  }
   const usedPercent = parseOptionalPercent(
     input,
     "usedPercent",
@@ -347,11 +352,15 @@ function parseWindow(
   const window: {
     id: string;
     label: string;
+    durationSeconds?: number;
     usedPercent?: number;
     used?: number;
     limit?: number;
     resetAt?: string;
   } = { id, label };
+  if (durationSeconds !== undefined) {
+    window.durationSeconds = durationSeconds;
+  }
   if (usedPercent !== undefined) {
     window.usedPercent = usedPercent;
   }

@@ -1647,19 +1647,28 @@ Gate (2026-11-06, worktree `feat/mistral-opendesign`): `npm test` 773/0 · `npm 
 the full popup design, addresses #9 and G-RL deferred item 3, and adds an
 optional provider-reported duration to schema v2.
 
-- [ ] Test and implement ordered All overview, deterministic tightest reported
+- [x] Test and implement ordered All overview, deterministic tightest reported
   percentage, independent earliest reset, state and navigation.
-- [ ] Test and implement compact accessible detail cards, elapsed-time marker,
+- [x] Test and implement compact accessible detail cards, elapsed-time marker,
   and distinct no-providers-enabled view.
-- [ ] Validate optional duration at both boundaries and map only wire-reported
+- [x] Validate optional duration at both boundaries and map only wire-reported
   durations; cover existing providers with synthetic fixtures.
-- [ ] Refresh README, changelog and synthetic light/dark screenshots.
+- [x] Refresh README, changelog and synthetic light/dark screenshots.
 - [ ] **Gate G-20:** independent review and owner live acceptance; clean `dist`
   before each of typecheck, Node tests, QML tests, Plasma validation and artifact
   build with a disposable synthetic HOME; capture All, detail and disabled views
   in both light and dark. Record commands and counts before marking passed.
 
-Counters: reviews 0 · correction rounds 0 · oracle 0 · direct edits 1.
+Local synthetic checks, 2026-11-22: with a fresh disposable HOME and `dist`
+removed before each command, `npm run typecheck` passed; `npm test` passed
+778/0; `npm run test:qml` passed 444/0; `npm run validate:plasma` and
+`npm run build:artifact` passed. Before the final run, the QML suite exposed
+a QVariantList/JS-array reset accessibility issue; a focused regression test
+passed after the fix. Isolated virtual-KWin captures of All, detail and empty
+in Breeze Dark and Light are in `.cache/overview-screenshots/` (synthetic
+records only). No live widget/account check or independent review is claimed.
+
+Counters: reviews 0 · correction rounds 0 · oracle 0 · direct edits 2.
 
 ## Deferred providers
 

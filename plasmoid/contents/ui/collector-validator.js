@@ -20,7 +20,7 @@ var MAX_INPUT_LENGTH = 262144; // 256 KiB of QML string content.
 
 var DOCUMENT_KEYS = ["schemaVersion", "collectionStartedAt", "collectionFinishedAt", "providers"];
 var PROVIDER_KEYS = ["id", "state", "status", "lastSuccessAt", "windows", "details"];
-var WINDOW_KEYS = ["id", "label", "usedPercent", "used", "limit", "resetAt"];
+var WINDOW_KEYS = ["id", "label", "durationSeconds", "usedPercent", "used", "limit", "resetAt"];
 var CLAUDE_DETAIL_KEYS = [
     "model",
     "tokens",
@@ -247,6 +247,8 @@ function parseWindow(input, state, allowExceeded) {
         state.invalid = true;
     }
     var label = parseRequiredSafeText(input, "label", 100, state);
+    var durationSeconds = parseOptionalCount(input, "durationSeconds", state);
+    if (durationSeconds === 0) state.invalid = true;
     var usedPercent = parseOptionalPercent(input, "usedPercent", state);
     var used = parseOptionalCount(input, "used", state);
     var limit = parseOptionalCount(input, "limit", state);
@@ -264,6 +266,7 @@ function parseWindow(input, state, allowExceeded) {
     }
 
     var window = { id: id, label: label };
+    if (durationSeconds !== undefined) window.durationSeconds = durationSeconds;
     if (usedPercent !== undefined) window.usedPercent = usedPercent;
     if (used !== undefined) window.used = used;
     if (limit !== undefined) window.limit = limit;

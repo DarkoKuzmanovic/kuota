@@ -59,6 +59,24 @@ const minimalDocument = {
   providers: [],
 };
 
+test("window duration is optional and must be a positive safe integer", () => {
+  const document = (window: object) => ({
+    ...minimalDocument,
+    providers: [{ id: "codex", state: "ok", windows: [window] }],
+  });
+  for (const durationSeconds of [1, 18_000, Number.MAX_SAFE_INTEGER]) {
+    const result = validateCollectorDocument(document({ id: "primary", label: "Primary", durationSeconds }));
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal(result.value.providers[0]?.windows?.[0]?.durationSeconds, durationSeconds);
+  }
+  const absent = validateCollectorDocument(document({ id: "primary", label: "Primary" }));
+  assert.equal(absent.ok, true);
+  if (absent.ok) assert.equal("durationSeconds" in (absent.value.providers[0]?.windows?.[0] ?? {}), false);
+  for (const durationSeconds of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, null, "18000", true, NaN, Infinity]) {
+    assert.equal(validateCollectorDocument(document({ id: "primary", label: "Primary", durationSeconds })).ok, false);
+  }
+});
+
 const typedClaudeRecord: ProviderRecord = {
   id: "claude",
   state: "ok",

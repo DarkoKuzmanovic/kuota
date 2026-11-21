@@ -186,6 +186,28 @@ TestCase {
         compare(result.ok, true);
     }
 
+    function test_windowDurationIsOptionalPositiveSafeInteger() {
+        function validate(window) {
+            var provider = Fixtures.validClaudeProvider({ windows: [window] });
+            return CollectorValidator.validateCollectorResponse(json(Fixtures.minimalDocument({ providers: [provider] })));
+        }
+        var values = [1, 18000, 9007199254740991];
+        for (var i = 0; i < values.length; i++) {
+            var result = validate({ id: "primary", label: "Primary", durationSeconds: values[i] });
+            verify(result.ok);
+            compare(result.value.providers[0].windows[0].durationSeconds, values[i]);
+        }
+        var absent = validate({ id: "primary", label: "Primary" });
+        verify(absent.ok);
+        verify(!("durationSeconds" in absent.value.providers[0].windows[0]));
+        var invalid = [0, -1, 1.5, 9007199254740992, null, "18000", true];
+        for (var j = 0; j < invalid.length; j++) {
+            var rejected = validate({ id: "primary", label: "Primary", durationSeconds: invalid[j] });
+            compare(rejected.ok, false);
+            compare(rejected.code, CollectorValidator.VALIDATION_FAILURE.SCHEMA_INVALID);
+        }
+    }
+
     function test_rejectsUnsupportedSchemaVersion() {
         var document = Fixtures.minimalDocument({ schemaVersion: 0 });
         var result = CollectorValidator.validateCollectorResponse(json(document));

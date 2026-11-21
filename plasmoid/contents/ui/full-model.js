@@ -1,8 +1,10 @@
 .pragma library
 
-// Plasma-independent full-view model. Maps one already-validated provider
-// record to window rows, provider facts, and state messaging. Never imports
-// Plasma executable APIs or touches I/O. Live countdown is computed in QML.
+// Plasma-independent full-view model. Maps already-validated provider records
+// to the All overview rows, detail window rows, provider facts, and state
+// messaging. Never imports Plasma executable APIs or touches I/O. Live
+// countdowns and elapsed-time (pace) fractions are computed in QML from the
+// passed-through `resetAt` / `durationSeconds` and an injected clock.
 
 var THRESHOLD_LEVEL = Object.freeze({
     NONE: "none",
@@ -81,6 +83,170 @@ function emptyModel() {
     };
 }
 
+// ---- All overview (spec 2026-11-22-overview-popup-redesign-design.md) ----
+
+// One row per enabled provider, in the caller's (user-configured) order.
+// A provider without a record yet is `pending`, never "disabled": that is the
+// distinct `hasEnabledProviders === false` state. Providers are never sorted
+// by headroom.
+function buildOverviewModel(providerOrder, records, thresholds, appearance) {
+    var providerIds = enabledProviderOrder(providerOrder);
+    var rows = [];
+    for (var i = 0; i < providerIds.length; i++) {
+        rows.push(buildOverviewRow(providerIds[i], findProviderRecord(records, providerIds[i]), thresholds, appearance));
+    }
+    return {
+        providerIds: providerIds,
+        hasEnabledProviders: providerIds.length > 0,
+        rows: rows
+    };
+}
+
+function enabledProviderOrder(providerOrder) {
+    var ids = [];
+    if (!Array.isArray(providerOrder)) {
+        return ids;
+    }
+    for (var i = 0; i < providerOrder.length; i++) {
+        var id = providerOrder[i];
+        if (typeof id === "string" && id.length > 0 && ids.indexOf(id) === -1) {
+            ids.push(id);
+        }
+    }
+    return ids;
+}
+
+function findProviderRecord(records, providerId) {
+    if (!Array.isArray(records)) {
+        return null;
+    }
+    for (var i = 0; i < records.length; i++) {
+        if (isRecord(records[i]) && records[i].id === providerId) {
+            return records[i];
+        }
+    }
+    return null;
+}
+
+function buildOverviewRow(providerId, record, thresholds, appearance) {
+    var resolvedAppearance = normalizeAppearance(appearance);
+    var row = {
+        providerId: providerId,
+        pending: true,
+        state: "",
+        stateBadge: "",
+        resets: [],
+        textColor: resolvedAppearance.customTextColor,
+        labelOpacity: resolvedAppearance.labelOpacity
+    };
+    if (!isRecord(record) || record.id !== providerId) {
+        return row;
+    }
+
+    var detail = buildFullViewModel(record, thresholds, appearance);
+    row.pending = false;
+    row.state = detail.state;
+    if (detail.state !== "ok") {
+        row.stateBadge = Object.prototype.hasOwnProperty.call(STATE_MESSAGES, detail.state)
+            ? STATE_MESSAGES[detail.state]
+            : STATE_MESSAGES.error;
+    }
+    if (detail.state === "auth-needed" && Object.prototype.hasOwnProperty.call(LOGIN_HINTS, providerId)) {
+        row.loginHint = LOGIN_HINTS[providerId];
+    }
+    if (detail.lastSuccessAt !== undefined) {
+        row.lastSuccessAt = detail.lastSuccessAt;
+    }
+
+    var primaryIndex = tightestWindowIndex(detail.windows);
+    if (primaryIndex === -1) {
+        primaryIndex = firstCountWindowIndex(detail.windows);
+    }
+    if (primaryIndex !== -1) {
+        row.primary = overviewPrimary(detail.windows[primaryIndex]);
+    }
+    row.resets = resetsByTime(detail.windows, primaryIndex);
+    return row;
+}
+
+// Highest REPORTED usedPercent wins; a tie keeps the first window. A percent
+// is never synthesized from used/limit for this comparison.
+function tightestWindowIndex(windows) {
+    var best = -1;
+    for (var i = 0; i < windows.length; i++) {
+        var percent = windows[i].usedPercent;
+        if (typeof percent !== "number" || !isFinite(percent)) {
+            continue;
+        }
+        if (best === -1 || percent > windows[best].usedPercent) {
+            best = i;
+        }
+    }
+    return best;
+}
+
+function firstCountWindowIndex(windows) {
+    for (var i = 0; i < windows.length; i++) {
+        if (typeof windows[i].used === "number" && isFinite(windows[i].used)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function overviewPrimary(windowRow) {
+    var primary = {
+        label: windowRow.label,
+        thresholdLevel: windowRow.thresholdLevel,
+        barColor: windowRow.barColor
+    };
+    if (typeof windowRow.usedPercent === "number" && isFinite(windowRow.usedPercent)) {
+        primary.usedPercent = windowRow.usedPercent;
+        // Remaining share derives only from the reported percent.
+        primary.remainingPercent = Math.max(0, Math.min(100, 100 - windowRow.usedPercent));
+        primary.progressFraction = clamp01(windowRow.usedPercent / 100);
+    } else {
+        // Count-only: genuine values, no bar (it would need a synthesized percent).
+        primary.used = windowRow.used;
+        if (windowRow.limit !== undefined) {
+            primary.limit = windowRow.limit;
+        }
+    }
+    if (windowRow.resetAt !== undefined) {
+        primary.resetAt = windowRow.resetAt;
+    }
+    if (windowRow.durationSeconds !== undefined) {
+        primary.durationSeconds = windowRow.durationSeconds;
+    }
+    return primary;
+}
+
+// Every valid reported reset, earliest first (stable on ties). QML picks the
+// soonest one still in the future against its live clock. `isPrimary` lets the
+// view name the window whenever the reset belongs to a different window than
+// the one displayed.
+function resetsByTime(windows, primaryIndex) {
+    var resets = [];
+    for (var i = 0; i < windows.length; i++) {
+        if (windows[i].resetAt === undefined) {
+            continue;
+        }
+        var timeMs = Date.parse(windows[i].resetAt);
+        if (isNaN(timeMs)) {
+            continue;
+        }
+        resets.push({ label: windows[i].label, resetAt: windows[i].resetAt, isPrimary: i === primaryIndex, order: i, timeMs: timeMs });
+    }
+    resets.sort(function (a, b) {
+        return a.timeMs !== b.timeMs ? a.timeMs - b.timeMs : a.order - b.order;
+    });
+    var result = [];
+    for (var r = 0; r < resets.length; r++) {
+        result.push({ label: resets[r].label, resetAt: resets[r].resetAt, isPrimary: resets[r].isPrimary });
+    }
+    return result;
+}
+
 // Defensive reader for the sanitized theming settings (same contract as
 // compact-model.js): custom text color only when enabled, "" / 1.0 = V1 look.
 function normalizeAppearance(appearance) {
@@ -136,6 +302,11 @@ function buildWindowRow(window, thresholds, accentColor) {
     }
     if (typeof window.resetAt === "string" && window.resetAt.length > 0) {
         row.resetAt = window.resetAt;
+    }
+    // Reported window length only (schema v2 optional `durationSeconds`);
+    // never inferred from a label or a customary provider period.
+    if (typeof window.durationSeconds === "number" && isFinite(window.durationSeconds) && window.durationSeconds > 0) {
+        row.durationSeconds = window.durationSeconds;
     }
 
     var utilization = utilizationPercent(window);

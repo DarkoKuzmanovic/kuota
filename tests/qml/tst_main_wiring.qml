@@ -74,14 +74,24 @@ TestCase {
             var full = root.fullRepresentation.createObject(root);
             compare(compact.hasEntries, false);
             compare(full.hasProviders, false);
+            // No providers enabled is its own state: nothing to refresh.
+            compare(full.hasEnabledProviders, false);
+            compare(full.refreshButtonItem.enabled, false);
             root.configOverride = selectedSettings(["codex"]);
+            // Enabled but not collected yet: a pending row, not "disabled".
+            compare(full.hasEnabledProviders, true);
+            compare(full.overviewModel.rows.length, 1);
+            compare(full.overviewModel.rows[0].providerId, "codex");
+            compare(full.overviewModel.rows[0].pending, true);
             waitForSelection(root, ["codex"]);
+            compare(full.overviewModel.rows[0].pending, false);
             compare(bridge._requestState.nextSourceId, 2);
             root.configOverride = selectedSettings([]);
             compare(root.snapshot, null);
             compare(root.snapshotAgeMs(), undefined);
             compare(compact.hasEntries, false);
             compare(full.hasProviders, false);
+            compare(full.hasEnabledProviders, false);
             compare(bridge._requestState.nextSourceId, 2);
         } finally { root.destroy(); }
     }
@@ -284,6 +294,11 @@ TestCase {
 
         var fullItem = root.fullRepresentation.createObject(root, {});
         compare(fullItem.showCountdown, false);
+
+        // The no-providers view's configure action is wired and harmless when
+        // there is no Plasma applet host (plasmoid is null here).
+        fullItem.requestConfigure();
+        compare(typeof root.openConfiguration, "function");
 
         loader.destroy();
     }

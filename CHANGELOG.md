@@ -13,6 +13,18 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
 
+### Added
+
+- **All overview:** compare each enabled provider's tightest reported usage
+  window and earliest reset in configured order, with explicit state badges.
+- **Elapsed-time tick:** detail bars mark elapsed time only when the provider
+  reports both the window duration and its reset time.
+
+### Changed
+
+- The full popup uses more compact detail cards and distinguishes having no
+  providers enabled from waiting for usage data.
+
 ### Fixed
 
 - **Mistral showed stale data.** The admin dashboard retired the REST budget path

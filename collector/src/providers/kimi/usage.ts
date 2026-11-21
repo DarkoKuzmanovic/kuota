@@ -72,6 +72,33 @@ function windowMinutes(window: PlainRecord | undefined): number | null | typeof 
   return null;
 }
 
+function windowDurationSeconds(window: PlainRecord | undefined): number | undefined {
+  if (window === undefined) return undefined;
+  const raw = ownValue(window, "duration");
+  const duration = typeof raw === "string" && /^\d+(?:\.\d+)?$/.test(raw) ? Number(raw) : raw;
+  if (typeof duration !== "number" || !Number.isFinite(duration) || duration <= 0) return undefined;
+  const unit = ownValue(window, "timeUnit");
+  let multiplier: number;
+  switch (unit) {
+    case "TIME_UNIT_MINUTE":
+    case "MINUTE":
+      multiplier = 60;
+      break;
+    case "TIME_UNIT_HOUR":
+    case "HOUR":
+      multiplier = 3600;
+      break;
+    case "TIME_UNIT_DAY":
+    case "DAY":
+      multiplier = 86400;
+      break;
+    default:
+      return undefined;
+  }
+  const seconds = duration * multiplier;
+  return Number.isSafeInteger(seconds) ? seconds : undefined;
+}
+
 function windowLabelFromMinutes(minutes: number | null): string {
   if (minutes === null) return "5h";
   if (minutes >= 43_200) return "month";
@@ -102,6 +129,7 @@ function usageWindow(
   id: string,
   label: string,
   row: { used: number | typeof INVALID | undefined; limit: number | typeof INVALID | undefined; resetAt: string | typeof INVALID | undefined },
+  durationSeconds?: number,
 ): UsageWindow | typeof INVALID | undefined {
   if (row.used === INVALID || row.limit === INVALID || row.resetAt === INVALID) return INVALID;
   if (row.used === undefined && row.limit === undefined) return undefined;
@@ -114,6 +142,7 @@ function usageWindow(
   return {
     id,
     label,
+    ...(durationSeconds === undefined ? {} : { durationSeconds }),
     ...(used === undefined ? {} : { used }),
     ...(limit === undefined ? {} : { limit }),
     ...(usedPercent === undefined ? {} : { usedPercent }),
@@ -170,7 +199,7 @@ export function parseKimiUsageResponse(input: unknown, observedAt: string): Kimi
       concurrencyLimit === INVALID) return failure();
 
     const weekWindow = usageWindow("week", "Week", week);
-    const shortUsageWindow = usageWindow(shortLabel, shortLabel, short);
+    const shortUsageWindow = usageWindow(shortLabel, shortLabel, short, windowDurationSeconds(shortWindowRecord));
     if (weekWindow === INVALID || shortUsageWindow === INVALID) return failure();
 
     const windows: UsageWindow[] = [];

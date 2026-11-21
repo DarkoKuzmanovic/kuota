@@ -587,4 +587,269 @@ TestCase {
         compare(factValue(model, "Plan"), "go");
         compare(factValue(model, "Wallet balance"), "$12.35");
     }
+
+    // ---- 2026-11-22 overview popup redesign ----
+
+    function overviewRow(model, providerId) {
+        for (var i = 0; i < model.rows.length; i++) {
+            if (model.rows[i].providerId === providerId) {
+                return model.rows[i];
+            }
+        }
+        return null;
+    }
+
+    function test_durationSecondsPassesThroughOnlyWhenReported() {
+        var model = FullModel.buildFullViewModel(Fixtures.validClaudeProvider({
+            windows: [
+                Fixtures.validWindow({ id: "session", label: "Session", durationSeconds: 18000 }),
+                Fixtures.validWindow({ id: "weekly", label: "Weekly" })
+            ]
+        }));
+        compare(windowRow(model, 0).durationSeconds, 18000);
+        verify(windowRow(model, 1).durationSeconds === undefined, "never inferred from a label");
+    }
+
+    function test_durationSecondsInvalidValuesAreDropped() {
+        var values = [0, -60, NaN, Infinity, "18000"];
+        for (var i = 0; i < values.length; i++) {
+            var model = FullModel.buildFullViewModel(Fixtures.validClaudeProvider({
+                windows: [Fixtures.validWindow({ durationSeconds: values[i] })]
+            }));
+            verify(windowRow(model, 0).durationSeconds === undefined, String(values[i]));
+        }
+    }
+
+    function test_overviewFollowsConfiguredOrderAndDedupes() {
+        var model = FullModel.buildOverviewModel(
+            ["grok", "claude", "grok", "", 7, "codex"],
+            [Fixtures.validClaudeProvider(), Fixtures.validGrokProvider(), Fixtures.validCodexProvider()]
+        );
+        compare(model.providerIds, ["grok", "claude", "codex"]);
+        compare(model.rows.map(function (r) { return r.providerId; }), ["grok", "claude", "codex"]);
+        compare(model.hasEnabledProviders, true);
+    }
+
+    function test_overviewDoesNotSortByHeadroom() {
+        var model = FullModel.buildOverviewModel(["claude", "grok"], [
+            Fixtures.validClaudeProvider({ windows: [Fixtures.validWindow({ usedPercent: 5 })] }),
+            Fixtures.validGrokProvider({ windows: [Fixtures.validWindow({ usedPercent: 95 })] })
+        ]);
+        compare(model.rows[0].providerId, "claude");
+        compare(model.rows[1].providerId, "grok");
+    }
+
+    function test_overviewNoEnabledProvidersIsDistinctFromPending() {
+        var none = FullModel.buildOverviewModel([], [Fixtures.validClaudeProvider()]);
+        compare(none.hasEnabledProviders, false);
+        compare(none.rows.length, 0);
+
+        var invalid = FullModel.buildOverviewModel(undefined, undefined);
+        compare(invalid.hasEnabledProviders, false);
+
+        var waiting = FullModel.buildOverviewModel(["claude", "codex"], undefined);
+        compare(waiting.hasEnabledProviders, true);
+        compare(waiting.rows.length, 2);
+        compare(waiting.rows[0].pending, true);
+        compare(waiting.rows[1].pending, true);
+        verify(waiting.rows[0].primary === undefined);
+        compare(waiting.rows[0].resets.length, 0);
+        compare(waiting.rows[0].stateBadge, "");
+    }
+
+    function test_overviewRecordsOutsideTheEnabledOrderAreIgnored() {
+        var model = FullModel.buildOverviewModel(["codex"], [Fixtures.validClaudeProvider()]);
+        compare(model.rows.length, 1);
+        compare(model.rows[0].providerId, "codex");
+        compare(model.rows[0].pending, true);
+    }
+
+    function test_overviewTightestIsHighestReportedPercent() {
+        var row = overviewRow(FullModel.buildOverviewModel(["claude"], [Fixtures.validClaudeProvider({
+            windows: [
+                Fixtures.validWindow({ id: "session", label: "Session", usedPercent: 30 }),
+                Fixtures.validWindow({ id: "weekly", label: "Weekly", usedPercent: 79.4 }),
+                Fixtures.validWindow({ id: "opus", label: "Opus", usedPercent: 12 })
+            ]
+        })]), "claude");
+        compare(row.pending, false);
+        compare(row.primary.label, "Weekly");
+        compare(row.primary.usedPercent, 79.4);
+        compare(row.primary.thresholdLevel, "caution");
+        verify(Math.abs(row.primary.remainingPercent - 20.6) < 1e-9);
+        verify(Math.abs(row.primary.progressFraction - 0.794) < 1e-9);
+    }
+
+    function test_overviewTightestTieKeepsFirstWindow() {
+        var row = overviewRow(FullModel.buildOverviewModel(["opencode"], [Fixtures.validOpencodeProvider({
+            windows: [
+                Fixtures.validWindow({ id: "rolling", label: "5h", usedPercent: 60 }),
+                Fixtures.validWindow({ id: "weekly", label: "Weekly", usedPercent: 60 }),
+                Fixtures.validWindow({ id: "monthly", label: "Monthly", usedPercent: 20 })
+            ]
+        })]), "opencode");
+        compare(row.primary.label, "5h");
+    }
+
+    function test_overviewNeverSynthesizesPercentForSelection() {
+        // 90/100 without a reported percent must not outrank a reported 10%.
+        var row = overviewRow(FullModel.buildOverviewModel(["claude"], [Fixtures.validClaudeProvider({
+            windows: [
+                { id: "credits", label: "Credits", used: 90, limit: 100 },
+                { id: "weekly", label: "Weekly", usedPercent: 10 }
+            ]
+        })]), "claude");
+        compare(row.primary.label, "Weekly");
+        compare(row.primary.usedPercent, 10);
+    }
+
+    function test_overviewRemainingPercentIsClampedComplement() {
+        var over = overviewRow(FullModel.buildOverviewModel(["claude"], [Fixtures.validClaudeProvider({
+            windows: [Fixtures.validWindow({ usedPercent: 130 })]
+        })]), "claude");
+        compare(over.primary.remainingPercent, 0);
+        compare(over.primary.progressFraction, 1);
+
+        var under = overviewRow(FullModel.buildOverviewModel(["claude"], [Fixtures.validClaudeProvider({
+            windows: [Fixtures.validWindow({ usedPercent: -4 })]
+        })]), "claude");
+        compare(under.primary.remainingPercent, 100);
+        compare(under.primary.progressFraction, 0);
+    }
+
+    function test_overviewCountFallbackUsesGenuineValuesOnly() {
+        var row = overviewRow(FullModel.buildOverviewModel(["grok"], [{
+            id: "grok",
+            state: "ok",
+            windows: [
+                { id: "flag", label: "Flag only", resetAt: "2026-07-15T00:00:00.000Z" },
+                { id: "rolling", label: "Rolling window", used: 1200 },
+                { id: "capped", label: "Capped", used: 21, limit: 100 }
+            ]
+        }]), "grok");
+        compare(row.primary.label, "Rolling window");
+        compare(row.primary.used, 1200);
+        verify(row.primary.limit === undefined);
+        verify(row.primary.usedPercent === undefined);
+        verify(row.primary.remainingPercent === undefined);
+        verify(row.primary.progressFraction === undefined, "no bar without a reported percent");
+
+        var capped = overviewRow(FullModel.buildOverviewModel(["kimi"], [{
+            id: "kimi",
+            state: "ok",
+            windows: [{ id: "week", label: "Weekly", used: 21, limit: 100 }]
+        }]), "kimi");
+        compare(capped.primary.used, 21);
+        compare(capped.primary.limit, 100);
+        verify(capped.primary.progressFraction === undefined);
+    }
+
+    function test_overviewWithoutAnyMetricOmitsPrimary() {
+        var row = overviewRow(FullModel.buildOverviewModel(["claude"], [{
+            id: "claude",
+            state: "stale",
+            lastSuccessAt: "2026-07-10T10:00:01.000Z",
+            windows: [{ id: "weekly", label: "Weekly", resetAt: "2026-07-15T00:00:00.000Z" }]
+        }]), "claude");
+        verify(row.primary === undefined);
+        compare(row.resets.length, 1);
+        compare(row.resets[0].isPrimary, false);
+    }
+
+    function test_overviewResetsAreSortedIndependentlyOfTightest() {
+        var row = overviewRow(FullModel.buildOverviewModel(["claude"], [Fixtures.validClaudeProvider({
+            windows: [
+                Fixtures.validWindow({ id: "weekly", label: "Weekly", usedPercent: 80, resetAt: "2026-07-20T00:00:00.000Z" }),
+                Fixtures.validWindow({ id: "session", label: "Session", usedPercent: 20, resetAt: "2026-07-14T12:00:00.000Z" }),
+                Fixtures.validWindow({ id: "none", label: "No reset", usedPercent: 5, resetAt: undefined }),
+                Fixtures.validWindow({ id: "bad", label: "Bad reset", usedPercent: 5, resetAt: "not a time" }),
+                Fixtures.validWindow({ id: "same", label: "Same time", usedPercent: 5, resetAt: "2026-07-14T12:00:00.000Z" })
+            ]
+        })]), "claude");
+        compare(row.primary.label, "Weekly");
+        compare(row.resets.map(function (r) { return r.label; }), ["Session", "Same time", "Weekly"]);
+        compare(row.resets.map(function (r) { return r.isPrimary; }), [false, false, true]);
+        compare(row.resets[0].resetAt, "2026-07-14T12:00:00.000Z");
+    }
+
+    function test_overviewPrimaryCarriesReportedDurationForPace() {
+        var withDuration = overviewRow(FullModel.buildOverviewModel(["codex"], [{
+            id: "codex", state: "ok",
+            windows: [{ id: "primary", label: "5h", usedPercent: 40, resetAt: "2026-07-14T12:00:00.000Z", durationSeconds: 18000 }]
+        }]), "codex");
+        compare(withDuration.primary.durationSeconds, 18000);
+        compare(withDuration.primary.resetAt, "2026-07-14T12:00:00.000Z");
+
+        var without = overviewRow(FullModel.buildOverviewModel(["codex"], [{
+            id: "codex", state: "ok",
+            windows: [{ id: "primary", label: "5h", usedPercent: 40, resetAt: "2026-07-14T12:00:00.000Z" }]
+        }]), "codex");
+        verify(without.primary.durationSeconds === undefined);
+    }
+
+    function test_overviewStateBadgesAndLoginHints() {
+        var model = FullModel.buildOverviewModel(["claude", "codex", "grok", "kimi"], [
+            Fixtures.validStaleClaudeProvider(),
+            Fixtures.validCodexProvider({ state: "auth-needed" }),
+            Fixtures.validGrokProvider({ state: "error", windows: undefined, details: undefined, lastSuccessAt: undefined }),
+            Fixtures.validKimiProvider()
+        ]);
+        var stale = overviewRow(model, "claude");
+        compare(stale.state, "stale");
+        compare(stale.stateBadge, "Stale data");
+        verify(stale.primary !== undefined, "stale keeps retained data");
+        verify(stale.loginHint === undefined);
+
+        var auth = overviewRow(model, "codex");
+        compare(auth.stateBadge, "Login needed");
+        compare(auth.loginHint, "run in a terminal: kuota login codex");
+
+        var error = overviewRow(model, "grok");
+        compare(error.stateBadge, "Error");
+        verify(error.primary === undefined);
+
+        var ok = overviewRow(model, "kimi");
+        compare(ok.stateBadge, "");
+        compare(ok.lastSuccessAt, "2026-07-11T10:00:01.000Z");
+    }
+
+    function test_overviewUnknownProviderAuthHasNoHint() {
+        var row = overviewRow(FullModel.buildOverviewModel(["future-provider"], [{ id: "future-provider", state: "auth-needed" }]), "future-provider");
+        compare(row.stateBadge, "Login needed");
+        verify(row.loginHint === undefined);
+    }
+
+    function test_overviewAppliesThresholdsAndAppearance() {
+        var model = FullModel.buildOverviewModel(["claude"], [Fixtures.validClaudeProvider({
+            windows: [Fixtures.validWindow({ usedPercent: 55 })]
+        })], { caution: 50, critical: 60 }, {
+            claudeAccentColor: "#d97757", customTextColorEnabled: true, customTextColor: "#123456", labelOpacity: 0.5
+        });
+        var row = model.rows[0];
+        compare(row.primary.thresholdLevel, "caution");
+        compare(row.primary.barColor, "", "threshold wins over accent");
+        compare(row.textColor, "#123456");
+        compare(row.labelOpacity, 0.5);
+
+        var calm = FullModel.buildOverviewModel(["claude"], [Fixtures.validClaudeProvider({
+            windows: [Fixtures.validWindow({ usedPercent: 10 })]
+        })], undefined, { claudeAccentColor: "#d97757" }).rows[0];
+        compare(calm.primary.barColor, "#d97757");
+        compare(calm.textColor, "");
+        compare(calm.labelOpacity, 1.0);
+    }
+
+    function test_overviewCarriesNoCountdownOrSecrets() {
+        var model = FullModel.buildOverviewModel(["claude", "codex"], [
+            Fixtures.validClaudeProvider({ status: "Usage is current" }),
+            Fixtures.validCodexProvider({ state: "auth-needed" })
+        ]);
+        var serialized = JSON.stringify(model).toLowerCase();
+        verify(serialized.indexOf("countdown") === -1);
+        verify(serialized.indexOf("usage is current") === -1, "status text is not echoed");
+        var forbidden = ["oauth", "bearer", "sk-", "accountid", "refresh_token", "api_key", "authorization"];
+        for (var i = 0; i < forbidden.length; i++) {
+            verify(serialized.indexOf(forbidden[i]) === -1, forbidden[i]);
+        }
+    }
 }

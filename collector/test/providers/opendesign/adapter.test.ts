@@ -42,8 +42,8 @@ test("bridge: workspace → coding-plan usage + wallet becomes 5h (primary) + we
     state: "ok",
     lastSuccessAt: "2026-11-06T10:00:00.000Z",
     windows: [
-      { id: "5h", label: "5h", used: 120, limit: 2000, usedPercent: 6, resetAt: "2026-11-06T13:00:00.000Z" },
-      { id: "weekly", label: "Weekly", used: 250, limit: 10000, usedPercent: 2.5, resetAt: "2026-11-10T00:00:00.000Z" },
+      { id: "5h", label: "5h", durationSeconds: 18000, used: 120, limit: 2000, usedPercent: 6, resetAt: "2026-11-06T13:00:00.000Z" },
+      { id: "weekly", label: "Weekly", durationSeconds: 604800, used: 250, limit: 10000, usedPercent: 2.5, resetAt: "2026-11-10T00:00:00.000Z" },
     ],
     details: { opendesign: { tier: "go", walletBalanceUsd: 12.345 } },
   });
@@ -67,8 +67,10 @@ test("parser: overdrawn windows cap at the limit; garbage and empty recognition 
   const at = "2026-11-06T10:00:00.000Z";
   const over = parseOpenDesignUsageResponse({ windows: [{ durationSeconds: 18000, usedCredits: "2100", limitCredits: "2000" }] }, undefined, at);
   assert.ok(over.ok);
-  if (over.ok) assert.deepEqual(over.record.windows, [{ id: "5h", label: "5h", used: 2000, limit: 2000, usedPercent: 100 }]);
+  if (over.ok) assert.deepEqual(over.record.windows, [{ id: "5h", label: "5h", durationSeconds: 18000, used: 2000, limit: 2000, usedPercent: 100 }]);
   assert.equal(parseOpenDesignUsageResponse({ windows: [{ durationSeconds: 18000, usedCredits: "x", limitCredits: "2000" }] }, undefined, at).ok, false);
+  assert.equal(parseOpenDesignUsageResponse({ windows: [{ usedCredits: "1", limitCredits: "2" }] }, undefined, at).ok, false);
+  assert.equal(parseOpenDesignUsageResponse({ windows: [{ durationSeconds: "18000", usedCredits: "1", limitCredits: "2" }] }, undefined, at).ok, false);
   assert.equal(parseOpenDesignUsageResponse({ windows: "nope" }, undefined, at).ok, false);
   assert.equal(parseOpenDesignUsageResponse({ eligible: false, windows: [] }, undefined, at).ok, false);
   const walletOnly = parseOpenDesignUsageResponse({ eligible: false, windows: [] }, WALLET, at);

@@ -119,6 +119,7 @@ function parseWindow(
     window: {
       id,
       label,
+      ...(typeof limitWindowSeconds === "number" ? { durationSeconds: limitWindowSeconds } : {}),
       ...(typeof usedPercent === "number" ? { usedPercent } : {}),
       ...(typeof resetAt === "string" ? { resetAt } : {}),
     },

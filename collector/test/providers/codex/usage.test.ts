@@ -58,12 +58,14 @@ test("normalizes primary and secondary Codex windows with approved detail facts"
       {
         id: "primary",
         label: "Primary",
+        durationSeconds: 18_000,
         usedPercent: 25,
         resetAt: "2025-10-09T08:53:20.000Z",
       },
       {
         id: "secondary",
         label: "Secondary",
+        durationSeconds: 604_800,
         usedPercent: 40.5,
         resetAt: "2025-10-09T22:46:40.000Z",
       },
@@ -106,6 +108,8 @@ test("rejects malformed recognized Codex window fields", () => {
     { rate_limit: { primary_window: { limit_window_seconds: -1 } } },
     { rate_limit: { primary_window: { used_percent: 10, limit_window_seconds: 0 } } },
     { rate_limit: { primary_window: { limit_window_seconds: 1.5 } } },
+    { rate_limit: { primary_window: { used_percent: 10, limit_window_seconds: Number.MAX_SAFE_INTEGER + 1 } } },
+    { rate_limit: { primary_window: { used_percent: 10, limit_window_seconds: null } } },
   ];
 
   for (const input of malformed) assertFailure(input);

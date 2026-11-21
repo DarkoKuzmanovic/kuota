@@ -33,6 +33,7 @@ function parseWindow(raw: unknown): UsageWindow | undefined | null {
   const reset = typeof raw.resetsAt === "string" ? Date.parse(raw.resetsAt) : Number.NaN;
   return {
     ...known,
+    durationSeconds: raw.durationSeconds,
     used: capped,
     limit,
     ...(limit > 0 ? { usedPercent: (capped / limit) * 100 } : {}),

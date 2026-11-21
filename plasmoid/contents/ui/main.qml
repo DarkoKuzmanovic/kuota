@@ -17,6 +17,18 @@ PlasmoidItem {
         _bridge.refresh(enabledProviders);
     }
 
+    // The no-providers-enabled view's only action. `plasmoid` is null in the
+    // offscreen test harness, so this is a guarded no-op there.
+    function openConfiguration() {
+        if (plasmoid === null || plasmoid === undefined || typeof plasmoid.internalAction !== "function") {
+            return;
+        }
+        var action = plasmoid.internalAction("configure");
+        if (action) {
+            action.trigger();
+        }
+    }
+
     function snapshotAgeMs() {
         return SnapshotState.getSnapshotAgeMs(_bridge.snapshotState, Date.now());
     }
@@ -118,5 +130,6 @@ PlasmoidItem {
         appearance: root.sanitizedSettings
         fontFamily: root.sanitizedSettings.fontFamily
         onRequestRefresh: root.refresh()
+        onRequestConfigure: root.openConfiguration()
     }
 }

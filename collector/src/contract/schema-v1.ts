@@ -9,6 +9,7 @@ export type ProviderState = (typeof PROVIDER_STATES)[number];
 export interface UsageWindow {
   readonly id: string;
   readonly label: string;
+  readonly durationSeconds?: number;
   readonly usedPercent?: number;
   readonly used?: number;
   readonly limit?: number;

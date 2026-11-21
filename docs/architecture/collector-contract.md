@@ -19,6 +19,7 @@ The collector emits one normalized JSON document. Schema version 2 is deliberate
         {
           "id": "weekly",
           "label": "Weekly",
+          "durationSeconds": 604800,
           "usedPercent": 42,
           "used": 42,
           "limit": 100,
@@ -50,7 +51,9 @@ The collector emits one normalized JSON document. Schema version 2 is deliberate
 
 A `stale` provider is a last-known-good record, not an empty failure marker. It must include `lastSuccessAt` and retained real data: either at least one usage window or a non-empty details object in the namespace matching its provider ID. It does not need both kinds of data, nor every optional field. Other states may omit `lastSuccessAt`, windows, and details when those values are unavailable.
 
-Optional values are omitted when the provider does not supply them. A usage window has a stable `id`, a human-readable `label`, and may contain `usedPercent`, non-negative integer `used` and `limit` counts, and a UTC `resetAt`. Counts cannot exceed a supplied limit; the single exception is a `commandcode` record, whose windows may legally carry `used > limit` when the exceeded flag applies. For an unlimited plan, leave `limit` and `usedPercent` out rather than inventing either value.
+Optional values are omitted when the provider does not supply them. A usage window has a stable `id`, a human-readable `label`, and may contain `durationSeconds` (a positive safe integer), `usedPercent`, non-negative integer `used` and `limit` counts, and a UTC `resetAt`. A duration is included only when explicitly reported by the provider, converting explicit units to seconds when necessary; never infer it from a label, window ID, reset timestamp, or cadence. Counts cannot exceed a supplied limit; the single exception is a `commandcode` record, whose windows may legally carry `used > limit` when the exceeded flag applies. For an unlimited plan, leave `limit` and `usedPercent` out rather than inventing either value.
+
+Codex windows retain the wire's optional `limit_window_seconds` as `durationSeconds` when present.
 
 Provider details are namespaced and typed under the provider record. Claude details may contain `model`, integer `tokens`, and the following optional extra-usage fields: boolean `extraUsageEnabled`; non-negative integer `extraUsageUsedCredits` and `extraUsageMonthlyLimit`, expressed as integer credit amounts in the currency's minor units (each independent, so overage where used exceeds the limit is retained rather than clamped); a bounded (≤16 character) `extraUsageCurrency` code; non-negative integer `extraUsageDecimalPlaces`, the number of decimal places used to render those minor-unit amounts in `extraUsageCurrency`; and a bounded (≤100 character) `extraUsageDisabledReason`. Each extra-usage field is omitted when unavailable, and malformed extra-usage is dropped in isolation so valid base and model windows still surface. Codex details may contain `plan`, non-negative `credits` and `cost`, and integer `tokens`. A details object must use only the namespace matching its provider ID. No provider detail is inferred from a missing native field, and no credential, account identifier, authorization field, raw response, or token-shaped value belongs in this document.
 
@@ -58,7 +61,7 @@ The TypeScript `ProviderRecord` is a discriminated union: a `claude` record can 
 
 Grok details (`details.grok`) may contain non-negative `monthlyUsed` and `monthlyLimit` counts and a UTC `monthlyResetAt` timestamp. Usage windows are ordered week (`id: "week"`, label `"7d"`) then month (`id: "month"`, label `"30d"`) so compact primary defaults to the tighter credit window; the weekly window is optional and omitted when the credits endpoint does not return a weekly period.
 
-Kimi details (`details.kimi`) may contain non-negative integer `concurrency` and `concurrencyLimit` counts. Weekly and short usage windows are represented as `UsageWindow` entries on the provider record; numeric fields are normalized to numbers by the adapter before entering the contract.
+Kimi details (`details.kimi`) may contain non-negative integer `concurrency` and `concurrencyLimit` counts. Weekly and short usage windows are represented as `UsageWindow` entries on the provider record; numeric fields are normalized to numbers by the adapter before entering the contract. A short window's explicit duration and recognized time unit are converted to `durationSeconds`; the weekly window's label does not imply a duration.
 
 Cursor details (`details.cursor`) may contain bounded `membershipType` text; non-negative integer `onDemandUsed` and `onDemandLimit` (cents when present); and optional `autoPercentUsed`, `apiPercentUsed`, and `totalPercentUsed` in `0..100`. The primary usage window is `plan` with `usedPercent` taken from `totalPercentUsed` (dashboard spend share) — not from request-count `used`/`limit`. Cursor auth is local-session or env only — never `auth.json` and never persisted by Kuota.
 
@@ -68,7 +71,7 @@ CommandCode details (`details.commandcode`) may contain a bounded `planName` dra
 
 Mistral details (`details.mistral`) may contain non-negative `vibeBudget` and `apiBudget` monthly budget amounts (major currency units), a three-letter `currency`, and a boolean `paygEnabled`. Windows are `vibe` (label `Vibe Code`, primary) and `api` (label `API`), each with `usedPercent` and `resetAt`; a budget the wire omits is left out.
 
-OpenDesign details (`details.opendesign`) may contain a bounded plan `tier` and a non-negative `walletBalanceUsd`. Windows are `5h` (label `5h`, primary) and `weekly` (label `Weekly`), identified by the wire's `durationSeconds`; each has integer `used`/`limit` credits, a derived `usedPercent`, and `resetAt`. An overdrawn window is capped at `used = limit`. Spec: `docs/specs/2026-11-06-mistral-opendesign-provider-design.md`.
+OpenDesign details (`details.opendesign`) may contain a bounded plan `tier` and a non-negative `walletBalanceUsd`. Windows are `5h` (label `5h`, primary) and `weekly` (label `Weekly`), identified by and retaining the wire's `durationSeconds`; each has integer `used`/`limit` credits, a derived `usedPercent`, and `resetAt`. An overdrawn window is capped at `used = limit`. Spec: `docs/specs/2026-11-06-mistral-opendesign-provider-design.md`.
 
 ## Migrate-then-validate
 
