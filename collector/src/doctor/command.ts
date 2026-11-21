@@ -3,7 +3,7 @@ import { constants } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import { DEFAULT_COLLECTOR_CONFIG } from "../collect/config.js";
 import { resolveCollectorLockPath } from "../collect/lock.js";
@@ -17,7 +17,7 @@ import { readClaudeBackoff } from "../providers/claude/backoff.js";
 import { readCodexAuth } from "../providers/codex/auth.js";
 import { readGrokAuth } from "../providers/grok/auth.js";
 import { readKimiAuth } from "../providers/kimi/auth.js";
-import { defaultRunSqlite, readCursorAuth, type CursorSqliteRunner } from "../providers/cursor/auth.js";
+import { readCursorAuth } from "../providers/cursor/auth.js";
 import { readOpencodeAuth } from "../providers/opencode/auth.js";
 import { readCommandCodeAuth } from "../providers/commandcode/auth.js";
 import { readSessionCookie, type SessionCookieSpec } from "../providers/firefox-cookies.js";
@@ -45,6 +45,12 @@ const HINTS: Readonly<Record<ProviderId, string>> = {
   muse: "sign in at dev.meta.ai in Firefox",
 };
 
+const FOREIGN_EXPIRY_HINTS: Readonly<Partial<Record<Source, string>>> = {
+  "Claude Code file": "open Claude Code once",
+  "Codex CLI file": "run the Codex CLI once",
+  "Cursor file": "open the Cursor app once",
+};
+
 export function cachedStateExplanation(id: ProviderId, state: ProviderState): string {
   switch (state) {
     case "ok": return "";
@@ -54,14 +60,18 @@ export function cachedStateExplanation(id: ProviderId, state: ProviderState): st
   }
 }
 
-function advice(id: ProviderId, diagnosis: Diagnosis): string {
+export function advice(id: ProviderId, diagnosis: Diagnosis): string {
   switch (diagnosis.classification) {
     case "present": return "";
     case "unsafe": return "Check ownership, permissions and symlinks before using this source.";
     case "unavailable": return "Check local file access, SQLite and active WAL files; retry when safe.";
-    case "expired": return diagnosis.source === "Kuota store"
-      ? `Kuota may refresh its own login on collection; if that fails, ${HINTS[id]}.`
-      : `${HINTS[id]}.`;
+    case "expired": {
+      const hint = FOREIGN_EXPIRY_HINTS[diagnosis.source];
+      if (hint !== undefined) return `${hint} to renew it (Kuota never refreshes another tool's login).`;
+      return diagnosis.source === "Kuota store"
+        ? `Kuota may refresh its own login on collection; if that fails, ${HINTS[id]}.`
+        : `${HINTS[id]}.`;
+    }
     case "malformed": return `Repair the local credential or ${HINTS[id]}.`;
     case "missing": return `${HINTS[id]}.`;
   }
@@ -92,24 +102,6 @@ async function browserCookie(spec: SessionCookieSpec, home: string, environment:
   return fallback((env) => readSessionCookie(spec, { homeDirectory: home, environment: env }), "Firefox cookie", environment, now);
 }
 
-const readOnlySqlite: CursorSqliteRunner = async (args, signal) => {
-  const path = args[1];
-  if (path === undefined) return { code: 1, stdout: "", stderr: "", terminated: true };
-  try {
-    const db = await lstat(path);
-    if (!db.isFile() || db.isSymbolicLink()) return { code: 1, stdout: "", stderr: "", terminated: true };
-  } catch (error: unknown) {
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") return { code: 1, stdout: "", stderr: "" };
-    return { code: 1, stdout: "", stderr: "", terminated: true };
-  }
-  try {
-    await lstat(`${path}-wal`);
-    return { code: 1, stdout: "", stderr: "", terminated: true };
-  } catch (error: unknown) {
-    if (!(typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT")) return { code: 1, stdout: "", stderr: "", terminated: true };
-  }
-  return defaultRunSqlite([args[0] ?? "-readonly", `${pathToFileURL(path).href}?immutable=1`, ...args.slice(2)], signal);
-};
 
 async function directory(path: string, mode: number, file: boolean): Promise<Classification> {
   try {
@@ -139,7 +131,17 @@ async function nodeVersion(): Promise<boolean> {
 function age(timestamp: string | undefined, now: number): string {
   if (timestamp === undefined) return "unknown";
   const ms = Date.parse(timestamp);
-  return Number.isFinite(ms) ? `${Math.max(0, Math.floor((now - ms) / 1000))}s ago` : "unknown";
+  if (!Number.isFinite(ms)) return "unknown";
+  const seconds = Math.max(0, Math.floor((now - ms) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    const remainder = minutes % 60;
+    return `${hours}h${remainder > 0 ? ` ${remainder}m` : ""} ago`;
+  }
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 async function versionFile(url: URL, nested: boolean): Promise<string | undefined> {
@@ -207,7 +209,7 @@ export async function runDoctor(stdout: { write(chunk: string): void }, home = h
     kimi: () => fallback((env) => readKimiAuth({ authPath: store, environment: env }), "Kuota store", environment, now),
     opencode: () => fallback((env) => readOpencodeAuth({ authPath: store, environment: env }), "Kuota store", environment, now),
     commandcode: () => fallback((env) => readCommandCodeAuth({ authPath: store, environment: env }), "Kuota store", environment, now),
-    cursor: () => fallback((env) => readCursorAuth({ homeDirectory: home, environment: env, runSqlite: readOnlySqlite }), "Cursor file", environment, now),
+    cursor: () => fallback((env) => readCursorAuth({ homeDirectory: home, environment: env }), "Cursor file", environment, now),
     mistral: () => browserCookie(MISTRAL_COOKIE_SPEC, home, environment, now),
     opendesign: () => browserCookie(OPENDESIGN_COOKIE_SPEC, home, environment, now),
     muse: () => browserCookie(MUSE_COOKIE_SPEC, home, environment, now),

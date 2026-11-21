@@ -6,7 +6,11 @@
 
 The report enumerates the collector provider IDs and default opt-in configuration. Each provider reports the credential source the existing discovery would select and a local classification (present, missing, malformed, unsafe, expired, or unavailable). Selection uses the actual provider readers and their precedence; no refresh is called. Firefox uses the collector's private 0700 temporary copy of `cookies.sqlite` and its WAL, and removes that copy afterwards; it does not write the browser database. A locally present credential is not proof of server acceptance, stated once as a footnote. Environment fallbacks never print their values.
 
+Cursor discovery uses the same WAL-aware `-readonly` SQLite reader as collection; SQLite may perform SHM read-lock bookkeeping, but neither database nor WAL credential contents are written. When a read-only tool's credential is locally expired, direct the user to open that tool once so it can renew its own login; Kuota never refreshes it. Missing or malformed credentials retain their sign-in guidance.
+
 Report Kuota's cache directory and credentials store safety, collector and Claude last-known-good records and the Claude backoff sidecar. These caches retain only successful observations, not the most recent refresh attempt: do not infer the current provider state. Claude's cache reader reconstructs `stale` for fallback use even though its stored observation was successful. Report that observation as `ok`, not as proof of a current stale result. For any available actual state, `ok` has no warning; `stale` explains retained data and endpoint drift rather than re-login; `auth-needed` uses the widget's provider login hint; `error` describes a failed provider without implicating other providers. Never print raw records or invent an attempt result.
+
+Display elapsed ages in seconds below a minute, minutes below an hour, hours with remaining minutes below a day, and whole days thereafter.
 
 Check the fixed `/usr/bin/node` major version >=20, `/usr/bin/flock`, `/usr/bin/sqlite3`, curl, and trusted owner-only Kuota cache/config directories and 0600 credentials file. Missing directories/files are reported as missing, not created. The report identifies package/collector/schema versions where available; it does not invent a remote version or retry time.
 

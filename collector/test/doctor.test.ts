@@ -9,7 +9,8 @@ import test from "node:test";
 
 import { PROVIDER_IDS } from "../src/contract/schema-v1.js";
 import { scanForSecrets } from "../src/security/redact.js";
-import { cachedStateExplanation, runDoctor } from "../src/doctor/command.js";
+import { advice, cachedStateExplanation, runDoctor } from "../src/doctor/command.js";
+import { withWalWriter } from "./providers/cursor/wal-writer.js";
 
 const cli = fileURLToPath(new URL("../src/cli.js", import.meta.url));
 
@@ -32,11 +33,69 @@ test("Claude-only cache is reported as the successful observation stored on disk
     }));
     const out: string[] = [];
     await runDoctor({ write: (line) => { out.push(line); } }, home, {}, Date.parse("2026-11-22T12:00:00.000Z"));
-    assert.match(out.join(""), /claude.*\n  Last cached observation: ok; last success 60s ago\./i);
+    assert.match(out.join(""), /claude.*\n  Last cached observation: ok; last success 1m ago\./i);
     assert.doesNotMatch(out.join(""), /endpoint drift/i);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
+});
+
+test("cached success ages use readable seconds, minutes, hours and days", async () => {
+  const home = mkdtempSync(join(tmpdir(), "kuota-doctor-age-"));
+  const cache = join(home, ".cache", "kuota");
+  mkdirSync(cache, { recursive: true, mode: 0o700 });
+  const now = Date.parse("2026-11-22T12:00:00.000Z");
+  try {
+    for (const [seconds, expected] of [[0, "0s"], [59, "59s"], [60, "1m"], [554, "9m"], [3599, "59m"], [3600, "1h"], [7500, "2h 5m"], [86399, "23h 59m"], [86400, "1d"], [259200, "3d"]] as const) {
+      const stamp = new Date(now - seconds * 1000).toISOString();
+      writeFileSync(join(cache, "collector.json"), JSON.stringify({
+        schemaVersion: 1, savedAt: stamp,
+        records: [{ id: "codex", state: "ok", lastSuccessAt: stamp, details: { codex: { credits: 3 } } }],
+      }));
+      const out: string[] = [];
+      await runDoctor({ write: (line) => { out.push(line); } }, home, {}, now);
+      assert.ok(out.join("").includes(`Last cached observation: ok; last success ${expected} ago.`));
+    }
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("expired Claude Code credentials recommend opening the owning app, not signing in", async () => {
+  const home = mkdtempSync(join(tmpdir(), "kuota-doctor-expired-"));
+  const claude = join(home, ".claude");
+  mkdirSync(claude, { mode: 0o700 });
+  try {
+    writeFileSync(join(claude, ".credentials.json"), JSON.stringify({
+      claudeAiOauth: { accessToken: "synthetic-claude-expired", expiresAt: 1 },
+    }), { mode: 0o600 });
+    const out: string[] = [];
+    await runDoctor({ write: (line) => { out.push(line); } }, home, {});
+    const line = out.find((value) => value.startsWith("claude (default)")) ?? "";
+    assert.match(line, /expired.*open Claude Code once.*renew/i);
+    assert.match(line, /Kuota never refreshes another tool's login/i);
+    assert.doesNotMatch(line, /sign in/i);
+    assert.doesNotMatch(line, /synthetic-claude-expired/);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("expired foreign credentials name the owning app without asking for sign-in", () => {
+  for (const [id, source, expected] of [
+    ["claude", "Claude Code file", /open Claude Code once/i],
+    ["codex", "Codex CLI file", /run the Codex CLI once/i],
+    ["cursor", "Cursor file", /open the Cursor app/i],
+  ] as const) {
+    const message = advice(id, { source, classification: "expired" });
+    assert.match(message, expected);
+    assert.match(message, /renew/i);
+    assert.match(message, /Kuota never refreshes another tool's login/i);
+    assert.doesNotMatch(message, /sign in/i);
+  }
+  assert.match(advice("claude", { source: "Claude Code file", classification: "missing" }), /sign in to Claude Code/i);
+  assert.match(advice("cursor", { source: "Cursor file", classification: "malformed" }), /sign in to the Cursor app/i);
+  assert.match(advice("grok", { source: "Kuota store", classification: "expired" }), /Kuota may refresh its own login/i);
 });
 
 test("doctor reports every provider offline without revealing environment credentials", () => {
@@ -145,22 +204,36 @@ test("doctor removes private Firefox cookie copies without disclosing or modifyi
   }
 });
 
-test("doctor does not guess Cursor source when a WAL prevents a write-free read", () => {
+test("doctor uses Cursor's live WAL before the environment fallback", async () => {
   const home = mkdtempSync(join(tmpdir(), "kuota-doctor-cursor-"));
   const dir = join(home, ".config", "Cursor", "User", "globalStorage");
   mkdirSync(dir, { recursive: true });
   const db = join(dir, "state.vscdb");
-  try {
-    assert.equal(spawnSync("/usr/bin/sqlite3", [db, "CREATE TABLE ItemTable(key TEXT, value TEXT);"]).status, 0);
-    writeFileSync(`${db}-wal`, "synthetic-wal");
+  await withWalWriter(home, db, ["-u", "-c", `import sqlite3,sys
+c=sqlite3.connect(sys.argv[1])
+c.execute('PRAGMA journal_mode=WAL')
+c.execute('PRAGMA wal_autocheckpoint=0')
+c.execute('CREATE TABLE ItemTable (key TEXT, value TEXT)')
+c.execute("INSERT INTO ItemTable VALUES ('cursorAuth/accessToken','synthetic-cursor-old')")
+c.commit()
+c.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+c.execute("UPDATE ItemTable SET value='synthetic-cursor-wal'")
+c.commit()
+print('ready',flush=True)
+sys.stdin.read()
+c.close()
+`, db], async () => {
+    const beforeDb = readFileSync(db);
+    const beforeWal = readFileSync(`${db}-wal`);
+    assert.ok(beforeWal.length > 0);
     const result = spawnSync(process.execPath, [cli, "doctor"], {
-      env: { HOME: home, PATH: "/usr/bin:/bin", CURSOR_SESSION_TOKEN: "synthetic-cursor-not-real" }, encoding: "utf8", timeout: 10000,
+      env: { HOME: home, PATH: "/usr/bin:/bin", CURSOR_SESSION_TOKEN: "synthetic-cursor-env" }, encoding: "utf8", timeout: 10000,
     });
-    assert.match(result.stdout, /cursor.*Cursor file.*unavailable/i);
-    assert.deepEqual(readdirSync(dir).sort(), ["state.vscdb", "state.vscdb-wal"]);
-  } finally {
-    rmSync(home, { recursive: true, force: true });
-  }
+    assert.match(result.stdout, /cursor.*Cursor file.*present/i);
+    assert.doesNotMatch(result.stdout + result.stderr, /synthetic-cursor-(wal|env)/);
+    assert.deepEqual(readFileSync(db), beforeDb);
+    assert.deepEqual(readFileSync(`${db}-wal`), beforeWal);
+  });
 });
 
 test("doctor marks an insecure Kuota credential source unsafe without printing its contents", () => {
@@ -199,10 +272,10 @@ test("doctor distinguishes cached success from current state and reports active 
     const text = out.join("");
     assert.match(text, /Collector cache: available/);
     assert.match(text, /backoff: 60s remaining/);
-    assert.match(text, /Last cached observation: ok; last success 60s ago/);
+    assert.match(text, /Last cached observation: ok; last success 1m ago/);
     assert.match(text, /not the last refresh attempt/i);
     assert.doesNotMatch(text, /re-login will NOT help|endpoint drift/i);
-    assert.match(text, /Last cached observation: ok; last success 60s ago\.\n/);
+    assert.match(text, /Last cached observation: ok; last success 1m ago\.\n/);
   } finally {
     rmSync(home, { recursive: true, force: true });
   }

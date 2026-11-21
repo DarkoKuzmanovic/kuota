@@ -1682,7 +1682,7 @@ deferral below; no release or live-account test is approved by this milestone.
 Offline diagnostic CLI only; no widget launch, provider requests, refresh, or
 credential writes. `status` remains unchanged.
 
-**Counters:** reviews 0 · correction rounds 1 · oracle 0 · direct edits 2.
+**Counters:** reviews 0 · correction rounds 2 · oracle 0 · direct edits 3.
 
 - [x] Record the approved output, security and exit-code contract.
 - [x] Implement the registry-driven human report and read-only discovery, with
@@ -1705,6 +1705,10 @@ credential writes. `status` remains unchanged.
   The Node 26 failure was test-only: production catches serialization
   failures before filesystem I/O and does not rely on depth causing one.
   The test now induces the same failure deterministically on both runtimes.
+  Subsequent owner corrections use the Cursor adapter's WAL-aware discovery,
+  human-readable ages, and renewal guidance for expired foreign credentials.
+  Focused regressions passed; clean-dist Node tests passed 806/806 on both
+  Node 24.15.0 and Node 26.13.1, and typecheck passed.
 - [x] **Issue #8 close-the-loop note:** the offline command slice and its
   verification are recorded here; the issue remains open, and UI
   freshness/retry provenance is a separate approved slice.
