@@ -5,8 +5,6 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { validateCollectorDocument } from '../dist/collector/contract/validate.js';
-import { PROVIDER_IDS } from '../dist/collector/contract/schema-v1.js';
-import { OPT_IN_PROVIDER_IDS } from '../dist/collector/collect/config.js';
 import { CLI_FAILURE_DIAGNOSTIC } from '../dist/collector/cli.js';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -23,6 +21,26 @@ const artifactCli = join(
   'collector',
   'cli.js',
 );
+
+// Expectations come from the packaged QML provider catalog — the single
+// source of truth for what the artifact declares to the widget — rather
+// than the adjacent build output. A provider added on only one side of
+// the catalog/collector pair fails the build instead of passing silently.
+function readCatalogIds(source, variable) {
+  const match = source.match(new RegExp(`var ${variable} = Object\\.freeze\\(\\[([^\\]]*)\\]\\)`));
+  if (!match) {
+    fail(`packaged provider catalog has no ${variable}`);
+  }
+  return [...match[1].matchAll(/"([^"]+)"/g)].map((entry) => entry[1]);
+}
+
+const catalogPath = join(root, 'dist', 'artifact', artifactName, 'contents', 'ui', 'provider-catalog.js');
+if (!existsSync(catalogPath)) {
+  fail('packaged provider catalog is missing');
+}
+const catalogSource = readFileSync(catalogPath, 'utf8');
+const PROVIDER_IDS = readCatalogIds(catalogSource, 'PROVIDER_IDS');
+const OPT_IN_PROVIDER_IDS = readCatalogIds(catalogSource, 'OPT_IN_PROVIDER_IDS');
 
 function fail(message) {
   throw new Error(`Artifact check failed: ${message}`);

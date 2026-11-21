@@ -24,8 +24,8 @@ Needs KDE Plasma 6 and Node.js ≥20 at `/usr/bin/node` (full list under
 [latest release](https://github.com/DarkoKuzmanovic/kuota/releases/latest), then:
 
 ```bash
-kpackagetool6 -t Plasma/Applet -i kuota-v2.1.0.plasmoid   # first install
-kpackagetool6 -t Plasma/Applet -u kuota-v2.1.0.plasmoid   # upgrade
+kpackagetool6 -t Plasma/Applet -i kuota-v2.1.1.plasmoid   # first install
+kpackagetool6 -t Plasma/Applet -u kuota-v2.1.1.plasmoid   # upgrade
 ```
 
 Add **Kuota** from Plasma's **Add Widgets** dialog, then sign in to the
@@ -54,7 +54,7 @@ bar.
 
 ## Project status
 
-Current release: **2.1.0** (2026-11-06), with the installable `.plasmoid` on
+Current release: **2.1.1** (2026-11-22), with the installable `.plasmoid` on
 [GitHub Releases](https://github.com/DarkoKuzmanovic/kuota/releases). The
 [changelog](CHANGELOG.md) tracks the full history back to 1.0.0. Kuota is not
 on the KDE Store yet. See the [roadmap](ROADMAP.md) for candidate work, not
@@ -108,8 +108,8 @@ live-account smoke test. See the [approved reliability amendment](docs/specs/202
 The build produces:
 
 ```text
-dist/artifact/kuota-v2.1.0/           unpacked Plasma package
-dist/artifact/kuota-v2.1.0.plasmoid  verified installable archive
+dist/artifact/kuota-v2.1.1/           unpacked Plasma package
+dist/artifact/kuota-v2.1.1.plasmoid  verified installable archive
 ```
 
 The installer installs or upgrades the package for your user. Open Plasma's

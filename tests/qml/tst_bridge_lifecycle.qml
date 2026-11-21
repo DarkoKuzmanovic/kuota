@@ -200,4 +200,64 @@ TestCase {
                 result.outcome === BridgeLifecycle.PROCESS_OUTCOME.OVERSIZED_STDOUT);
         }
     }
+
+    // --- Provider selection state ---------------------------------------
+
+    function test_selectionInitialStateHasNoKeyAndNothingPending() {
+        var state = BridgeLifecycle.createSelectionState();
+        compare(state.selectionKey, null);
+        verify(state.enabledProviders === undefined);
+        compare(state.discardActiveResult, false);
+        compare(state.pendingRefresh, false);
+    }
+
+    function test_selectionChangeIsDetectedByCanonicalKey() {
+        var state = BridgeLifecycle.createSelectionState();
+        var first = BridgeLifecycle.updateSelection(state, ["codex", "claude"], false);
+        compare(first.changed, true);
+        compare(first.selectionKey, "claude,codex");
+        var reordered = BridgeLifecycle.updateSelection(first.state, ["claude", "codex"], false);
+        compare(reordered.changed, false);
+        compare(reordered.selectionKey, "claude,codex");
+    }
+
+    function test_selectionDefaultAllIsItsOwnKeyWithNoExplicitIds() {
+        var state = BridgeLifecycle.createSelectionState();
+        var result = BridgeLifecycle.updateSelection(state, undefined, false);
+        compare(result.changed, true);
+        compare(result.selectionKey, "claude,codex,grok,kimi,cursor,opencode,commandcode,mistral,opendesign");
+        verify(result.state.enabledProviders === undefined);
+    }
+
+    function test_selectionEmptyListIsExplicitAndNeverPending() {
+        var state = BridgeLifecycle.createSelectionState();
+        var result = BridgeLifecycle.updateSelection(state, [], true);
+        compare(result.changed, true);
+        compare(result.selectionKey, "");
+        compare(result.state.enabledProviders.length, 0);
+        // In flight + empty membership: discard, but schedule no refresh.
+        compare(result.state.discardActiveResult, true);
+        compare(result.state.pendingRefresh, false);
+    }
+
+    function test_selectionInvalidListLeavesStateUntouched() {
+        var state = BridgeLifecycle.createSelectionState();
+        var result = BridgeLifecycle.updateSelection(state, ["claude", "gemini"], false);
+        compare(result.changed, false);
+        verify(result.selectionKey === undefined);
+        compare(result.state.selectionKey, null);
+    }
+
+    function test_selectionChangeWhileInFlightDiscardsAndSchedules() {
+        var state = BridgeLifecycle.createSelectionState();
+        var launched = BridgeLifecycle.updateSelection(state, ["claude"], true);
+        var changed = BridgeLifecycle.updateSelection(launched.state, ["codex"], true);
+        compare(changed.state.discardActiveResult, true);
+        compare(changed.state.pendingRefresh, true);
+        var cleared = BridgeLifecycle.clearRefreshGate(changed.state);
+        compare(cleared.discardActiveResult, false);
+        compare(cleared.pendingRefresh, false);
+        compare(cleared.selectionKey, "codex");
+        compare(cleared.enabledProviders, ["codex"]);
+    }
 }

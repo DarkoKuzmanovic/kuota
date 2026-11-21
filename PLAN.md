@@ -1,8 +1,8 @@
 # Kuota Project Plan
 
 **Source of truth:** `docs/specs/2026-07-10-kuota-design.md` and owner-approved provider amendments, including `docs/specs/2026-11-22-muse-provider-design.md`.  
-**Plan status (2026-11-22):** v2.1.0 released; M19 Muse Code is approved and in progress, with G-19 open.  
-**Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral, OpenDesign, and Muse Code. Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
+**Plan status (2026-11-22):** v2.1.1 released 2026-11-22 (Mistral moved to the tRPC budget procedure; stale-data fix). v2.1.0 (2026-11-06) added Mistral + OpenDesign (M18, gate G-18 passed); M17 standalone credentials shipped as v2.0.0 (2026-10-02). Muse Code (M19) is approved and in progress, with G-19 open. Open GitHub issues: #8 (offline doctor) and #9 (headroom overview). Current state: *Handoff Block*.
+**Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral (opt-in), OpenDesign (opt-in), and Muse Code (opt-in). Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
 
 ## Approved Decisions
 
@@ -520,12 +520,12 @@
 
 ## Handoff Block
 
-*Refreshed 2026-09-25. It replaces the G11-era block; earlier handoff notes are historical, and the Gate Log is the evidence of record.*
+*Refreshed 2026-11-22. It replaces the 2026-09-25 block; earlier handoff notes are historical, and the Gate Log is the evidence of record.*
 
-- **Released:** v1.3.0 (`913962b`, 2026-09-09). Seven providers: Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode.
-- **On `main`, unreleased:** M16 Claude hotfix (`5571900`, `f055da1`, `f92507b`), listed under CHANGELOG `[Unreleased]`. Installed locally from `dist/artifact/kuota-v1.3.0.plasmoid`. Cutting a release (e.g. 1.3.1) needs separate owner approval.
-- **Open GitHub issues:** #2 [P1] live Cursor WAL re-login smoke (code fix merged in PR #11; the owner-approved live smoke is pending), plus #5–#9 (P2/P3 enhancements, not started).
-- **Deferred at this historical handoff:** Meta Muse Code and OpenDesign (both subsequently approved; see Milestones 19 and 18); l10n/KI18n catalog choice; Q15 KDE-Store artifact naming.
+- **Released:** v2.1.1 (2026-11-22) — Mistral stale-data fix: the collector reads the admin dashboard's tRPC `billing.budget` procedure instead of the retired REST budget path. v2.1.0 (2026-11-06) added the Mistral + OpenDesign providers (M18, gate G-18 passed). M17 standalone credentials (drop Pi auth, `kuota login`) shipped as v2.0.0 (2026-10-02).
+- **Providers (ten, including M19):** Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral (opt-in), OpenDesign (opt-in), Muse Code (opt-in).
+- **Open GitHub issues:** only #8 ([P2] offline doctor diagnostics) and #9 ([P3] reset-aware headroom overview). All others are closed.
+- **In progress:** Muse Code provider (M19; superseding the former deferral). The headroom overview tab + popup redesign (#9), offline `kuota doctor` (#8), and remaining G-RL follow-ups each need their own scope; none is a regression.
 - **Remote:** `origin` = `github.com/DarkoKuzmanovic/kuota` (public). Push, PR, release, and KDE Store publication each need explicit owner approval.
 - **Executor rules:** Work milestone-by-milestone. Write tests first. Keep secrets out of all artifacts. Run gates sequentially under a synthetic `HOME`. Stop on contract/security ambiguity rather than guessing.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
@@ -1620,6 +1620,8 @@ npm 9.6.4 both pass: every gate exits 0, `npm test` 760 pass / 0 fail, QML
 
 **G-RL counters:** panel reviews 1 (2 models) · review-driven fix cycles 1 ·
 code commits 1 · test commits 1 · doc commits 1 · deferred findings 5.
+
+**G-RL follow-ups (2026-11-22, branch `chore/grl-cleanups`, code commit `77403dd7dec11b786c8f9cf764a89e58d1904c5b`).** Item (1): bridge selection state moved into `bridge-lifecycle.js` (`createSelectionState`/`updateSelection`/`clearRefreshGate`); `canonicalizeProviders()` in `collector-command.js` replaces the argv-token re-parse in `CollectorBridge.select()`, which is now a thin wrapper. Item (2): `config-model.js` window defaults and sanitizer loop over `KNOWN_WINDOWS` instead of eight per-provider literals (catalog-loop test added). Item (5): `check-artifact` derives expected provider IDs from the packaged `provider-catalog.js` instead of the build's own `PROVIDER_IDS` (artifact-isolation fixture stages the catalog). Item (4) skipped as a design judgment: dropping the `atomic-write` `isJsonValue` re-export reverses approved decision D-R6.2 (`docs/specs/2026-09-09-json-value-guard-design.md`), which deliberately preserves callable compatibility at atomic-write and is guarded by the compatibility-export identity test; it needs explicit owner approval. Item (3) untouched (another worker). Gates in the worktree: typecheck 0 · Node 775/775 · QML 409/409 (11 new) · validate:plasma 0 · build:artifact 0.
 
 Not claimed, as in the batch's own verdict: live widget/account acceptance,
 non-English translation runs, elapsed five-minute scheduling, and descendant

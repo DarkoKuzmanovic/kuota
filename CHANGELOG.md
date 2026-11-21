@@ -20,6 +20,8 @@ left unread on disk (see **Removed** under [1.3.0]).
   plan tier when available. Uses the read-only Firefox `dev.meta.ai` session
   cookie, with `MUSE_SESSION_COOKIE` fallback; no API key is minted.
 
+## [2.1.1] - 2026-11-22
+
 ### Fixed
 
 - **Mistral showed stale data.** The admin dashboard retired the REST budget path
