@@ -1,6 +1,7 @@
-import { copyFile, mkdtemp, readdir, rm, stat } from "node:fs/promises";
+import { copyFile, lstat, mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { defaultRunSqlite, type CursorSqliteRunner } from "./cursor/auth.js";
 
@@ -16,7 +17,7 @@ export interface SessionCookieSpec {
 export type SessionCookieResult =
   | { readonly state: "available"; readonly cookie: string }
   | { readonly state: "auth-needed" }
-  | { readonly state: "error"; readonly reason: "sqlite-unavailable" | "sqlite-failed" };
+  | { readonly state: "error"; readonly reason: "sqlite-unavailable" | "sqlite-failed" | "unsafe-file" };
 
 export interface SessionCookieOptions {
   readonly signal?: AbortSignal;
@@ -24,6 +25,8 @@ export interface SessionCookieOptions {
   readonly environment?: Readonly<Record<string, string | undefined>>;
   readonly runSqlite?: CursorSqliteRunner;
   readonly tempRoot?: string;
+  /** Diagnostic mode: never create a private copy or modify SQLite sidecars. */
+  readonly noWrites?: boolean;
 }
 
 const SAFE_SQL_TOKEN = /^[A-Za-z0-9._%-]+$/;
@@ -72,7 +75,7 @@ function toCookieHeader(stdout: string): string | undefined {
 }
 
 type FirefoxRead = { readonly kind: "cookie"; readonly cookie: string } | { readonly kind: "missing" }
-  | { readonly kind: "sqlite-unavailable" } | { readonly kind: "failed" };
+  | { readonly kind: "sqlite-unavailable" } | { readonly kind: "unsafe" } | { readonly kind: "failed" };
 
 /**
  * Firefox keeps cookies.sqlite under an exclusive lock, so the store (+ WAL) is copied into a
@@ -83,6 +86,28 @@ async function readFirefox(spec: SessionCookieSpec, options: SessionCookieOption
   if (sql === undefined) return { kind: "failed" };
   const dbPath = await newestCookiesDb(options.homeDirectory ?? homedir());
   if (dbPath === undefined) return { kind: "missing" };
+  if (options.noWrites === true) {
+    try {
+      const info = await lstat(dbPath);
+      if (info.isSymbolicLink() || !info.isFile()) return { kind: "unsafe" };
+    } catch {
+      return { kind: "failed" };
+    }
+    // Immutable access must not ignore a live WAL and claim a definitive result.
+    try {
+      await stat(`${dbPath}-wal`);
+      return { kind: "failed" };
+    } catch (error: unknown) {
+      if (!(typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT")) return { kind: "failed" };
+    }
+    const uri = `${pathToFileURL(dbPath).href}?immutable=1`;
+    const result = await (options.runSqlite ?? defaultRunSqlite)(["-readonly", uri, sql], options.signal);
+    if (result.terminated === true) return { kind: "failed" };
+    if (result.code === 127) return { kind: "sqlite-unavailable" };
+    if (result.code !== 0) return { kind: "failed" };
+    const cookie = toCookieHeader(result.stdout);
+    return cookie === undefined ? { kind: "missing" } : { kind: "cookie", cookie };
+  }
   let dir: string | undefined;
   try {
     dir = await mkdtemp(join(options.tempRoot ?? tmpdir(), "kuota-cookies-"));
@@ -113,6 +138,7 @@ export async function readSessionCookie(
 ): Promise<SessionCookieResult> {
   const firefox = await readFirefox(spec, options);
   if (firefox.kind === "cookie") return { state: "available", cookie: firefox.cookie };
+  if (firefox.kind === "unsafe") return { state: "error", reason: "unsafe-file" };
   const env = options.environment?.[spec.envKey]?.trim();
   if (env !== undefined && env.length > 0 && SAFE_COOKIE.test(env)) return { state: "available", cookie: env };
   if (firefox.kind === "sqlite-unavailable") return { state: "error", reason: "sqlite-unavailable" };

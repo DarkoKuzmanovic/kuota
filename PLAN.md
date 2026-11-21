@@ -1640,6 +1640,30 @@ Gate (2026-11-06, worktree `feat/mistral-opendesign`): `npm test` 773/0 · `npm 
 → both `ok` with real windows, no temp copies left · mutation (skip temp cleanup) → 3 tests fail.
 - [x] **Gate G-18 — PASSED 2026-11-06:** full gate set ✅ · owner live panel check ✅ ("Perfection!") with both providers enabled and custom icons set. Released as **2.1.0**.
 
+## Milestone 21 — kuota doctor
+
+**Approved:** owner request 2026-11-22; spec `docs/specs/2026-11-22-doctor-design.md`.
+Offline diagnostic CLI only; no widget launch, provider requests, refresh, or
+credential writes. `status` remains unchanged.
+
+**Counters:** reviews 0 · correction rounds 0 · oracle 0 · direct edits 1.
+
+- [x] Record the approved output, security and exit-code contract.
+- [x] Implement the registry-driven human report and read-only discovery, with
+  synthetic secret-safety and filesystem tests.
+- [ ] **Gate G-21 — verification passed; independent review pending:**
+  sequential clean-dist runs with a disposable HOME and minimal environment,
+  Node 24.15.0: typecheck passed, Node tests 790/790, QML tests 398/398,
+  Plasma validation and artifact build passed. One real-HOME offline report
+  completed with exit 1 (missing default-provider credentials); its output
+  passed the secret scanner.
+  An initial run with `/usr/bin/node` 26.13.1 had 789/790 tests pass:
+  the pre-existing deep-graph test assumes `JSON.stringify` throws on a
+  20,000-level graph, which no longer holds on that runtime.
+- [x] **Issue #8 close-the-loop note:** the offline command slice and its
+  verification are recorded here; the issue remains open, and UI
+  freshness/retry provenance is a separate approved slice.
+
 ## Deferred providers
 
 ### Meta Muse Code — deferred 2026-09-25 (owner decision)

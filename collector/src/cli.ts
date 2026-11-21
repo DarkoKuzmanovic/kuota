@@ -6,6 +6,7 @@ import { types } from "node:util";
 import { parseCollectorConfig } from "./collect/config.js";
 import { collectIntegrated, type IntegratedCollectOptions } from "./collect/integrated-collect.js";
 import { isAccountCommand, runAccountCommand } from "./login/command.js";
+import { runDoctor } from "./doctor/command.js";
 
 export const CLI_FAILURE_DIAGNOSTIC = "Kuota collector failed";
 const CLI_FAILURE_OUTPUT = `${CLI_FAILURE_DIAGNOSTIC}\n`;
@@ -167,6 +168,13 @@ export async function main(options?: CliOptions): Promise<number> {
     return runCli(options);
   }
   const argv = process.argv.slice(2);
+  if (argv[0] === "doctor") {
+    if (argv.length !== 1) {
+      process.stderr.write("Usage: kuota doctor\n");
+      return 2;
+    }
+    return runDoctor(process.stdout);
+  }
   if (isAccountCommand(argv)) {
     // Human-facing login/logout/status; never launched by the widget bridge.
     const controller = new AbortController();

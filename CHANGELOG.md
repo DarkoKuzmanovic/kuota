@@ -13,6 +13,12 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
 
+### Added
+
+- **Offline `kuota doctor` diagnostics:** local provider credential-source
+  classifications, cache/backoff context, and runtime and permission checks,
+  without provider requests, token refreshes, or credential output.
+
 ### Fixed
 
 - **Mistral showed stale data.** The admin dashboard retired the REST budget path
