@@ -83,6 +83,7 @@ TestCase {
         raw.grokWindow = "month"; raw.kimiWindow = "daily";
         raw.opencodeWindow = "monthly"; raw.commandcodeWindow = "weekly";
         raw.mistralWindow = "api"; raw.opendesignWindow = "weekly";
+        raw.museWindow = "weekly";
         raw.displayMode = "text"; raw.customTextColor = "#123456";
         Catalog.PROVIDER_IDS.forEach(function(id) { raw[id + "AccentColor"] = "#abcdef"; });
         var actual = Config.sanitize(raw);
@@ -109,10 +110,10 @@ TestCase {
         var sanitized = Config.sanitize(raw);
         raw.providerOrder.push("synthetic-unknown");
         compare(sanitized.providerOrder[0], "codex");
-        compare(sanitized.providerOrder.length, 9);
+        compare(sanitized.providerOrder.length, 10);
         var display = Config.assembleDisplayConfig(sanitized);
         display.order.pop();
-        compare(sanitized.providerOrder.length, 9);
+        compare(sanitized.providerOrder.length, 10);
         var compact = Compact.createDefaultDisplayConfig();
         compact.order.pop(); compact.visibility.claude = false;
         compare(Compact.createDefaultDisplayConfig().order, Catalog.PROVIDER_IDS);
@@ -120,7 +121,7 @@ TestCase {
         compare(Config.DEFAULTS.providerOrder, Catalog.PROVIDER_IDS);
     }
     function test_sameRuntimeMetadataConsumers() {
-        var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"];
+        var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"];
         compare(Catalog.PROVIDER_IDS, ids);
         compare(Config.KNOWN_PROVIDERS, ids);
         compare(Config.DEFAULT_PROVIDER_ORDER, ids);
@@ -128,7 +129,7 @@ TestCase {
         compare(Validator.PROVIDER_IDS, ids);
         compare(Compact.DEFAULT_ORDER, ids);
         compare(Compact.PROVIDER_LABELS, Catalog.PROVIDER_LABELS);
-        compare(Config.enabledProviders(Config.sanitize(null)), ids.slice(0, 7)); // mistral, opendesign are opt-in
+        compare(Config.enabledProviders(Config.sanitize(null)), ids.slice(0, 7)); // browser-session providers are opt-in
         compare(Object.keys(Compact.createDefaultDisplayConfig().visibility).sort(), ids.slice().sort());
         var windows = {
             claude: ["session", "weekly-all", "weekly-oauth-apps"],
@@ -138,7 +139,8 @@ TestCase {
             opencode: ["rolling", "weekly", "monthly"],
             commandcode: ["fiveHour", "weekly"],
             mistral: ["vibe", "api"],
-            opendesign: ["5h", "weekly"]
+            opendesign: ["5h", "weekly"],
+            muse: ["current", "weekly"]
         };
         compare(Catalog.SELECTABLE_WINDOWS, windows);
         compare(Config.KNOWN_WINDOWS, windows);
@@ -172,8 +174,8 @@ TestCase {
         var page = component.createObject(testCase);
         try {
             var combos = controls(page, function(item) { return item.valueRole === "value"; });
-            compare(combos.length, 8); // every multi-window provider (M15); Cursor has none
-            var ids = ["claude", "codex", "grok", "kimi", "opencode", "commandcode", "mistral", "opendesign"];
+            compare(combos.length, 9); // Cursor has no selector
+            var ids = ["claude", "codex", "grok", "kimi", "opencode", "commandcode", "mistral", "opendesign", "muse"];
             // Literal (label, value) pairs, as v2.0.0 shipped them: values read
             // back from the catalog would let a reordered catalog relabel a
             // window unnoticed.
@@ -185,7 +187,8 @@ TestCase {
                 [["Default", ""], ["5h", "rolling"], ["Weekly", "weekly"], ["Monthly", "monthly"]],
                 [["Default", ""], ["5h", "fiveHour"], ["Weekly", "weekly"]],
                 [["Default", ""], ["Vibe Code", "vibe"], ["API", "api"]],
-                [["Default", ""], ["5h", "5h"], ["Weekly", "weekly"]]
+                [["Default", ""], ["5h", "5h"], ["Weekly", "weekly"]],
+                [["Default", ""], ["Current", "current"], ["Weekly", "weekly"]]
             ];
             for (var i = 0; i < ids.length; i++) {
                 var pairs = expectedPairs[i];

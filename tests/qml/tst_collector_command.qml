@@ -13,7 +13,7 @@ TestCase {
     }
 
     function test_exposesCanonicalProviderIdsInOrder() {
-        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 9);
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS.length, 10);
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[0], "claude");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[1], "codex");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[2], "grok");
@@ -21,6 +21,7 @@ TestCase {
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[4], "cursor");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[5], "opencode");
         compare(CollectorCommand.CANONICAL_PROVIDER_IDS[6], "commandcode");
+        compare(CollectorCommand.CANONICAL_PROVIDER_IDS[9], "muse");
     }
 
     // --- Defaults / providers omitted ---------------------------------
@@ -56,6 +57,14 @@ TestCase {
         });
         compare(result.ok, true);
         compare(result.value, "/usr/bin/node '" + samplePath + "' --enabled-providers=claude,codex # 2");
+    }
+
+    function test_buildsMuseOptInProviderFlag() {
+        var result = CollectorCommand.buildCollectorCommand({
+            collectorPath: samplePath, enabledProviders: ["muse"], sourceId: 2
+        });
+        compare(result.ok, true);
+        compare(result.value, "/usr/bin/node '" + samplePath + "' --enabled-providers=muse # 2");
     }
 
     function test_buildsFullCanonicalSetInCanonicalOrder() {
@@ -263,5 +272,34 @@ TestCase {
             var result = CollectorCommand.buildCollectorCommand(hostileOptions[i]);
             verify(result.ok === false || result.ok === true);
         }
+    }
+
+    // --- Canonicalization (the selection-state source) ------------------
+
+    function test_canonicalizeDefaultsToFullSetForUndefinedAndNull() {
+        var fromUndefined = CollectorCommand.canonicalizeProviders(undefined);
+        compare(fromUndefined.defaultAll, true);
+        compare(fromUndefined.ids.length, 10);
+        var fromNull = CollectorCommand.canonicalizeProviders(null);
+        compare(fromNull.defaultAll, true);
+    }
+
+    function test_canonicalizeOrdersAndSkipsUmans() {
+        var canonical = CollectorCommand.canonicalizeProviders(["codex", "umans", "claude"]);
+        compare(canonical.defaultAll, false);
+        compare(canonical.ids, ["claude", "codex"]);
+    }
+
+    function test_canonicalizeEmptyArrayIsExplicitEmptySelection() {
+        var canonical = CollectorCommand.canonicalizeProviders([]);
+        compare(canonical.defaultAll, false);
+        compare(canonical.ids.length, 0);
+    }
+
+    function test_canonicalizeRejectsInvalidLists() {
+        compare(CollectorCommand.canonicalizeProviders(["claude", "claude"]), undefined);
+        compare(CollectorCommand.canonicalizeProviders(["claude", "gemini"]), undefined);
+        compare(CollectorCommand.canonicalizeProviders("claude"), undefined);
+        compare(CollectorCommand.canonicalizeProviders([42]), undefined);
     }
 }

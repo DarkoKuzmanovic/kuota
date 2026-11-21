@@ -17,7 +17,7 @@
   <group name="General">
     <entry name="providerOrder" type="StringList">
       <label>Ordered list of provider IDs for compact and full views.</label>
-      <default>claude,codex,grok,kimi,cursor,opencode,commandcode,mistral,opendesign</default>
+      <default>claude,codex,grok,kimi,cursor,opencode,commandcode,mistral,opendesign,muse</default>
     </entry>
     <entry name="claudeVisible" type="Bool">
       <label>Whether Claude is shown in the widget.</label>
@@ -56,6 +56,10 @@
       <label>Whether OpenDesign is shown in the widget.</label>
       <default>false</default>
     </entry>
+    <entry name="museVisible" type="Bool">
+      <label>Whether Muse Code is shown in the widget.</label>
+      <default>false</default>
+    </entry>
     <entry name="claudeWindow" type="String">
       <label>Selected Claude usage window ID for the compact line. Empty uses the primary window.</label>
       <default></default>
@@ -86,6 +90,10 @@
     </entry>
     <entry name="opendesignWindow" type="String">
       <label>Selected OpenDesign usage window ID for the compact line. Empty uses the primary window.</label>
+      <default></default>
+    </entry>
+    <entry name="museWindow" type="String">
+      <label>Selected Muse Code usage window ID for the compact line. Empty uses the primary window.</label>
       <default></default>
     </entry>
     <entry name="displayMode" type="String">
@@ -216,6 +224,14 @@
     </entry>
     <entry name="opendesignCustomIcon" type="String">
       <label>OpenDesign custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
+      <default></default>
+    </entry>
+    <entry name="museAccentColor" type="String">
+      <label>Muse Code accent color. Empty uses the provider identity color.</label>
+      <default></default>
+    </entry>
+    <entry name="museCustomIcon" type="String">
+      <label>Muse Code custom icon: freedesktop name or absolute image path. Empty uses the default icon.</label>
       <default></default>
     </entry>
   </group>

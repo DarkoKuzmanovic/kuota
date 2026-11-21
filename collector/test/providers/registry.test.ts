@@ -33,7 +33,7 @@ import {
 import type { ProviderCollectionSuccess } from "../../src/collect/types.js";
 
 const canonicalIds: readonly ProviderId[] = [
-  "claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign",
+  "claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse",
 ];
 
 function adapterFor<TId extends ProviderId>(id: TId): ProviderAdapter<TId> {
@@ -65,6 +65,8 @@ function registrationFor(id: ProviderId): ProviderRegistration {
       return createProviderRegistration(adapterFor("mistral"));
     case "opendesign":
       return createProviderRegistration(adapterFor("opendesign"));
+    case "muse":
+      return createProviderRegistration(adapterFor("muse"));
     default: {
       const _exhaustive: never = id;
       throw new Error(`unhandled provider id: ${_exhaustive}`);
@@ -234,14 +236,14 @@ test("normalized result construction rejects native extras and invalid values", 
 });
 
 test("registry canonical order ends with the browser-session providers", () => {
-  assert.deepEqual(canonicalIds, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"]);
+  assert.deepEqual(canonicalIds, ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"]);
 });
 
 test("registry exposes real adapters without collecting auth at registration", () => {
   const registry = createProviderRegistry();
   assert.deepEqual(
     registry.adapters.map((adapter) => adapter.id),
-    ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"],
+    ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"],
   );
   assert.equal(registry.adapters[0], CLAUDE_ADAPTER);
   assert.equal(registry.adapters[1], CODEX_ADAPTER);

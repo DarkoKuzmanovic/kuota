@@ -24,30 +24,28 @@ var DEFAULTS = buildDefaults();
 
 function buildDefaults() {
     var defaults = {
-        providerOrder: DEFAULT_PROVIDER_ORDER,
-        claudeWindow: "",
-        codexWindow: "",
-        grokWindow: "",
-        kimiWindow: "",
-        opencodeWindow: "",
-        commandcodeWindow: "",
-        mistralWindow: "",
-        opendesignWindow: "",
-        displayMode: "icons+text",
-        separator: " · ",
-        fontScale: 1.0,
-        showCountdown: true,
-        refreshIntervalMinutes: 5,
-        cautionThreshold: 75,
-        criticalThreshold: 90,
-        fontFamily: "",
-        customTextColorEnabled: false,
-        customTextColor: "",
-        labelOpacity: 1.0,
-        separatorOpacity: 1.0,
-        iconLabelSpacing: 2,
-        labelValueSpacing: 1
+        providerOrder: DEFAULT_PROVIDER_ORDER
     };
+    for (var k in KNOWN_WINDOWS) {
+        if (!Object.prototype.hasOwnProperty.call(KNOWN_WINDOWS, k)) {
+            continue;
+        }
+        defaults[k + "Window"] = "";
+    }
+    defaults.displayMode = "icons+text";
+    defaults.separator = " · ";
+    defaults.fontScale = 1.0;
+    defaults.showCountdown = true;
+    defaults.refreshIntervalMinutes = 5;
+    defaults.cautionThreshold = 75;
+    defaults.criticalThreshold = 90;
+    defaults.fontFamily = "";
+    defaults.customTextColorEnabled = false;
+    defaults.customTextColor = "";
+    defaults.labelOpacity = 1.0;
+    defaults.separatorOpacity = 1.0;
+    defaults.iconLabelSpacing = 2;
+    defaults.labelValueSpacing = 1;
     for (var i = 0; i < KNOWN_PROVIDERS.length; i++) {
         var id = KNOWN_PROVIDERS[i];
         defaults[id + "Visible"] = ProviderCatalog.OPT_IN_PROVIDER_IDS.indexOf(id) === -1;
@@ -92,14 +90,12 @@ function sanitize(rawConfig) {
         var key = KNOWN_PROVIDERS[v] + "Visible";
         out[key] = sanitizeBool(rawConfig[key], DEFAULTS[key]);
     }
-    out.claudeWindow = sanitizeWindowSelection("claude", rawConfig.claudeWindow);
-    out.codexWindow = sanitizeWindowSelection("codex", rawConfig.codexWindow);
-    out.grokWindow = sanitizeWindowSelection("grok", rawConfig.grokWindow);
-    out.kimiWindow = sanitizeWindowSelection("kimi", rawConfig.kimiWindow);
-    out.opencodeWindow = sanitizeWindowSelection("opencode", rawConfig.opencodeWindow);
-    out.commandcodeWindow = sanitizeWindowSelection("commandcode", rawConfig.commandcodeWindow);
-    out.mistralWindow = sanitizeWindowSelection("mistral", rawConfig.mistralWindow);
-    out.opendesignWindow = sanitizeWindowSelection("opendesign", rawConfig.opendesignWindow);
+    for (var k in KNOWN_WINDOWS) {
+        if (!Object.prototype.hasOwnProperty.call(KNOWN_WINDOWS, k)) {
+            continue;
+        }
+        out[k + "Window"] = sanitizeWindowSelection(k, rawConfig[k + "Window"]);
+    }
     out.displayMode = sanitizeDisplayMode(rawConfig.displayMode);
     out.separator = sanitizeString(rawConfig.separator, DEFAULTS.separator);
     out.fontScale = sanitizeFontScale(rawConfig.fontScale);

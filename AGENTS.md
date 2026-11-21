@@ -1,7 +1,7 @@
 # Agent Instructions — Kuota
 
 Kuota is a standalone KDE Plasma 6 widget that keeps Claude, Codex, Grok, Kimi,
-Cursor, OpenCode, CommandCode, Mistral, and OpenDesign account usage visible on the desktop without requiring Pi or any other agent harness. It
+Cursor, OpenCode, CommandCode, Mistral, OpenDesign, and Muse Code account usage visible on the desktop without requiring Pi or any other agent harness. It
 reports authoritative provider data — it does **not** estimate quota from local
 activity.
 
@@ -11,6 +11,8 @@ Two documents are normative and override any instinct that conflicts with them:
 
 - **`docs/specs/2026-07-10-kuota-design.md`** — the approved design specification.
   Product decisions, UX, architecture, provider behavior, and failure modes.
+- **`docs/specs/2026-11-22-muse-provider-design.md`** — owner-approved Muse
+  provider amendment; overrides the original design where it differs.
 - **`PLAN.md`** — the milestone/gate plan. Source of truth for scope, task order,
   conventions, counters, and the Gate Log. Work milestone-by-milestone; each
   gate must pass before the next begins.
@@ -77,7 +79,7 @@ Schema v2 is small and versioned. The UI renders common provider state without
 knowing provider-native formats. Full shape: `docs/architecture/collector-contract.md`.
 
 - Provider IDs: `claude`, `codex`, `grok`, `kimi`, `cursor`, `opencode`,
-  `commandcode`, `mistral`, `opendesign` (the last two are opt-in).
+  `commandcode`, `mistral`, `opendesign`, `muse` (the last three are opt-in).
 - States: `ok`, `stale`, `auth-needed`, `error`. `stale` is last-known-good with
   retained real data (≥1 window or a non-empty details object) — not an empty
   failure marker.
@@ -100,8 +102,8 @@ knowing provider-native formats. Full shape: `docs/architecture/collector-contra
   computed in QML from reset timestamps.
 - Provider-specific payloads are namespaced under their provider record
   (`details.claude` / `details.codex` / `details.grok` /
-  `details.kimi` / `details.cursor` / `details.commandcode`; OpenCode has no
-  details namespace). The TS `ProviderRecord`
+  `details.kimi` / `details.cursor` / `details.commandcode` / `details.mistral` /
+  `details.opendesign` / `details.muse`; OpenCode has no details namespace). The TS `ProviderRecord`
   is a discriminated union enforcing that correlation; runtime validation
   enforces the same.
 - Test-first slices for every provider adapter and all security-sensitive auth
@@ -150,8 +152,9 @@ PLAN.md                Milestone/gate plan — normative for scope and sequencin
 | Cursor | `cursor.com/api/usage-summary` (unofficial dashboard) | Local `~/.config/Cursor/User/globalStorage/state.vscdb` (`cursorAuth/accessToken`); `CURSOR_SESSION_TOKEN` fallback. **Not** `auth.json`; session is never persisted by Kuota. Requires system `sqlite3` for local discovery. |
 | OpenCode | `opencode.ai/zen/go/v1/usage` (hosted OpenCode Go only, not Zen/other surfaces) | store `opencode` (`api_key` + `key`), `OPENCODE_API_KEY` env fallback |
 | CommandCode | `api.commandcode.ai/alpha/billing/credits` + optional `…/subscriptions` (plan name) | store `commandcode` (`api_key` + `key`; the `user_…` key) or `COMMANDCODE_API_KEY` env fallback |
-| Mistral (opt-in) | `admin.mistral.ai/api/billing/v2/budget` (Admin Panel JSON) | Firefox `ory_session_*` cookie for `*.mistral.ai`, read from a private temp copy of the newest profile's `cookies.sqlite` (deleted after); `MISTRAL_SESSION_COOKIE` fallback. Never persisted. |
+| Mistral (opt-in) | `admin.mistral.ai/api/local-trpc/billing.budget` (Admin Panel tRPC) | Firefox `ory_session_*` cookie for `*.mistral.ai`, read from a private temp copy of the newest profile's `cookies.sqlite` (deleted after); `MISTRAL_SESSION_COOKIE` fallback. Never persisted. |
 | OpenDesign (opt-in) | `amr-api.open-design.ai/api/v1/workspaces/current` → `…/workspaces/{id}/billing/coding-plan-usage` + `…/wallet/balance` | Firefox `__Secure-better-auth.session_token` cookie (same reader); `OPENDESIGN_COOKIE` fallback. Workspace ID stays in the request, never in output. |
+| Muse Code (opt-in) | `dev.meta.ai/api/portal/teams` → `…/teams/{id}/subscription-quota` | Firefox `llama_dev_sess` cookie for `dev.meta.ai` (same reader); `MUSE_SESSION_COOKIE` fallback. Team IDs remain secret; never mint keys. |
 
 Claude is aggressively rate-limited: keep Kuota's own last-known-good cache
 (`~/.cache/kuota/claude.json`; the pi-hud shared cache is never read), honor `Retry-After` and a minimum 429 backoff, retain
@@ -162,7 +165,7 @@ persists refreshed auth atomically.
 Additional providers, cross-machine aggregation, history charts, notifications,
 account login/management, a permanent service, and KDE Store publication are
 **out of scope** unless the owner approves a spec and a PLAN.md milestone first.
-Deferred candidates (e.g. Meta Muse Code) are listed in PLAN.md *Deferred providers*.
+Deferred candidates are listed in PLAN.md *Deferred providers*; its Muse and OpenDesign deferrals are superseded by approved Milestones 19 and 18.
 
 ## Workflow
 

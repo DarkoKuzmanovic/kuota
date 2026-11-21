@@ -17,7 +17,7 @@ TestCase {
     // Provider ids with more than one genuinely meaningful usage window get a
     // selector; Cursor (single "plan" window) deliberately has none.
     // Spec: docs/specs/2026-09-05-window-selector-all-providers-design.md
-    readonly property var selectableProviders: ["claude", "codex", "grok", "kimi", "opencode", "commandcode", "mistral", "opendesign"]
+    readonly property var selectableProviders: ["claude", "codex", "grok", "kimi", "opencode", "commandcode", "mistral", "opendesign", "muse"]
 
     function checkboxes(item) {
         var result = [];
@@ -58,10 +58,10 @@ TestCase {
         compare(component.status, Component.Ready, component.errorString());
         var page = component.createObject(testCase);
         try {
-            var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign"];
-            var names = ["Claude", "Codex", "Grok", "Kimi", "Cursor", "OpenCode", "CommandCode", "Mistral", "OpenDesign"];
+            var ids = ["claude", "codex", "grok", "kimi", "cursor", "opencode", "commandcode", "mistral", "opendesign", "muse"];
+            var names = ["Claude", "Codex", "Grok", "Kimi", "Cursor", "OpenCode", "CommandCode", "Mistral", "OpenDesign", "Muse Code"];
             var checks = checkboxes(page);
-            compare(checks.length, 9);
+            compare(checks.length, 10);
             for (var i = 0; i < checks.length; i++) {
                 // Opt-in browser-session providers say what enabling them reads.
                 compare(checks[i].text, i < 7 ? "Show and collect usage" : "Show and collect usage (reads your Firefox login)");
@@ -115,7 +115,8 @@ TestCase {
             grok: ["", "week", "month"],
             kimi: ["", "week", "5h", "daily", "month"],
             opencode: ["", "rolling", "weekly", "monthly"],
-            commandcode: ["", "fiveHour", "weekly"]
+            commandcode: ["", "fiveHour", "weekly"],
+            muse: ["", "current", "weekly"]
         };
         for (var id in expected) {
             if (!Object.prototype.hasOwnProperty.call(expected, id)) {

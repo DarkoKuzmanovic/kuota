@@ -47,7 +47,7 @@ The collector emits one normalized JSON document. Schema version 2 is deliberate
 }
 ```
 
-`collectionStartedAt` and `collectionFinishedAt` are UTC ISO 8601 timestamps, and the start cannot be after the finish. `providers` contains one record for each configured provider; it may be empty and may contain a partial result when another provider fails. Provider IDs are `claude`, `codex`, `grok`, `kimi`, `cursor`, `opencode`, `commandcode`, `mistral`, and `opendesign` (canonical order). States are `ok`, `stale`, `auth-needed`, and `error`.
+`collectionStartedAt` and `collectionFinishedAt` are UTC ISO 8601 timestamps, and the start cannot be after the finish. `providers` contains one record for each configured provider; it may be empty and may contain a partial result when another provider fails. Provider IDs are `claude`, `codex`, `grok`, `kimi`, `cursor`, `opencode`, `commandcode`, `mistral`, `opendesign`, and `muse` (canonical order). States are `ok`, `stale`, `auth-needed`, and `error`.
 
 A `stale` provider is a last-known-good record, not an empty failure marker. It must include `lastSuccessAt` and retained real data: either at least one usage window or a non-empty details object in the namespace matching its provider ID. It does not need both kinds of data, nor every optional field. Other states may omit `lastSuccessAt`, windows, and details when those values are unavailable.
 
@@ -57,7 +57,7 @@ Codex windows retain the wire's optional `limit_window_seconds` as `durationSeco
 
 Provider details are namespaced and typed under the provider record. Claude details may contain `model`, integer `tokens`, and the following optional extra-usage fields: boolean `extraUsageEnabled`; non-negative integer `extraUsageUsedCredits` and `extraUsageMonthlyLimit`, expressed as integer credit amounts in the currency's minor units (each independent, so overage where used exceeds the limit is retained rather than clamped); a bounded (≤16 character) `extraUsageCurrency` code; non-negative integer `extraUsageDecimalPlaces`, the number of decimal places used to render those minor-unit amounts in `extraUsageCurrency`; and a bounded (≤100 character) `extraUsageDisabledReason`. Each extra-usage field is omitted when unavailable, and malformed extra-usage is dropped in isolation so valid base and model windows still surface. Codex details may contain `plan`, non-negative `credits` and `cost`, and integer `tokens`. A details object must use only the namespace matching its provider ID. No provider detail is inferred from a missing native field, and no credential, account identifier, authorization field, raw response, or token-shaped value belongs in this document.
 
-The TypeScript `ProviderRecord` is a discriminated union: a `claude` record can only contain `details.claude`, a `codex` record only `details.codex`, a `grok` record only `details.grok`, a `kimi` record only `details.kimi`, a `cursor` record only `details.cursor`, a `commandcode` record only `details.commandcode`, a `mistral` record only `details.mistral`, and an `opendesign` record only `details.opendesign`. An `opencode` record carries no `details` object; its provider data consists only of usage windows. Runtime validation enforces the same correlation and the stale retention rule before narrowing unknown input.
+The TypeScript `ProviderRecord` is a discriminated union: a `claude` record can only contain `details.claude`, a `codex` record only `details.codex`, a `grok` record only `details.grok`, a `kimi` record only `details.kimi`, a `cursor` record only `details.cursor`, a `commandcode` record only `details.commandcode`, a `mistral` record only `details.mistral`, an `opendesign` record only `details.opendesign`, and a `muse` record only `details.muse`. An `opencode` record carries no `details` object; its provider data consists only of usage windows. Runtime validation enforces the same correlation and the stale retention rule before narrowing unknown input.
 
 Grok details (`details.grok`) may contain non-negative `monthlyUsed` and `monthlyLimit` counts and a UTC `monthlyResetAt` timestamp. Usage windows are ordered week (`id: "week"`, label `"7d"`) then month (`id: "month"`, label `"30d"`) so compact primary defaults to the tighter credit window; the weekly window is optional and omitted when the credits endpoint does not return a weekly period.
 
@@ -72,6 +72,18 @@ CommandCode details (`details.commandcode`) may contain a bounded `planName` dra
 Mistral details (`details.mistral`) may contain non-negative `vibeBudget` and `apiBudget` monthly budget amounts (major currency units), a three-letter `currency`, and a boolean `paygEnabled`. Windows are `vibe` (label `Vibe Code`, primary) and `api` (label `API`), each with `usedPercent` and `resetAt`; a budget the wire omits is left out.
 
 OpenDesign details (`details.opendesign`) may contain a bounded plan `tier` and a non-negative `walletBalanceUsd`. Windows are `5h` (label `5h`, primary) and `weekly` (label `Weekly`), identified by and retaining the wire's `durationSeconds`; each has integer `used`/`limit` credits, a derived `usedPercent`, and `resetAt`. An overdrawn window is capped at `used = limit`. Spec: `docs/specs/2026-11-06-mistral-opendesign-provider-design.md`.
+
+Muse Code (`muse`) is opt-in and off by default. Windows are `current` (primary;
+label `N-hour` for a positive whole-hour duration, otherwise `Current window`)
+and `weekly` (label `Weekly`). Each `usedPercent` is calculated from the finite
+weighted usage and positive weighted limit and must satisfy the schema's 0–100
+range; `resetAt` is UTC ISO 8601 converted from epoch seconds. Weighted amounts
+are not integer counts, so the windows omit `used` and `limit` rather than
+rounding or inventing counts. `details.muse` may contain only the bounded
+provider-supplied `tier`. Team IDs and session cookies are secret and never
+enter the contract or cache. Authentication rejection remains `auth-needed`;
+other failures may use the common last-known-good cache as `stale`. Spec:
+`docs/specs/2026-11-22-muse-provider-design.md`.
 
 ## Migrate-then-validate
 

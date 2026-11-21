@@ -34,6 +34,8 @@ Kirigami.FormLayout {
     property string cfg_mistralCustomIcon: ""
     property string cfg_opendesignAccentColor: ""
     property string cfg_opendesignCustomIcon: ""
+    property string cfg_museAccentColor: ""
+    property string cfg_museCustomIcon: ""
 
     readonly property var providerIds: ProviderCatalog.PROVIDER_IDS.slice()
 
@@ -57,6 +59,8 @@ Kirigami.FormLayout {
             return qsTr("Mistral");
         case "opendesign":
             return qsTr("OpenDesign");
+        case "muse":
+            return qsTr("Muse Code");
         default:
             return providerId;
         }

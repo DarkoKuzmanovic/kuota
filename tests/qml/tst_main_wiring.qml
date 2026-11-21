@@ -57,6 +57,20 @@ TestCase {
             compare(bridge._requestState.nextSourceId, 4);
         } finally { root.destroy(); }
     }
+
+    function test_museOptInFlowsToCollectorAndCompactWindow() {
+        var root = createSelectionRoot([]);
+        try {
+            var raw = selectedSettings([]);
+            raw.museVisible = true;
+            raw.museWindow = "weekly";
+            root.configOverride = raw;
+            waitForSelection(root, ["muse"]);
+            compare(root.enabledProviders, ["muse"]);
+            compare(root.compactDisplayConfig.window.muse, "weekly");
+            compare(root.compactDisplayConfig.order, ["muse"]);
+        } finally { root.destroy(); }
+    }
     function test_emptyStartupManualTimerViewsAndReenable() {
         var root = createSelectionRoot([]);
         try {

@@ -3,9 +3,9 @@
 **AI account usage in your KDE Plasma panel.**
 
 Kuota shows the usage windows, reset times, and account limits reported by
-**Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, CommandCode, Mistral, and
-OpenDesign**. Keep a compact summary in your panel and open the detail view
-when you need the full picture. The same detail view works as a desktop widget.
+**Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, CommandCode, Mistral,
+OpenDesign, and Muse Code**. Keep a compact summary in your panel and open the
+detail view when you need the full picture. The same detail view works as a desktop widget.
 
 No Pi installation, permanent collector service, or runtime npm dependencies.
 Kuota reads existing credentials locally; it does not estimate account quota
@@ -24,8 +24,8 @@ Needs KDE Plasma 6 and Node.js ≥20 at `/usr/bin/node` (full list under
 [latest release](https://github.com/DarkoKuzmanovic/kuota/releases/latest), then:
 
 ```bash
-kpackagetool6 -t Plasma/Applet -i kuota-v2.1.0.plasmoid   # first install
-kpackagetool6 -t Plasma/Applet -u kuota-v2.1.0.plasmoid   # upgrade
+kpackagetool6 -t Plasma/Applet -i kuota-v2.1.1.plasmoid   # first install
+kpackagetool6 -t Plasma/Applet -u kuota-v2.1.1.plasmoid   # upgrade
 ```
 
 Add **Kuota** from Plasma's **Add Widgets** dialog, then sign in to the
@@ -58,7 +58,7 @@ bar.
 
 ## Project status
 
-Current release: **2.1.0** (2026-11-06), with the installable `.plasmoid` on
+Current release: **2.1.1** (2026-11-22), with the installable `.plasmoid` on
 [GitHub Releases](https://github.com/DarkoKuzmanovic/kuota/releases). The
 [changelog](CHANGELOG.md) tracks the full history back to 1.0.0. Kuota is not
 on the KDE Store yet. See the [roadmap](ROADMAP.md) for candidate work, not
@@ -75,7 +75,7 @@ promises.
 | `flock` from util-linux | Collector locking uses **`/usr/bin/flock`**. |
 | `zip` | Required; a missing tool or failed archive build is an error, not an unpacked-only success. |
 | curl | Used when Codex's normal HTTP request needs the fallback transport. |
-| `sqlite3` | Needed at **`/usr/bin/sqlite3`** to read the local Cursor session and the Firefox login for Mistral/OpenDesign; not needed when a usable environment fallback is used. |
+| `sqlite3` | Needed at **`/usr/bin/sqlite3`** to read the local Cursor session and the Firefox login for Mistral/OpenDesign/Muse Code; not needed when a usable environment fallback is used. |
 
 For development, also install Qt 6's `qmllint`, Qt Quick Test, Kirigami, and the
 Plasma QML modules. The current QML runner expects
@@ -112,8 +112,8 @@ live-account smoke test. See the [approved reliability amendment](docs/specs/202
 The build produces:
 
 ```text
-dist/artifact/kuota-v2.1.0/           unpacked Plasma package
-dist/artifact/kuota-v2.1.0.plasmoid  verified installable archive
+dist/artifact/kuota-v2.1.1/           unpacked Plasma package
+dist/artifact/kuota-v2.1.1.plasmoid  verified installable archive
 ```
 
 The installer installs or upgrades the package for your user. Open Plasma's
@@ -159,8 +159,8 @@ kuota status             # which source each provider uses (never values)
 kuota logout codex
 ```
 
-Claude, Cursor, Mistral, and OpenDesign need no `kuota login`: Kuota reads the
-login you already have in Claude Code, Cursor, or Firefox.
+Claude, Cursor, Mistral, OpenDesign, and Muse Code need no `kuota login`: Kuota
+reads the login you already have in Claude Code, Cursor, or Firefox.
 
 Keys are never accepted as command arguments (they would show in `ps`). Never
 put tokens in widget settings, issues, or screenshots. Kuota renews its own
@@ -176,14 +176,23 @@ login. Codex device sign-in must be allowed for your ChatGPT account.
 | **Cursor** | Included-plan spend share, billing reset, membership and on-demand usage facts. | Local Cursor `state.vscdb` session first, then `CURSOR_SESSION_TOKEN`. |
 | **OpenCode Go** | Hosted Go plan: rolling 5-hour, weekly, and monthly percentages with resets. Not arbitrary OpenCode/Zen/API spend. | `kuota login opencode` (API key); `OPENCODE_API_KEY` fallback. |
 | **CommandCode** | Five-hour and optional weekly windows; monthly/purchased/free credit facts and optional plan name. | `kuota login commandcode` (API key); `COMMANDCODE_API_KEY` fallback. |
-| **Mistral** *(off by default)* | Vibe Code and API monthly budgets (percent, reset, spend in money); pay-as-you-go flag. | Your Firefox login to admin.mistral.ai (session cookie, read-only); `MISTRAL_SESSION_COOKIE` fallback. |
+| **Mistral** *(off by default)* | Vibe Code and API monthly budgets (percent, reset, spend in money); pay-as-you-go flag when returned. | Your Firefox login to admin.mistral.ai (session cookie, read-only); `MISTRAL_SESSION_COOKIE` fallback. |
 | **OpenDesign** *(off by default)* | Coding-plan 5-hour and weekly credit windows; plan tier and wallet balance. | Your Firefox login to open-design.ai (session cookie, read-only); `OPENDESIGN_COOKIE` fallback. |
+| **Muse Code** *(off by default)* | Current and weekly subscription quota percentages and resets, plus plan tier when returned. | Your Firefox `dev.meta.ai` login (`llama_dev_sess`, read-only); `MUSE_SESSION_COOKIE` fallback. |
 
-**Mistral and OpenDesign read your browser login.** Neither serves usage to an
-API key, so Kuota copies Firefox's cookie store (newest profile) into a private
-temp directory, reads only that site's session cookie, and deletes the copy. The
-cookie is used for that one request and never stored. Enable them in Settings →
-Providers; system `sqlite3` is required.
+**Mistral, OpenDesign, and Muse Code read your browser login.** Kuota copies
+Firefox's cookie store (newest profile) into a private temp directory, reads only
+the site's session cookie, and deletes the copy. Cookies are used only for the
+provider requests and never stored or refreshed. Enable these providers in
+Settings → Providers; Firefox discovery requires system `sqlite3`. The fallback
+environment variable contains the full Cookie header and is used when no
+browser session is available; never paste it into an issue or screenshot.
+
+Muse reads only the teams and subscription-quota endpoints; it does not mint
+API keys. With multiple teams, it accepts only an unambiguous quota among at
+most five teams; otherwise it reports an error. Team identifiers stay private.
+Its weighted quota amounts are used to calculate percentages, not shown as
+integer counts.
 
 **Provider limits matter:** CommandCode exposes monthly credit allowances, not a
 monthly-used total; Kuota therefore has no monthly utilization window for it.
@@ -231,7 +240,7 @@ instances are preserved on disk but excluded from the current response.
 |---|---|
 | Widget missing or old code still shown | Confirm installation used `-t Plasma/Applet`, rebuild the archive, then reload the widget or log out/in. |
 | `auth-needed` | Check the correct credential source for that provider and sign in again. Do not paste the auth file into a bug report. |
-| Mistral/OpenDesign `auth-needed` | Sign in to admin.mistral.ai or open-design.ai in Firefox (the most recently used profile), then refresh. Other browsers aren't read; use the cookie env fallback instead. |
+| Mistral/OpenDesign/Muse `auth-needed` | Sign in to admin.mistral.ai, open-design.ai, or dev.meta.ai in Firefox (the most recently used profile), then refresh. Other browsers aren't read; use the cookie env fallback instead. |
 | Cursor login appears stale | Confirm local Cursor login and `/usr/bin/sqlite3`. Kuota reads committed WAL updates; check DB/WAL/SHM access as described below. |
 | `stale` | Last successful data is retained. Check its timestamp; Claude may be in rate-limit backoff. Repeated Refresh clicks do not override that backoff. |
 | `error` | A provider may be unreachable or have changed its response; also check fixed runtime paths and the trusted local cache directory. Other providers can still update. |

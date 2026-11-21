@@ -852,4 +852,16 @@ TestCase {
             verify(serialized.indexOf(forbidden[i]) === -1, forbidden[i]);
         }
     }
+
+    function test_musePlanAndLoginHint() {
+        var model = FullModel.buildFullViewModel({
+            id: "muse", state: "ok",
+            windows: [{ id: "current", label: "Current", usedPercent: 15 }],
+            details: { muse: { tier: "pro", teamId: "synthetic-team" } }
+        });
+        compare(model.facts.length, 1);
+        compare(factValue(model, "Plan"), "pro");
+        compare(factValue(FullModel.buildFullViewModel({ id: "muse", state: "ok", details: { muse: {} } }), "Plan"), null);
+        verify(FullModel.buildFullViewModel({ id: "muse", state: "auth-needed" }).stateMessage.indexOf("sign in at dev.meta.ai in Firefox") !== -1);
+    }
 }

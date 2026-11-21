@@ -15,8 +15,12 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ### Added
 
+- **Muse Code provider** (off by default; enable in Settings → Providers).
+  Shows current and weekly subscription quota percentages and resets, and the
+  plan tier when available. Uses the read-only Firefox `dev.meta.ai` session
+  cookie, with `MUSE_SESSION_COOKIE` fallback; no API key is minted.
 - **All overview:** compare each enabled provider's tightest reported usage
-  window and earliest reset in configured order, with explicit state badges.
+  window and its reset in configured order, with explicit state badges.
 - **Elapsed-time tick:** detail bars mark elapsed time only when the provider
   reports both the window duration and its reset time.
 
@@ -24,6 +28,8 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 - The full popup uses more compact detail cards and distinguishes having no
   providers enabled from waiting for usage data.
+
+## [2.1.1] - 2026-11-22
 
 ### Fixed
 

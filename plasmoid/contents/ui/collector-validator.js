@@ -53,6 +53,7 @@ var COMMANDCODE_DETAIL_KEYS = [
 
 var MISTRAL_DETAIL_KEYS = ["vibeBudget", "apiBudget", "currency", "paygEnabled"];
 var OPENDESIGN_DETAIL_KEYS = ["tier", "walletBalanceUsd"];
+var MUSE_DETAIL_KEYS = ["tier"];
 
 var UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 var WINDOW_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -294,6 +295,7 @@ function parseProviderDetails(input, id, state) {
         : id === "commandcode" ? COMMANDCODE_DETAIL_KEYS
         : id === "mistral" ? MISTRAL_DETAIL_KEYS
         : id === "opendesign" ? OPENDESIGN_DETAIL_KEYS
+        : id === "muse" ? MUSE_DETAIL_KEYS
         : id === "opencode" ? null
         : CURSOR_DETAIL_KEYS;
     if (detailKeys === null) {
@@ -378,6 +380,8 @@ function parseDetailFields(input, allowedKeys, id, state) {
     } else if (id === "opendesign") {
         assignIfDefined(details, "tier", parseOptionalSafeText(input, "tier", 50, state));
         assignIfDefined(details, "walletBalanceUsd", parseOptionalNonNegativeNumber(input, "walletBalanceUsd", state));
+    } else if (id === "muse") {
+        assignIfDefined(details, "tier", parseOptionalSafeText(input, "tier", 50, state));
     } else {
         assignIfDefined(details, "membershipType", parseOptionalSafeText(input, "membershipType", 100, state));
         assignIfDefined(details, "onDemandUsed", parseOptionalCount(input, "onDemandUsed", state));

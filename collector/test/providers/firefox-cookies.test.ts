@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { readSessionCookie, type SessionCookieSpec } from "../../src/providers/firefox-cookies.js";
+import { MUSE_COOKIE_SPEC } from "../../src/providers/muse/adapter.js";
 
 // Synthetic Firefox profiles; every cookie value is a recognizable non-secret.
 const SPEC: SessionCookieSpec = { hosts: [".example-synthetic.test"], namePattern: "ory_session_%", envKey: "SYNTHETIC_COOKIE" };
@@ -44,6 +45,25 @@ test("reads only the provider's live session cookies from the newest profile and
   } finally {
     await cleanup();
   }
+});
+
+test("Muse reads only its Firefox session and uses its environment fallback", async () => {
+  const { home, tempRoot, cleanup } = await fixture();
+  try {
+    await profile(home, "p.default", [
+      [".meta.ai", "llama_dev_sess", "synthetic-muse-not-real", FUTURE],
+      [".meta.ai", "unrelated", "synthetic-other", FUTURE],
+      [".elsewhere.test", "llama_dev_sess", "synthetic-wrong-host", FUTURE],
+    ]);
+    assert.deepEqual(await readSessionCookie(MUSE_COOKIE_SPEC, { homeDirectory: home, environment: {}, tempRoot }),
+      { state: "available", cookie: "llama_dev_sess=synthetic-muse-not-real" });
+    assert.deepEqual(await readdir(tempRoot), []);
+    const emptyHome = await mkdtemp(join(tmpdir(), "kuota-muse-empty-"));
+    try {
+      assert.deepEqual(await readSessionCookie(MUSE_COOKIE_SPEC, { homeDirectory: emptyHome, environment: { MUSE_SESSION_COOKIE: "llama_dev_sess=synthetic-env" }, tempRoot }),
+        { state: "available", cookie: "llama_dev_sess=synthetic-env" });
+    } finally { await rm(emptyHome, { recursive: true, force: true }); }
+  } finally { await cleanup(); }
 });
 
 test("falls back to the env cookie only when Firefox has no session", async () => {

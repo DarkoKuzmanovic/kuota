@@ -1,13 +1,13 @@
 # Kuota Project Plan
 
-**Source of truth:** `docs/specs/2026-07-10-kuota-design.md` (approved for implementation by the project owner on 2026-07-10)  
-**Plan status (2026-09-25):** v1.3.0 released 2026-09-09 (M14 OpenCode + CommandCode, M15 window selectors, Cursor, Umans removal). M16 Claude hotfix merged to `main`, unreleased. Meta Muse Code deferred (see *Deferred providers*). Current state: *Handoff Block*.
-**Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, Cursor, OpenCode, and CommandCode. Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
+**Source of truth:** `docs/specs/2026-07-10-kuota-design.md` and owner-approved provider amendments, including `docs/specs/2026-11-22-muse-provider-design.md`.  
+**Plan status (2026-11-22):** v2.1.1 released 2026-11-22 (Mistral moved to the tRPC budget procedure; stale-data fix). v2.1.0 (2026-11-06) added Mistral + OpenDesign (M18, gate G-18 passed); M17 standalone credentials shipped as v2.0.0 (2026-10-02). Muse Code (M19) is approved and in progress, with G-19 open. Open GitHub issues: #8 (offline doctor) and #9 (headroom overview). Current state: *Handoff Block*.
+**Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral (opt-in), OpenDesign (opt-in), and Muse Code (opt-in). Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
 
 ## Approved Decisions
 
 1. Kuota is a standalone KDE Plasma 6 widget that refreshes independently of Pi and reports authoritative provider data rather than estimating quota from local activity.
-2. Current supported providers are Claude, Codex, Grok, Kimi, Cursor, OpenCode, and CommandCode; additional providers, cross-machine aggregation, history charts, notifications, account management, a permanent service, and KDE Store publication are out of scope. (V1 originally froze at Claude/Umans/Codex; Grok and Kimi were added in 1.1.0; Umans was removed 2026-08-02; Cursor was added 2026-08-02; OpenCode and CommandCode were approved 2026-09-01 per `docs/specs/2026-09-01-opencode-provider-design.md` and `docs/specs/2026-09-01-commandcode-provider-design.md`.)
+2. Supported providers are Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral, OpenDesign, and Muse Code. Mistral, OpenDesign, and Muse are opt-in. Additional providers, cross-machine aggregation, history charts, notifications, account management, a permanent service, and KDE Store publication remain out of scope without explicit approval.
 3. The compact representation is one configurable horizontal KVitals-style line; the full popup and desktop representation share a responsive, CodexBar-inspired view that remains native to Plasma.
 4. Users can configure provider visibility/order, icons/text mode, labels, separators, font sizing, compact metric choices, reset countdown visibility, refresh interval, and caution/critical thresholds and colors.
 5. Every genuine provider field may be displayed. Missing fields are omitted, unlimited plans do not receive invented percentages, and visually symmetric cards never justify fabricated data.
@@ -516,15 +516,16 @@
 | G-P1 | Review reliability fixes #1, #3, #4 | PASS (code review) | 2026-09-09. PR #11 merged; issues #1/#3/#4 closed. #2 (live Cursor WAL re-login smoke) stays open. See G-P1 closure. |
 | M15 | Window selectors for all providers | Evidence only, no independent review | 2026-09-05. See Milestone 15; shipped in v1.3.0 (`a94fb1f`, release `913962b`). |
 | M16 | Claude shape drift + Claude Code credentials | PASS | 2026-09-25. Independent review APPROVED WITH FIXES, fix round applied; `rm -rf dist && npm test` 641/641, typecheck 0; live panel confirmed by owner. Merged to `main` (`f92507b`), unreleased. |
+| G-19 | Muse Code provider and secret-safe integration | OPEN | Approved 2026-11-22; see Milestone 19 for pending synthetic gate and independent review. |
 
 ## Handoff Block
 
-*Refreshed 2026-09-25. It replaces the G11-era block; earlier handoff notes are historical, and the Gate Log is the evidence of record.*
+*Refreshed 2026-11-22. It replaces the 2026-09-25 block; earlier handoff notes are historical, and the Gate Log is the evidence of record.*
 
-- **Released:** v1.3.0 (`913962b`, 2026-09-09). Seven providers: Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode.
-- **On `main`, unreleased:** M16 Claude hotfix (`5571900`, `f055da1`, `f92507b`), listed under CHANGELOG `[Unreleased]`. Installed locally from `dist/artifact/kuota-v1.3.0.plasmoid`. Cutting a release (e.g. 1.3.1) needs separate owner approval.
-- **Open GitHub issues:** #2 [P1] live Cursor WAL re-login smoke (code fix merged in PR #11; the owner-approved live smoke is pending), plus #5–#9 (P2/P3 enhancements, not started).
-- **Deferred:** Meta Muse Code and OpenDesign providers (see *Deferred providers*); l10n/KI18n catalog choice; Q15 KDE-Store artifact naming.
+- **Released:** v2.1.1 (2026-11-22) — Mistral stale-data fix: the collector reads the admin dashboard's tRPC `billing.budget` procedure instead of the retired REST budget path. v2.1.0 (2026-11-06) added the Mistral + OpenDesign providers (M18, gate G-18 passed). M17 standalone credentials (drop Pi auth, `kuota login`) shipped as v2.0.0 (2026-10-02).
+- **Providers (ten, including M19):** Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral (opt-in), OpenDesign (opt-in), Muse Code (opt-in).
+- **Open GitHub issues:** only #8 ([P2] offline doctor diagnostics) and #9 ([P3] reset-aware headroom overview). All others are closed.
+- **In progress:** Muse Code provider (M19; superseding the former deferral). The headroom overview tab + popup redesign (#9), offline `kuota doctor` (#8), and remaining G-RL follow-ups each need their own scope; none is a regression.
 - **Remote:** `origin` = `github.com/DarkoKuzmanovic/kuota` (public). Push, PR, release, and KDE Store publication each need explicit owner approval.
 - **Executor rules:** Work milestone-by-milestone. Write tests first. Keep secrets out of all artifacts. Run gates sequentially under a synthetic `HOME`. Stop on contract/security ambiguity rather than guessing.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.
@@ -1620,6 +1621,8 @@ npm 9.6.4 both pass: every gate exits 0, `npm test` 760 pass / 0 fail, QML
 **G-RL counters:** panel reviews 1 (2 models) · review-driven fix cycles 1 ·
 code commits 1 · test commits 1 · doc commits 1 · deferred findings 5.
 
+**G-RL follow-ups (2026-11-22, branch `chore/grl-cleanups`, code commit `77403dd7dec11b786c8f9cf764a89e58d1904c5b`).** Item (1): bridge selection state moved into `bridge-lifecycle.js` (`createSelectionState`/`updateSelection`/`clearRefreshGate`); `canonicalizeProviders()` in `collector-command.js` replaces the argv-token re-parse in `CollectorBridge.select()`, which is now a thin wrapper. Item (2): `config-model.js` window defaults and sanitizer loop over `KNOWN_WINDOWS` instead of eight per-provider literals (catalog-loop test added). Item (5): `check-artifact` derives expected provider IDs from the packaged `provider-catalog.js` instead of the build's own `PROVIDER_IDS` (artifact-isolation fixture stages the catalog). Item (4) skipped as a design judgment: dropping the `atomic-write` `isJsonValue` re-export reverses approved decision D-R6.2 (`docs/specs/2026-09-09-json-value-guard-design.md`), which deliberately preserves callable compatibility at atomic-write and is guarded by the compatibility-export identity test; it needs explicit owner approval. Item (3) untouched (another worker). Gates in the worktree: typecheck 0 · Node 775/775 · QML 409/409 (11 new) · validate:plasma 0 · build:artifact 0.
+
 Not claimed, as in the batch's own verdict: live widget/account acceptance,
 non-English translation runs, elapsed five-minute scheduling, and descendant
 reaping. The batch rides the next release; release, installation and #8/#9
@@ -1639,6 +1642,38 @@ Gate (2026-11-06, worktree `feat/mistral-opendesign`): `npm test` 773/0 · `npm 
 `npm run typecheck` clean · `npm run validate:plasma` exit 0 · live `cli.js --enabled-providers=mistral,opendesign`
 → both `ok` with real windows, no temp copies left · mutation (skip temp cleanup) → 3 tests fail.
 - [x] **Gate G-18 — PASSED 2026-11-06:** full gate set ✅ · owner live panel check ✅ ("Perfection!") with both providers enabled and custom icons set. Released as **2.1.0**.
+
+## Milestone 19 — Meta Muse Code (browser-session, opt-in)
+
+**Approved 2026-11-22** by the owner. Spec: `docs/specs/2026-11-22-muse-provider-design.md`.
+The `muse` provider is off by default, uses the Firefox `llama_dev_sess` cookie
+or `MUSE_SESSION_COOKIE` fallback, and makes only read-only teams and
+subscription-quota GETs. Team IDs remain secret. This supersedes the Muse
+deferral below; no release or live-account test is approved by this milestone.
+
+**Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 1.
+
+- [ ] **M19.1 — Credential discovery and bounded team/quota fetch**
+  Reuse the Firefox session reader; enforce opt-in no-I/O, safe team IDs, zero-team
+  error, direct single-team fetch, and at most five probes for multiple teams.
+  Reject more than five teams, ambiguous results and all probe errors; classify
+  auth rejection separately. Never mint keys or expose identifiers or cookies.
+- [ ] **M19.2 — Normalize and register Muse**
+  Add `current` and `weekly` windows, finite weighted ratios and epoch resets,
+  current-duration label and optional tier; omit weighted used/limit amounts.
+  Extend schema, runtime validation, registry and common cache integration.
+- [ ] **M19.3 — Integrate Plasma and documentation**
+  Add provider catalog, default-off settings, window selection, namespaced
+  details, display and QML validation. Update contract and user guidance.
+- [ ] **M19.4 — Synthetic coverage and independent review**
+  Cover credentials and cleanup, disabled no-I/O, team selection/probe limits and
+  failures, live-shaped fetch→parser integration, normalization, secret safety,
+  stale/auth-needed separation, QML integration and default-off behavior.
+- [ ] **Gate G-19 — OPEN:** In an isolated synthetic HOME and minimal environment,
+  run typecheck, Node and QML tests, Plasma validation, collector and artifact
+  builds/checks, and secret-safety checks sequentially; obtain independent review
+  and record commands, results and verdict here and in the Gate Log. A real-session
+  or panel check requires separate owner approval.
 
 ## Milestone 20 — Overview tab and popup redesign
 
@@ -1672,10 +1707,12 @@ Counters: reviews 0 · correction rounds 0 · oracle 0 · direct edits 2.
 
 ## Deferred providers
 
-### Meta Muse Code — deferred 2026-09-25 (owner decision)
+### Meta Muse Code — deferred 2026-09-25; superseded by Milestone 19 (2026-11-22)
 
 **Request:** Add Muse (Meta Muse Code) to Kuota and pi-hud.
-**Decision:** Do not implement. Revisit when Meta ships a read-only usage/quota endpoint.
+**Historical decision:** Do not implement until a read-only quota source exists. The
+2026-11-22 owner-approved browser-session design uses read-only teams and
+subscription-quota GETs; it supersedes this deferral for Kuota.
 
 **Findings (2026-09-25; shape-only probes, no credential values recorded):**
 - The Model API (`https://api.meta.ai/v1`) documents no usage, billing, or quota endpoint.
@@ -1691,8 +1728,9 @@ Counters: reviews 0 · correction rounds 0 · oracle 0 · direct edits 2.
   That is fragile, and the credential scope is too broad. `/billing` rendered no readable content.
 - pi stores `auth.meta = {type:"oauth", refresh, access, expires}`. The identity token (`refresh`) is not renewable.
 
-**Revisit trigger:** A documented read-only endpoint (or response headers on a free call) that returns
-the Current/Weekly windows. It must be authenticated with the stored Muse credential and must not mint keys.
+**Historical revisit trigger:** A read-only source of Current/Weekly quota that
+does not mint keys. The approved browser-session source satisfies that requirement;
+it uses a Firefox session, not the formerly proposed stored Muse credential.
 Sources: dev.meta.ai/docs (overview, pricing-rate-limits, muse-code/auth); quota-axi#277; AgEnD#851.
 
 ### OpenDesign (Go plan) — deferred 2026-10-11; superseded by Milestone 18 (2026-11-06, browser-session cookie)
