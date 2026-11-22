@@ -516,7 +516,9 @@
 | G-P1 | Review reliability fixes #1, #3, #4 | PASS (code review) | 2026-09-09. PR #11 merged; issues #1/#3/#4 closed. #2 (live Cursor WAL re-login smoke) stays open. See G-P1 closure. |
 | M15 | Window selectors for all providers | Evidence only, no independent review | 2026-09-05. See Milestone 15; shipped in v1.3.0 (`a94fb1f`, release `913962b`). |
 | M16 | Claude shape drift + Claude Code credentials | PASS | 2026-09-25. Independent review APPROVED WITH FIXES, fix round applied; `rm -rf dist && npm test` 641/641, typecheck 0; live panel confirmed by owner. Merged to `main` (`f92507b`), unreleased. |
-| G-19 | Muse Code provider and secret-safe integration | OPEN | Approved 2026-11-22; see Milestone 19 for pending synthetic gate and independent review. |
+| G-19 | Muse Code provider and secret-safe integration | PASS | 2026-11-22. Integration gates on `main` (typecheck; Node 809/809 incl. `/usr/bin/node`; QML 462/462; validate:plasma; build:artifact); owner live panel check approved by Darko before release; released as v2.2.0 (commit `c1d93f0`). |
+| G-20 | Overview tab and popup redesign | PASS | 2026-11-22. Integration gates on `main` (typecheck; Node 809/809 incl. `/usr/bin/node`; QML 462/462; validate:plasma; build:artifact); owner live panel check approved by Darko before release; released as v2.2.0 (commit `c1d93f0`). |
+| G-21 | Offline `kuota doctor` | PASS | 2026-11-22. Integration gates on `main` (typecheck; Node 809/809 incl. `/usr/bin/node`; QML 462/462; validate:plasma; build:artifact); owner live panel check approved by Darko before release; released as v2.2.0 (commit `c1d93f0`). |
 
 ## Handoff Block
 
@@ -1669,11 +1671,7 @@ deferral below; no release or live-account test is approved by this milestone.
   Cover credentials and cleanup, disabled no-I/O, team selection/probe limits and
   failures, live-shaped fetch→parser integration, normalization, secret safety,
   stale/auth-needed separation, QML integration and default-off behavior.
-- [ ] **Gate G-19 — OPEN:** In an isolated synthetic HOME and minimal environment,
-  run typecheck, Node and QML tests, Plasma validation, collector and artifact
-  builds/checks, and secret-safety checks sequentially; obtain independent review
-  and record commands, results and verdict here and in the Gate Log. A real-session
-  or panel check requires separate owner approval.
+- [x] **Gate G-19 — PASSED 2026-11-22:** integration gates on `main` (typecheck; Node 809/809 incl. `/usr/bin/node`; QML 462/462; validate:plasma; build:artifact) · owner live panel check approved by Darko before release. Released as **2.2.0** (commit `c1d93f0`).
 
 ## Milestone 20 — Overview tab and popup redesign
 
@@ -1689,10 +1687,7 @@ optional provider-reported duration to schema v2.
 - [x] Validate optional duration at both boundaries and map only wire-reported
   durations; cover existing providers with synthetic fixtures.
 - [x] Refresh README, changelog and synthetic light/dark screenshots.
-- [ ] **Gate G-20:** independent review and owner live acceptance; clean `dist`
-  before each of typecheck, Node tests, QML tests, Plasma validation and artifact
-  build with a disposable synthetic HOME; capture All, detail and disabled views
-  in both light and dark. Record commands and counts before marking passed.
+- [x] **Gate G-20 — PASSED 2026-11-22:** integration gates on `main` (typecheck; Node 809/809 incl. `/usr/bin/node`; QML 462/462; validate:plasma; build:artifact) · owner live panel check approved by Darko before release. Released as **2.2.0** (commit `c1d93f0`).
 
 Local synthetic checks, 2026-11-22: with a fresh disposable HOME and `dist`
 removed before each command, `npm run typecheck` passed; `npm test` passed
@@ -1725,7 +1720,7 @@ credential writes. `status` remains unchanged.
 - [x] Record the approved output, security and exit-code contract.
 - [x] Implement the registry-driven human report and read-only discovery, with
   synthetic secret-safety and filesystem tests.
-- [ ] **Gate G-21 — verification passed; independent review pending:**
+- [x] **Gate G-21 — PASSED 2026-11-22:** integration gates on `main` (typecheck; Node 809/809 incl. `/usr/bin/node`; QML 462/462; validate:plasma; build:artifact) · owner live panel check approved by Darko before release. Released as **2.2.0** (commit `c1d93f0`).
   sequential clean-dist runs with a disposable HOME and minimal environment,
   Node 24.15.0: typecheck passed, Node tests 790/790, QML tests 398/398,
   Plasma validation and artifact build passed. One real-HOME offline report

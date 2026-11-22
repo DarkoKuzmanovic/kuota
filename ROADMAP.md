@@ -18,8 +18,8 @@ implement them. [PLAN.md](PLAN.md) records milestone gates;
   refresh, strict snapshot validation, and credential-safety tests.
 
 Package metadata is **2.2.0** (latest release 2026-11-22; see
-[CHANGELOG.md](CHANGELOG.md)). Public source availability does
-not mean that a corresponding tagged/package release has been published.
+[CHANGELOG.md](CHANGELOG.md)). Releases are published on GitHub Releases;
+`main` may carry unreleased work listed under [Unreleased] in the changelog.
 
 ## Recommended next
 
