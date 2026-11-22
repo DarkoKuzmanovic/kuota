@@ -4,14 +4,13 @@
 
 Kuota shows the usage windows, reset times, and account limits reported by
 **Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, CommandCode, Mistral,
-OpenDesign, and Muse Code**. Keep a compact summary in your panel and open the
-detail view when you need the full picture. The same detail view works as a desktop widget.
+OpenDesign, and Muse Code**. Use it as a compact panel summary or open the
+overview and provider details on the panel or desktop.
 
-No Pi installation, permanent collector service, or runtime npm dependencies.
-Kuota reads existing credentials locally; it does not estimate account quota
-from your prompts, token logs, or local activity.
+It needs no Pi installation, permanent service, or runtime npm dependencies.
+Usage comes from providers, not estimates based on local activity.
 
-![Kuota app screenshot](docs/assets/kuota-app.png)
+![Dark Kuota overview showing synthetic provider usage and states](docs/assets/kuota-app.png)
 
 [Quick install](#quick-install) · [Providers and credentials](#providers-and-credentials) ·
 [Troubleshooting](#troubleshooting) · [Development](#development) ·
@@ -37,12 +36,13 @@ code. To build from source instead, see [Installation](#installation).
 
 - **Panel summary:** provider icons, labels, usage values, and configurable
   caution/critical colors. “Icons only” hides the label, **not** the usage value.
-- **All overview:** enabled providers in your chosen order, each with its
-  tightest reported percentage window, its reset, and current state.
-  Select a row for all of that provider's windows and facts.
-- **Detail view:** compact usage cards, progress bars, reset countdowns,
-  last-successful update time, and provider-specific facts. A bar's time tick
-  appears only when the provider reports both a reset and window duration.
+- **All overview:** enabled providers in your chosen order, showing the tightest
+  reported percentage window (or a count when no percentage is available), its
+  reset, and current state. Select a row for that provider's details.
+- **Detail view:** usage cards, reset countdowns, last-successful update time,
+  and provider-specific facts. A pace tick marks elapsed time only when the
+  provider reports both a reset and window duration: Codex and OpenDesign
+  windows, Muse's current window, and Kimi's short window can supply these.
 - **Appearance settings:** provider visibility/order, font family/scale,
   separators, spacing, custom icons, accents, text color, and opacity.
 - **Independent refresh:** a short-lived Node collector fetches providers
@@ -51,10 +51,16 @@ code. To build from source instead, see [Installation](#installation).
 - **Failure handling:** last-known-good usage survives transient failures and
   is marked stale. Claude honors rate-limit backoff; Codex supports a bounded
   OAuth refresh and a curl fallback.
+- **Offline diagnostics:** `kuota doctor` checks local credentials, caches,
+  and runtime requirements without contacting providers.
 
 Missing fields stay missing. An unlimited plan does not get an invented
 percentage; a provider without monthly usage does not get a fabricated monthly
 bar.
+
+![Codex detail view with synthetic usage and elapsed-time ticks](docs/assets/kuota-detail-codex.png)
+
+![Compact Kuota panel summary with synthetic usage](docs/assets/kuota-panel-strip.png)
 
 ## Project status
 
@@ -70,10 +76,10 @@ promises.
 |---|---|
 | Linux with KDE Plasma 6 | Package declares Plasma API minimum 6.0; not a GNOME, macOS, or Windows widget. |
 | Node.js ≥20 | The Plasma bridge invokes **`/usr/bin/node`**. A shell-only nvm/asdf installation is not sufficient. |
-| npm and Git | Needed to build from source. TypeScript is a pinned development dependency. |
+| npm and Git | npm is needed to build from source; Git is needed to clone it. TypeScript is a pinned development dependency. |
 | `kpackagetool6` | Installs the package as `Plasma/Applet`. |
 | `flock` from util-linux | Collector locking uses **`/usr/bin/flock`**. |
-| `zip` | Required; a missing tool or failed archive build is an error, not an unpacked-only success. |
+| `zip` | Needed to build the installable archive from source. |
 | curl | Used when Codex's normal HTTP request needs the fallback transport. |
 | `sqlite3` | Needed at **`/usr/bin/sqlite3`** to read the local Cursor session and the Firefox login for Mistral/OpenDesign/Muse Code; not needed when a usable environment fallback is used. |
 
@@ -102,12 +108,9 @@ has not changed. They require a freshly produced, nonempty archive before
 calling the package tool. To build without installing, run
 `npm run build:artifact`.
 
-The artifact checker runs the packaged collector in its own private temporary
-HOME/cache with an allowlisted environment. It does not pass your credentials,
-XDG paths, provider variables, or Node preload options to the collector. Each
-invocation has a two-second deadline and a 64 KiB output bound; temporary
-resources are removed on success or failure. These are offline checks, not a
-live-account smoke test. See the [approved reliability amendment](docs/specs/2026-09-08-review-p1-fixes-design.md).
+The artifact checker runs the packaged collector offline in a private temporary
+HOME with an allowlisted environment; it does not use your credentials. See the
+[reliability amendment](docs/specs/2026-09-08-review-p1-fixes-design.md).
 
 The build produces:
 
@@ -179,21 +182,19 @@ login. Codex device sign-in must be allowed for your ChatGPT account.
 | **CommandCode** | Five-hour and optional weekly windows; monthly/purchased/free credit facts and optional plan name. | `kuota login commandcode` (API key); `COMMANDCODE_API_KEY` fallback. |
 | **Mistral** *(off by default)* | Vibe Code and API monthly budgets (percent, reset, spend in money); pay-as-you-go flag when returned. | Your Firefox login to admin.mistral.ai (session cookie, read-only); `MISTRAL_SESSION_COOKIE` fallback. |
 | **OpenDesign** *(off by default)* | Coding-plan 5-hour and weekly credit windows; plan tier and wallet balance. | Your Firefox login to open-design.ai (session cookie, read-only); `OPENDESIGN_COOKIE` fallback. |
-| **Muse Code** *(off by default)* | Current and weekly subscription quota percentages and resets, plus plan tier when returned. | Your Firefox `dev.meta.ai` login (`llama_dev_sess`, read-only); `MUSE_SESSION_COOKIE` fallback. |
+| **Muse Code** *(off by default)* | Current (typically 5-hour) and weekly subscription quota percentages and resets, plus plan tier when returned. | Your Firefox `dev.meta.ai` login (`llama_dev_sess`, read-only); `MUSE_SESSION_COOKIE` fallback. |
 
 **Mistral, OpenDesign, and Muse Code read your browser login.** Kuota copies
 Firefox's cookie store (newest profile) into a private temp directory, reads only
 the site's session cookie, and deletes the copy. Cookies are used only for the
-provider requests and never stored or refreshed. Enable these providers in
+provider requests and never persisted by Kuota or refreshed. Enable these providers in
 Settings → Providers; Firefox discovery requires system `sqlite3`. The fallback
 environment variable contains the full Cookie header and is used when no
 browser session is available; never paste it into an issue or screenshot.
 
-Muse reads only the teams and subscription-quota endpoints; it does not mint
-API keys. With multiple teams, it accepts only an unambiguous quota among at
-most five teams; otherwise it reports an error. Team identifiers stay private.
-Its weighted quota amounts are used to calculate percentages, not shown as
-integer counts.
+Muse reads the teams and subscription-quota endpoints without minting API keys.
+If multiple teams have ambiguous quotas, it reports an error; team IDs remain
+private. Weighted quota amounts are used to calculate percentages.
 
 **Provider limits matter:** CommandCode exposes monthly credit allowances, not a
 monthly-used total; Kuota therefore has no monthly utilization window for it.
@@ -229,11 +230,9 @@ Disabling all providers leaves the empty view and launches no collector; it does
 not create a fresh observation. Re-enabling a provider requests a refresh.
 Reordering providers or changing appearance does not trigger collection.
 
-Work already launched while a provider was enabled may finish. Selection changes
-clear the old snapshot and discard that in-flight result, then refresh only the
-latest selection once the existing run finishes or reaches its deadline. Multiple
-widget instances may select different subsets; cached records for other
-instances are preserved on disk but excluded from the current response.
+An in-flight collection may finish after a selection change, but its result is
+discarded and only the latest selection is refreshed. Multiple widget instances
+can select different providers without losing each other's cached records.
 
 ## Troubleshooting
 
@@ -242,8 +241,9 @@ requests, refreshing credentials, or printing credential values. A successful
 local credential check does not prove that the provider will accept it.
 Firefox checks use the collector's private temporary cookie-database copy,
 including its WAL, and remove it afterward. Unconfigured providers are
-informational; doctor exits nonzero for local safety or environment problems.
-The caches retain successful observations, not the latest failed refresh.
+informational; doctor can exit nonzero for local safety or environment problems
+or a non-OK cached observation. Caches retain successful observations, not the
+latest failed refresh.
 
 | Symptom | Check |
 |---|---|
@@ -251,7 +251,7 @@ The caches retain successful observations, not the latest failed refresh.
 | `auth-needed` | Check the correct credential source for that provider and sign in again. Do not paste the auth file into a bug report. |
 | Mistral/OpenDesign/Muse `auth-needed` | Sign in to admin.mistral.ai, open-design.ai, or dev.meta.ai in Firefox (the most recently used profile), then refresh. Other browsers aren't read; use the cookie env fallback instead. |
 | Cursor login appears stale | Confirm local Cursor login and `/usr/bin/sqlite3`. Kuota reads committed WAL updates; check DB/WAL/SHM access as described below. |
-| `stale` | Last successful data is retained. Re-login will not help unless the state is `auth-needed`; check for endpoint drift. Claude may be in rate-limit backoff, which repeated Refresh clicks do not override. |
+| `stale` | Last successful data is retained after a failed refresh. Check for endpoint changes or temporary failures; Claude may be in rate-limit backoff, which repeated Refresh clicks do not override. |
 | `error` | A provider may be unreachable or have changed its response; also check fixed runtime paths and the trusted local cache directory. Other providers can still update. |
 | Settings seem ignored | Reload after adding new config keys. Invalid values are sanitized to safe defaults; “Icons only” intentionally keeps the usage value. |
 | Build has no `.plasmoid` file | Install `zip` and resolve any compiler/checker/zip failure, then rebuild. An unpacked directory alone is not a successful build. |
@@ -264,16 +264,10 @@ Kuota opens `~/.config/Cursor/User/globalStorage/state.vscdb` (then the lowercas
 database is immutable. This includes committed updates in an open WAL. Kuota
 does not copy, checkpoint, update, or persist the database or session token.
 
-WAL access can require readable `-wal`/`-shm` sidecars and SQLite read-lock
-coordination. SHM lock bookkeeping is not promised to remain byte-identical;
-missing sidecars in a non-writable directory or unreadable files may prevent
-a safe read. Ordinary missing, busy, unreadable, or malformed local state still
-allows `CURSOR_SESSION_TOKEN` fallback. Cancellation, a two-second sqlite child
-deadline, or more than 64 KiB on either output stream stops discovery and does
-not proceed to another candidate, environment fallback, or provider request.
-Failures remain value-free. Do not attach databases, sidecars, or tokens to
-bug reports. Synthetic WAL tests cover freshness; a real-account re-login smoke
-is a separate, explicitly approved check.
+SQLite may need readable `-wal`/`-shm` sidecars and read-lock coordination.
+Missing or unreadable local state can use `CURSOR_SESSION_TOKEN` as a fallback;
+cancellation or resource limits stop discovery instead. Never attach databases,
+sidecars, or tokens to bug reports.
 
 ## Development
 

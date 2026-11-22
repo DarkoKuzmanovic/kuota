@@ -8,7 +8,12 @@ implement them. [PLAN.md](PLAN.md) records milestone gates;
 
 - KDE Plasma 6 panel and desktop views, appearance settings, and a standalone,
   short-lived Node collector.
-- Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, CommandCode, Mistral (opt-in), and OpenDesign (opt-in) adapters.
+- Claude, Codex, Grok, Kimi, Cursor, OpenCode Go, CommandCode, Mistral,
+  OpenDesign, and Muse Code adapters (the last three are opt-in).
+- The All overview with provider selection and elapsed-time ticks where
+  supported ([#9](https://github.com/DarkoKuzmanovic/kuota/issues/9)).
+- Offline `kuota doctor` local diagnostics
+  ([#8](https://github.com/DarkoKuzmanovic/kuota/issues/8)).
 - Concurrent collection, last-known-good data, Claude backoff, Codex OAuth
   refresh, strict snapshot validation, and credential-safety tests.
 
@@ -24,10 +29,10 @@ not mean that a corresponding tagged/package release has been published.
 2. **Reduce maintenance duplication.** Establish provider/config consistency
    checks, share genuinely identical transport primitives, and remove obsolete
    scaffolding without weakening boundary validation.
-3. **Make failures understandable.** Add safe local diagnostics, freshness and
-   retry information, and deliberate control over which providers are polled.
-4. **Add decision support, not more decoration.** Consider a headroom overview
-   and opt-in usage/reset notifications based only on real provider windows.
+3. **Make failures understandable.** Build on local diagnostics and deliberate
+   provider selection with clearer freshness and retry information.
+4. **Add decision support, not more decoration.** Consider opt-in usage/reset
+   notifications based only on real provider windows.
 
 The [project review](docs/reviews/2026-09-08-project-review.md) ranks these
 suggestions, links the scoped issues, and distinguishes measured defects from
