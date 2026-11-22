@@ -1655,19 +1655,19 @@ deferral below; no release or live-account test is approved by this milestone.
 
 **Counters:** reviews: 0 · fix-cycles: 0 · oracle: 0 · direct-edits: 1.
 
-- [ ] **M19.1 — Credential discovery and bounded team/quota fetch**
+- [x] **M19.1 — Credential discovery and bounded team/quota fetch**
   Reuse the Firefox session reader; enforce opt-in no-I/O, safe team IDs, zero-team
   error, direct single-team fetch, and at most five probes for multiple teams.
   Reject more than five teams, ambiguous results and all probe errors; classify
   auth rejection separately. Never mint keys or expose identifiers or cookies.
-- [ ] **M19.2 — Normalize and register Muse**
+- [x] **M19.2 — Normalize and register Muse**
   Add `current` and `weekly` windows, finite weighted ratios and epoch resets,
   current-duration label and optional tier; omit weighted used/limit amounts.
   Extend schema, runtime validation, registry and common cache integration.
-- [ ] **M19.3 — Integrate Plasma and documentation**
+- [x] **M19.3 — Integrate Plasma and documentation**
   Add provider catalog, default-off settings, window selection, namespaced
   details, display and QML validation. Update contract and user guidance.
-- [ ] **M19.4 — Synthetic coverage and independent review**
+- [x] **M19.4 — Synthetic coverage and independent review**
   Cover credentials and cleanup, disabled no-I/O, team selection/probe limits and
   failures, live-shaped fetch→parser integration, normalization, secret safety,
   stale/auth-needed separation, QML integration and default-off behavior.
