@@ -60,7 +60,7 @@ bar.
 
 ![Codex detail view with synthetic usage and elapsed-time ticks](docs/assets/kuota-detail-codex.png)
 
-![Compact Kuota panel summary with synthetic usage](docs/assets/kuota-panel-strip.png)
+![Compact Kuota panel with synthetic usage and 5-pixel icon-to-label and label-to-value spacing](docs/assets/kuota-panel-strip.png)
 
 ## Project status
 
