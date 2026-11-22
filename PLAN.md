@@ -1,7 +1,7 @@
 # Kuota Project Plan
 
 **Source of truth:** `docs/specs/2026-07-10-kuota-design.md` and owner-approved provider amendments, including `docs/specs/2026-11-22-muse-provider-design.md`.  
-**Plan status (2026-11-22):** v2.1.1 released 2026-11-22 (Mistral moved to the tRPC budget procedure; stale-data fix). v2.1.0 (2026-11-06) added Mistral + OpenDesign (M18, gate G-18 passed); M17 standalone credentials shipped as v2.0.0 (2026-10-02). Muse Code (M19) is approved and in progress, with G-19 open. Open GitHub issues: #8 (offline doctor) and #9 (headroom overview). Current state: *Handoff Block*.
+**Plan status (2026-11-22):** v2.2.0 released 2026-11-22 (M19 Muse, M20 overview, M21 doctor). v2.1.1 released 2026-11-22 (Mistral moved to the tRPC budget procedure; stale-data fix). v2.1.0 (2026-11-06) added Mistral + OpenDesign (M18, gate G-18 passed); M17 standalone credentials shipped as v2.0.0 (2026-10-02). Issues #8 (offline doctor) and #9 (headroom overview) are resolved by this release. Current state: *Handoff Block*.
 **Scope:** Plasma 6 widget, bundled short-lived Node collector, configuration, tests, local lifecycle scripts, documentation, and a package artifact for Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral (opt-in), OpenDesign (opt-in), and Muse Code (opt-in). Umans was supported in early V1 milestones (later removed 2026-08-02; see `docs/specs/2026-08-02-remove-umans-provider-design.md`).
 
 ## Approved Decisions
@@ -522,10 +522,10 @@
 
 *Refreshed 2026-11-22. It replaces the 2026-09-25 block; earlier handoff notes are historical, and the Gate Log is the evidence of record.*
 
-- **Released:** v2.1.1 (2026-11-22) — Mistral stale-data fix: the collector reads the admin dashboard's tRPC `billing.budget` procedure instead of the retired REST budget path. v2.1.0 (2026-11-06) added the Mistral + OpenDesign providers (M18, gate G-18 passed). M17 standalone credentials (drop Pi auth, `kuota login`) shipped as v2.0.0 (2026-10-02).
+- **Released:** v2.2.0 (2026-11-22) — M19 Muse Code provider (opt-in), M20 headroom overview tab + popup redesign, M21 offline `kuota doctor`, plus G-RL follow-up cleanups. v2.1.1 (2026-11-22) — Mistral stale-data fix: the collector reads the admin dashboard's tRPC `billing.budget` procedure instead of the retired REST budget path. v2.1.0 (2026-11-06) added the Mistral + OpenDesign providers (M18, gate G-18 passed). M17 standalone credentials (drop Pi auth, `kuota login`) shipped as v2.0.0 (2026-10-02).
 - **Providers (ten, including M19):** Claude, Codex, Grok, Kimi, Cursor, OpenCode, CommandCode, Mistral (opt-in), OpenDesign (opt-in), Muse Code (opt-in).
-- **Open GitHub issues:** only #8 ([P2] offline doctor diagnostics) and #9 ([P3] reset-aware headroom overview). All others are closed.
-- **In progress:** Muse Code provider (M19; superseding the former deferral). The headroom overview tab + popup redesign (#9), offline `kuota doctor` (#8), and remaining G-RL follow-ups each need their own scope; none is a regression.
+- **Open GitHub issues:** none open. Issues #8 ([P2] offline doctor diagnostics) and #9 ([P3] reset-aware headroom overview) are resolved by v2.2.0; all others are closed.
+- **In progress:** none pending for this release. Muse Code provider (M19), the headroom overview tab + popup redesign (#9, M20), offline `kuota doctor` (#8, M21), and the remaining G-RL follow-ups shipped in v2.2.0.
 - **Remote:** `origin` = `github.com/DarkoKuzmanovic/kuota` (public). Push, PR, release, and KDE Store publication each need explicit owner approval.
 - **Executor rules:** Work milestone-by-milestone. Write tests first. Keep secrets out of all artifacts. Run gates sequentially under a synthetic `HOME`. Stop on contract/security ambiguity rather than guessing.
 - **Counter protocol:** Increment `reviews` per completed review pass, `fix-cycles` per review-driven correction round, `oracle` per formal high-risk advisory consultation, and `direct-edits` per implementation edit made outside the assigned execution workflow.

@@ -17,7 +17,7 @@ implement them. [PLAN.md](PLAN.md) records milestone gates;
 - Concurrent collection, last-known-good data, Claude backoff, Codex OAuth
   refresh, strict snapshot validation, and credential-safety tests.
 
-Package metadata is **2.1.1** (latest release 2026-11-22; see
+Package metadata is **2.2.0** (latest release 2026-11-22; see
 [CHANGELOG.md](CHANGELOG.md)). Public source availability does
 not mean that a corresponding tagged/package release has been published.
 

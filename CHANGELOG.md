@@ -13,24 +13,31 @@ left unread on disk (see **Removed** under [1.3.0]).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-11-22
+
 ### Added
 
 - **Offline `kuota doctor` diagnostics:** local provider credential-source
   classifications, cache/backoff context, and runtime and permission checks,
   without provider requests, token refreshes, or credential output.
-- **Muse Code provider** (off by default; enable in Settings → Providers).
+- **Muse Code provider** (opt-in; enable in Settings → Providers).
   Shows current and weekly subscription quota percentages and resets, and the
   plan tier when available. Uses the read-only Firefox `dev.meta.ai` session
   cookie, with `MUSE_SESSION_COOKIE` fallback; no API key is minted.
-- **All overview:** compare each enabled provider's tightest reported usage
-  window and its reset in configured order, with explicit state badges.
-- **Elapsed-time tick:** detail bars mark elapsed time only when the provider
-  reports both the window duration and its reset time.
+- **All overview tab:** compare each enabled provider's tightest reported
+  usage window and its reset in configured order, with explicit state badges.
+- **Elapsed-time pace tick:** detail bars mark elapsed time only when the
+  provider reports both the window duration and its reset time.
 
 ### Changed
 
 - The full popup uses more compact detail cards and distinguishes having no
   providers enabled from waiting for usage data.
+
+### Internal
+
+- G-RL follow-up cleanups: selection state, window loops, and artifact catalog
+  alignment, plus canonical selection test updates for the Muse provider.
 
 ## [2.1.1] - 2026-11-22
 
